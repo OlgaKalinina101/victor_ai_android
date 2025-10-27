@@ -58,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,8 +97,16 @@ fun PlaylistScreen(
     val keepPlaylistOpen = editingTrack != null
 
     val playlistSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
+
+    // 🔥 Suspend функция для правильного закрытия EditSheet
+    suspend fun closeEditSheet() {
+        editSheetState.hide()  // Сначала анимация закрытия
+        editingTrack = null    // Потом сброс состояния
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // TopBar как обычный Row
@@ -133,7 +143,7 @@ fun PlaylistScreen(
     }
 
     // Плейлист
-    if (showPlaylistSheet || keepPlaylistOpen) {  // 🔥 Добавили keepPlaylistOpen
+    if (showPlaylistSheet) {  // 🔥 Убрали || keepPlaylistOpen - он нужен только в onDismissRequest
         ModalBottomSheet(
             onDismissRequest = {
                 if (!keepPlaylistOpen) {  // 🔥 Блокируем закрытие если EditSheet открыт
@@ -160,12 +170,6 @@ fun PlaylistScreen(
                     }
                 },
                 onSeek = { position -> viewModel.seekTo(position) },
-                onTrackClick = { track ->
-                    // 🔥 Это больше не нужно
-                    // keepPlaylistOpen = true
-                    // showEditSheet = track
-                    // println(...)
-                },
                 onEnergyChange = { trackId, energy ->
                     viewModel.updateDescription(trackId, energy, null)
                 },
@@ -173,8 +177,27 @@ fun PlaylistScreen(
                     viewModel.updateDescription(trackId, null, temp)
                 },
                 viewModel = viewModel,
-                editingTrack = editingTrack,  // 🔥 НОВОЕ: передаём состояние
-                onEditTrack = { track -> editingTrack = track }  // 🔥 НОВОЕ: передаём сеттер
+                onEditTrack = { track -> editingTrack = track }  // 🔥 Открываем отдельный sheet
+            )
+        }
+    }
+
+    // 🔥 НОВОЕ: Отдельный ModalBottomSheet для редактирования
+    if (editingTrack != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
+            },
+            sheetState = editSheetState,
+            containerColor = Color(0xFF2B2929),
+            modifier = Modifier.heightIn(max = screenHeight * 7 / 8)
+        ) {
+            EditTrackMetadataSheet(
+                track = editingTrack!!,
+                viewModel = viewModel,
+                onDismiss = {
+                    scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
+                }
             )
         }
     }
@@ -190,13 +213,11 @@ fun PlaylistSheet(
     currentPosition: Float,
     onPlayPause: (Int?) -> Unit,
     onSeek: (Float) -> Unit,
-    onTrackClick: (Track) -> Unit,
     onEnergyChange: (String, String?) -> Unit,
     onTemperatureChange: (String, String?) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PlaylistViewModel,  // 🔥 Указываем ТИП
-    editingTrack: Track?,  // 🔥 НОВОЕ: состояние редактирования из родителя
-    onEditTrack: (Track?) -> Unit  // 🔥 НОВОЕ: колбэк для изменения состояния
+    viewModel: PlaylistViewModel,
+    onEditTrack: (Track?) -> Unit  // 🔥 Колбэк для открытия редактирования
 ) {
     val grayText = Color(0xFFE0E0E0)
     val barEmpty = Color(0xFF555555)
@@ -242,15 +263,14 @@ fun PlaylistSheet(
         }
     }
 
-    if (editingTrack == null) {
-        // 🔥 Экран списка треков
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .nestedScroll(rememberNestedScrollInteropConnection()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    // 🔥 Всегда показываем список треков
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .nestedScroll(rememberNestedScrollInteropConnection()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Text(
             text = "Плейлист",
             fontSize = 20.sp,
@@ -458,15 +478,8 @@ fun PlaylistSheet(
                 }
             }
         }
-        }
-    } else {
-        // 🔥 Экран редактирования
-        EditTrackMetadataSheet(
-            track = editingTrack!!,  // уже проверили что не null
-            viewModel = viewModel,
-            onDismiss = { onEditTrack(null) }  // 🔥 Используем колбэк из родителя
-        )
-    }}
+    }
+}
 
 
 @Composable
