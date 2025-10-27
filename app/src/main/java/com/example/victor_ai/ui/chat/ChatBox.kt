@@ -5,6 +5,9 @@ import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -403,29 +406,51 @@ fun TypingIndicator() {
 @Composable
 fun TypingDot(delay: Int) {
     var alpha by remember { mutableStateOf(0.3f) }
+    var scale by remember { mutableStateOf(0.8f) }
 
+    // Анимация прозрачности
     LaunchedEffect(Unit) {
         while (true) {
             animate(
                 initialValue = 0.3f,
                 targetValue = 1f,
-                animationSpec = tween(600, delayMillis = delay)
+                animationSpec = tween(500, delayMillis = delay)
             ) { value, _ ->
                 alpha = value
             }
             animate(
                 initialValue = 1f,
                 targetValue = 0.3f,
-                animationSpec = tween(600)
+                animationSpec = tween(500)
             ) { value, _ ->
                 alpha = value
             }
         }
     }
 
+    // Анимация масштаба
+    LaunchedEffect(Unit) {
+        while (true) {
+            animate(
+                initialValue = 0.8f,
+                targetValue = 1.2f,
+                animationSpec = tween(500, delayMillis = delay)
+            ) { value, _ ->
+                scale = value
+            }
+            animate(
+                initialValue = 1.2f,
+                targetValue = 0.8f,
+                animationSpec = tween(500)
+            ) { value, _ ->
+                scale = value
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
-            .size(8.dp)
+            .size((8 * scale).dp)
             .background(
                 Color.White.copy(alpha = alpha),
                 CircleShape
