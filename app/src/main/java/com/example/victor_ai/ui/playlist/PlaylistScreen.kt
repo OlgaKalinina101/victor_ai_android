@@ -269,6 +269,11 @@ fun PlaylistSheet(
         }
     }
 
+    // 🔥 НОВОЕ: Синхронизируем фильтры с ViewModel для автовоспроизведения
+    LaunchedEffect(energyFilter, temperatureFilter, sortBy) {
+        viewModel.setFilters(energyFilter, temperatureFilter, sortBy)
+    }
+
     // 🔥 Всегда показываем список треков
     Column(
         modifier = modifier

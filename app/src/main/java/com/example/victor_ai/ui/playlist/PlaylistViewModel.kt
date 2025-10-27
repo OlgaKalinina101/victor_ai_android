@@ -36,11 +36,20 @@ class PlaylistViewModel(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    // 🔥 НОВОЕ: фильтры для автовоспроизведения
+    private val _energyFilter = MutableStateFlow<String?>(null)
+    private val _temperatureFilter = MutableStateFlow<String?>(null)
+    private val _sortBy = MutableStateFlow("recent")
+
     private val audioPlayer = AudioPlayer()
 
     init {
         loadTracks()
         startPositionUpdater()
+        // 🔥 Устанавливаем callback для автовоспроизведения следующего трека
+        audioPlayer.setOnCompletionListener {
+            playNextTrack()
+        }
     }
 
     fun loadTracks() {
@@ -110,6 +119,50 @@ class PlaylistViewModel(
         audioPlayer.stop()
         _currentPlayingTrackId.value = null
         _isPlaying.value = false  // ← ДОБАВЛЕНО
+    }
+
+    // 🔥 НОВОЕ: Установка фильтров
+    fun setFilters(energy: String?, temperature: String?, sortBy: String) {
+        _energyFilter.value = energy
+        _temperatureFilter.value = temperature
+        _sortBy.value = sortBy
+    }
+
+    // 🔥 НОВОЕ: Получение отфильтрованного списка треков
+    private fun getFilteredTracks(): List<Track> {
+        return _tracks.value
+            .filter { track ->
+                (_energyFilter.value == null || track.energyDescription == _energyFilter.value) &&
+                (_temperatureFilter.value == null || track.temperatureDescription == _temperatureFilter.value)
+            }
+            .let { list ->
+                when (_sortBy.value) {
+                    "title" -> list.sortedBy { it.title }
+                    "artist" -> list.sortedBy { it.artist }
+                    "duration" -> list.sortedByDescending { it.duration }
+                    else -> list.sortedByDescending { it.id } // recent
+                }
+            }
+    }
+
+    // 🔥 НОВОЕ: Автовоспроизведение следующего трека
+    private fun playNextTrack() {
+        val filteredTracks = getFilteredTracks()
+        if (filteredTracks.isEmpty()) return
+
+        val currentId = _currentPlayingTrackId.value
+        val currentIndex = filteredTracks.indexOfFirst { it.id == currentId }
+
+        // Выбираем следующий трек, если текущий не найден - начинаем с начала
+        val nextIndex = if (currentIndex == -1) {
+            0
+        } else {
+            (currentIndex + 1) % filteredTracks.size  // По кругу
+        }
+
+        val nextTrack = filteredTracks[nextIndex]
+        Log.d("PlaylistViewModel", "Auto-playing next track: ${nextTrack.title}")
+        playTrack(nextTrack.id)
     }
 
     override fun onCleared() {

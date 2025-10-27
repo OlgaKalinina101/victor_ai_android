@@ -11,6 +11,11 @@ import java.io.FileOutputStream
 class AudioPlayer {
     private var mediaPlayer: MediaPlayer? = null
     private var currentTempFile: File? = null
+    private var onCompletionCallback: (() -> Unit)? = null  // 🔥 Callback для окончания трека
+
+    fun setOnCompletionListener(callback: () -> Unit) {
+        onCompletionCallback = callback
+    }
 
     fun getCurrentPosition(): Int {
         return mediaPlayer?.currentPosition ?: 0
@@ -42,6 +47,7 @@ class AudioPlayer {
                 }
                 setOnCompletionListener {
                     Log.d("AudioPlayer", "Playback completed")
+                    onCompletionCallback?.invoke()  // 🔥 Вызываем callback
                 }
                 prepareAsync()  // ← стримит и готовит в фоне
             }
