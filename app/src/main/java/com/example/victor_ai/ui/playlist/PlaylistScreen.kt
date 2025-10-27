@@ -705,6 +705,7 @@ fun EditTrackMetadataSheet(
     var selectedTemperature by remember { mutableStateOf(track.temperatureDescription ?: "Умеренная") }
     var energyExpanded by remember { mutableStateOf(false) }
     var temperatureExpanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()  // 🔥 Добавили scope для задержки
 
     // 🔥 Убрали ModalBottomSheet — оставили только содержимое
     Column(
@@ -872,7 +873,11 @@ fun EditTrackMetadataSheet(
                             energy = selectedEnergy,
                             temperature = selectedTemperature
                         )
-                        onDismiss()
+                        // 🔥 Добавили задержку чтобы recomposition успел завершиться
+                        scope.launch {
+                            delay(150)  // Ждём завершения recomposition
+                            onDismiss()
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE0E0E0),
