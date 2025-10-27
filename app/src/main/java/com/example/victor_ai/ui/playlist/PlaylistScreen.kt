@@ -105,8 +105,11 @@ fun PlaylistScreen(
 
     // 🔥 Suspend функция для правильного закрытия EditSheet
     suspend fun closeEditSheet() {
+        println("🔥 CLOSE EDIT SHEET START")
         editSheetState.hide()  // Сначала анимация закрытия
+        println("🔥 CLOSE EDIT SHEET: animation finished")
         editingTrack = null    // Потом сброс состояния
+        println("🔥 CLOSE EDIT SHEET: editingTrack = null")
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -147,9 +150,12 @@ fun PlaylistScreen(
     if (showPlaylistSheet) {  // 🔥 Убрали || keepPlaylistOpen - он нужен только в onDismissRequest
         ModalBottomSheet(
             onDismissRequest = {
+                println("🔥 DISMISS REQUEST: keepPlaylistOpen=$keepPlaylistOpen, editingTrack=$editingTrack")
                 if (!keepPlaylistOpen) {  // 🔥 Блокируем закрытие если EditSheet открыт
                     showPlaylistSheet = false
-                    println("PlaylistSheet dismissed")
+                    println("🔥 PLAYLIST CLOSED")
+                } else {
+                    println("🔥 PLAYLIST DISMISS BLOCKED")
                 }
             },
             sheetState = playlistSheetState,
@@ -178,7 +184,10 @@ fun PlaylistScreen(
                     viewModel.updateDescription(trackId, null, temp)
                 },
                 viewModel = viewModel,
-                onEditTrack = { track -> editingTrack = track }  // 🔥 Открываем отдельный sheet
+                onEditTrack = { track ->
+                    println("🔥 EDIT TRACK: track=$track")
+                    editingTrack = track
+                }  // 🔥 Открываем отдельный sheet
             )
         }
     }
@@ -187,6 +196,7 @@ fun PlaylistScreen(
     if (editingTrack != null) {
         ModalBottomSheet(
             onDismissRequest = {
+                println("🔥 EDIT SHEET DISMISS REQUEST")
                 scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
             },
             sheetState = editSheetState,
@@ -197,6 +207,7 @@ fun PlaylistScreen(
                 track = editingTrack!!,
                 viewModel = viewModel,
                 onDismiss = {
+                    println("🔥 EDIT SHEET ON DISMISS CALLED")
                     scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
                 }
             )
@@ -869,14 +880,18 @@ fun EditTrackMetadataSheet(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
+                        println("🔥 SAVE BUTTON CLICKED")
                         viewModel.updateDescription(
                             trackId = track.id.toString(),
                             energy = selectedEnergy,
                             temperature = selectedTemperature
                         )
+                        println("🔥 UPDATE DESCRIPTION CALLED")
                         // 🔥 Увеличили задержку до 500ms чтобы recomposition точно успел завершиться
                         scope.launch {
+                            println("🔥 DELAY 500ms START")
                             delay(500)
+                            println("🔥 DELAY 500ms END, calling onDismiss")
                             onDismiss()
                         }
                     },
