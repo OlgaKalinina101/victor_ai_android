@@ -58,7 +58,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.font.Font
@@ -75,8 +75,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,19 +100,8 @@ fun PlaylistScreen(
     val keepPlaylistOpen = editingTrackId != null
 
     val playlistSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
-
-    // 🔥 Suspend функция для правильного закрытия EditSheet
-    suspend fun closeEditSheet() {
-        println("🔥 CLOSE EDIT SHEET START")
-        editSheetState.hide()  // Сначала анимация закрытия
-        println("🔥 CLOSE EDIT SHEET: animation finished")
-        editingTrackId = null    // Потом сброс состояния
-        println("🔥 CLOSE EDIT SHEET: editingTrackId = null")
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // TopBar как обычный Row
@@ -151,11 +138,11 @@ fun PlaylistScreen(
     }
 
     // Плейлист
-    if (showPlaylistSheet) {  // 🔥 Убрали || keepPlaylistOpen - он нужен только в onDismissRequest
+    if (showPlaylistSheet) {
         ModalBottomSheet(
             onDismissRequest = {
-                println("🔥 DISMISS REQUEST: keepPlaylistOpen=$keepPlaylistOpen, editingTrack=$editingTrack")
-                if (!keepPlaylistOpen) {  // 🔥 Блокируем закрытие если EditSheet открыт
+                println("🔥 DISMISS REQUEST: keepPlaylistOpen=$keepPlaylistOpen, editingTrackId=$editingTrackId")
+                if (!keepPlaylistOpen) {
                     showPlaylistSheet = false
                     println("🔥 PLAYLIST CLOSED")
                 } else {
@@ -166,55 +153,58 @@ fun PlaylistScreen(
             containerColor = Color(0xFF2B2929),
             modifier = Modifier.heightIn(max = screenHeight * 7 / 8)
         ) {
-            PlaylistSheet(
-                tracks = tracks,
-                loading = isLoading,
-                currentPlayingTrackId = currentPlayingTrackId.toString(),
-                isPlaying = isPlaying,
-                currentPosition = currentPosition,
-                onPlayPause = { trackId ->
-                    if (trackId == null) return@PlaylistSheet
-                    if (currentPlayingTrackId == trackId) {
-                        if (isPlaying) viewModel.pauseTrack() else viewModel.resumeTrack()
-                    } else {
-                        viewModel.playTrack(trackId)
+            // 🔥 Box для overlay редактирования поверх плейлиста
+            Box(modifier = Modifier.fillMaxSize()) {
+                PlaylistSheet(
+                    tracks = tracks,
+                    loading = isLoading,
+                    currentPlayingTrackId = currentPlayingTrackId.toString(),
+                    isPlaying = isPlaying,
+                    currentPosition = currentPosition,
+                    onPlayPause = { trackId ->
+                        if (trackId == null) return@PlaylistSheet
+                        if (currentPlayingTrackId == trackId) {
+                            if (isPlaying) viewModel.pauseTrack() else viewModel.resumeTrack()
+                        } else {
+                            viewModel.playTrack(trackId)
+                        }
+                    },
+                    onSeek = { position -> viewModel.seekTo(position) },
+                    onEnergyChange = { trackId, energy ->
+                        viewModel.updateDescription(trackId, energy, null)
+                    },
+                    onTemperatureChange = { trackId, temp ->
+                        viewModel.updateDescription(trackId, null, temp)
+                    },
+                    viewModel = viewModel,
+                    onEditTrack = { track ->
+                        println("🔥 EDIT TRACK: track=$track")
+                        editingTrackId = track.id
                     }
-                },
-                onSeek = { position -> viewModel.seekTo(position) },
-                onEnergyChange = { trackId, energy ->
-                    viewModel.updateDescription(trackId, energy, null)
-                },
-                onTemperatureChange = { trackId, temp ->
-                    viewModel.updateDescription(trackId, null, temp)
-                },
-                viewModel = viewModel,
-                onEditTrack = { track ->
-                    println("🔥 EDIT TRACK: track=$track")
-                    editingTrackId = track.id
-                }  // 🔥 Открываем отдельный sheet
-            )
-        }
-    }
+                )
 
-    // 🔥 НОВОЕ: Отдельный ModalBottomSheet для редактирования
-    if (editingTrack != null) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                println("🔥 EDIT SHEET DISMISS REQUEST")
-                scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
-            },
-            sheetState = editSheetState,
-            containerColor = Color(0xFF2B2929),
-            modifier = Modifier.heightIn(max = screenHeight * 7 / 8)
-        ) {
-            EditTrackMetadataSheet(
-                track = editingTrack!!,
-                viewModel = viewModel,
-                onDismiss = {
-                    println("🔥 EDIT SHEET ON DISMISS CALLED")
-                    scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
+                // 🔥 НОВОЕ: EditSheet как overlay поверх списка
+                if (editingTrack != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF2B2929))
+                            .pointerInput(Unit) {
+                                // Блокируем все клики чтобы они не проваливались к плейлисту
+                                detectTapGestures { }
+                            }
+                    ) {
+                        EditTrackMetadataSheet(
+                            track = editingTrack!!,
+                            viewModel = viewModel,
+                            onDismiss = {
+                                println("🔥 EDIT SHEET ON DISMISS CALLED")
+                                editingTrackId = null
+                            }
+                        )
+                    }
                 }
-            )
+            }
         }
     }
 }
@@ -721,7 +711,6 @@ fun EditTrackMetadataSheet(
     var selectedTemperature by remember { mutableStateOf(track.temperatureDescription ?: "Умеренная") }
     var energyExpanded by remember { mutableStateOf(false) }
     var temperatureExpanded by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()  // 🔥 Добавили scope для задержки
 
     // 🔥 Убрали ModalBottomSheet — оставили только содержимое
     Column(
@@ -891,13 +880,7 @@ fun EditTrackMetadataSheet(
                             temperature = selectedTemperature
                         )
                         println("🔥 UPDATE DESCRIPTION CALLED")
-                        // 🔥 Увеличили задержку до 500ms чтобы recomposition точно успел завершиться
-                        scope.launch {
-                            println("🔥 DELAY 500ms START")
-                            delay(500)
-                            println("🔥 DELAY 500ms END, calling onDismiss")
-                            onDismiss()
-                        }
+                        onDismiss()  // 🔥 Теперь можно закрывать сразу - нет конфликта sheet'ов
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE0E0E0),
