@@ -88,11 +88,11 @@ fun PlaylistScreen(
     val currentPosition by viewModel.currentPosition.collectAsState()
     var showPlaylistSheet by remember { mutableStateOf(false) }
 
-    // 🔥 Новое состояние для защиты плейлиста
-    var keepPlaylistOpen by remember { mutableStateOf(false) }
-
-    // 🔥 Новое: состояние редактирования внутри
+    // 🔥 Состояние редактирования трека
     var editingTrack by remember { mutableStateOf<Track?>(null) }
+
+    // 🔥 Автоматически защищаем плейлист когда открыто редактирование
+    val keepPlaylistOpen = editingTrack != null
 
     val playlistSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val configuration = LocalConfiguration.current
@@ -172,7 +172,9 @@ fun PlaylistScreen(
                 onTemperatureChange = { trackId, temp ->
                     viewModel.updateDescription(trackId, null, temp)
                 },
-                viewModel = viewModel
+                viewModel = viewModel,
+                editingTrack = editingTrack,  // 🔥 НОВОЕ: передаём состояние
+                onEditTrack = { track -> editingTrack = track }  // 🔥 НОВОЕ: передаём сеттер
             )
         }
     }
@@ -192,7 +194,9 @@ fun PlaylistSheet(
     onEnergyChange: (String, String?) -> Unit,
     onTemperatureChange: (String, String?) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PlaylistViewModel  // 🔥 Указываем ТИП
+    viewModel: PlaylistViewModel,  // 🔥 Указываем ТИП
+    editingTrack: Track?,  // 🔥 НОВОЕ: состояние редактирования из родителя
+    onEditTrack: (Track?) -> Unit  // 🔥 НОВОЕ: колбэк для изменения состояния
 ) {
     val grayText = Color(0xFFE0E0E0)
     val barEmpty = Color(0xFF555555)
@@ -228,8 +232,6 @@ fun PlaylistSheet(
                 else -> list.sortedByDescending { it.id } // recent
             }
         }
-
-    var editingTrack by remember { mutableStateOf<Track?>(null) }
 
     // ← ДОБАВЛЕНО: текущий трек
     val currentTrack = tracks.firstOrNull { it.id.toString() == currentPlayingTrackId }
@@ -450,7 +452,7 @@ fun PlaylistSheet(
                         track = track,
                         isPlaying = currentPlayingTrackId == track.id.toString(),
                         onPlayPause = { onPlayPause(track.id) },
-                        onClick = { editingTrack = track },  // 🔥 Переключаем
+                        onClick = { onEditTrack(track) },  // 🔥 Используем колбэк из родителя
                         grayText = grayText
                     )
                 }
@@ -462,7 +464,7 @@ fun PlaylistSheet(
         EditTrackMetadataSheet(
             track = editingTrack!!,  // уже проверили что не null
             viewModel = viewModel,
-            onDismiss = { editingTrack = null }
+            onDismiss = { onEditTrack(null) }  // 🔥 Используем колбэк из родителя
         )
     }}
 
