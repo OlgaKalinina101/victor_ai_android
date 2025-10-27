@@ -58,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,8 +97,16 @@ fun PlaylistScreen(
     val keepPlaylistOpen = editingTrack != null
 
     val playlistSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
+
+    // 🔥 Suspend функция для правильного закрытия EditSheet
+    suspend fun closeEditSheet() {
+        editSheetState.hide()  // Сначала анимация закрытия
+        editingTrack = null    // Потом сброс состояния
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // TopBar как обычный Row
@@ -175,14 +185,19 @@ fun PlaylistScreen(
     // 🔥 НОВОЕ: Отдельный ModalBottomSheet для редактирования
     if (editingTrack != null) {
         ModalBottomSheet(
-            onDismissRequest = { editingTrack = null },
+            onDismissRequest = {
+                scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
+            },
+            sheetState = editSheetState,
             containerColor = Color(0xFF2B2929),
             modifier = Modifier.heightIn(max = screenHeight * 7 / 8)
         ) {
             EditTrackMetadataSheet(
                 track = editingTrack!!,
                 viewModel = viewModel,
-                onDismiss = { editingTrack = null }
+                onDismiss = {
+                    scope.launch { closeEditSheet() }  // 🔥 Закрываем с анимацией
+                }
             )
         }
     }
