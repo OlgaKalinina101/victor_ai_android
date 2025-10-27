@@ -1,0 +1,70 @@
+package com.example.victor_ai.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import com.example.victor_ai.model.ChatMessage
+import com.example.victor_ai.permissions.PermissionManager
+import com.example.victor_ai.ui.chat.ChatBox
+
+@Composable
+fun ChatScreen(
+    messages: List<ChatMessage>,
+    onSendMessage: (String) -> Unit,
+    onEditMessage: (Int, String) -> Unit, // 👈 добавляем новый параметр
+    onInitHistory: (List<ChatMessage>) -> Unit,
+    onClose: () -> Unit,
+    permissionManager: PermissionManager,
+    isListeningState: State<Boolean>,
+    onStopListening: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 🔹 Чат
+        ChatBox(
+            messages = messages,
+            onSendMessage = onSendMessage,
+            onEditMessage = onEditMessage, // 👈 пробрасываем в ChatBox
+            onInitHistory = onInitHistory,
+            visible = true,
+            isTyping = true
+        )
+
+        // 🔹 Прозрачная полоса сверху — тап/долгий тап
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+                .align(Alignment.TopCenter)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            println("❌ TAP -> закрываем чат")
+                            onClose()
+                        },
+                        onLongPress = {
+                            println("🎤 LONG TAP -> микрофон")
+                            permissionManager.requestMicrophonePermission()
+                        },
+                        onPress = {
+                            tryAwaitRelease()
+                            if (isListeningState.value) {
+                                onStopListening()
+                            }
+                        }
+                    )
+                }
+        )
+    }
+}

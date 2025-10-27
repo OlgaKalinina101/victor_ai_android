@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1047056430019",
+    "project_id": "victoraiproject",
+    "storage_bucket": "victoraiproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1047056430019:android:b3237d11ef900699000376",
+        "android_client_info": {
+          "package_name": "com.example.victor_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDnUxkZh11zuDprSB82i1Njk5YIeRRyaQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
