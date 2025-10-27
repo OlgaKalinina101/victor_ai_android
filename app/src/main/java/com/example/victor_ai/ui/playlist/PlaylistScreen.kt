@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.font.Font
@@ -873,9 +874,9 @@ fun EditTrackMetadataSheet(
                             energy = selectedEnergy,
                             temperature = selectedTemperature
                         )
-                        // 🔥 Добавили задержку чтобы recomposition успел завершиться
+                        // 🔥 Увеличили задержку до 500ms чтобы recomposition точно успел завершиться
                         scope.launch {
-                            delay(150)  // Ждём завершения recomposition
+                            delay(500)
                             onDismiss()
                         }
                     },
