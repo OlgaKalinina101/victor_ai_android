@@ -133,7 +133,7 @@ fun PlaylistScreen(
     }
 
     // Плейлист
-    if (showPlaylistSheet || keepPlaylistOpen) {  // 🔥 Добавили keepPlaylistOpen
+    if (showPlaylistSheet) {  // 🔥 Убрали || keepPlaylistOpen - он нужен только в onDismissRequest
         ModalBottomSheet(
             onDismissRequest = {
                 if (!keepPlaylistOpen) {  // 🔥 Блокируем закрытие если EditSheet открыт
