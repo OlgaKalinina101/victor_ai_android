@@ -179,7 +179,7 @@ fun PlaylistScreen(
                     viewModel = viewModel,
                     onEditTrack = { track ->
                         println("🔥 EDIT TRACK: track=$track")
-                        editingTrackId = track.id
+                        editingTrackId = track?.id
                     }
                 )
 
