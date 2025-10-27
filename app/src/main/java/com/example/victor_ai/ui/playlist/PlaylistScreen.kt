@@ -59,6 +59,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,13 +90,16 @@ fun PlaylistScreen(
     val currentPlayingTrackId by viewModel.currentPlayingTrackId.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
-    var showPlaylistSheet by remember { mutableStateOf(false) }
+    var showPlaylistSheet by rememberSaveable { mutableStateOf(false) }  // 🔥 Используем rememberSaveable для защиты от recomposition
 
-    // 🔥 Состояние редактирования трека
-    var editingTrack by remember { mutableStateOf<Track?>(null) }
+    // 🔥 Состояние редактирования трека - храним только ID для защиты от recomposition
+    var editingTrackId by rememberSaveable { mutableStateOf<Int?>(null) }
+
+    // 🔥 Получаем сам трек из списка по ID
+    val editingTrack = editingTrackId?.let { id -> tracks.firstOrNull { it.id == id } }
 
     // 🔥 Автоматически защищаем плейлист когда открыто редактирование
-    val keepPlaylistOpen = editingTrack != null
+    val keepPlaylistOpen = editingTrackId != null
 
     val playlistSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -108,8 +112,8 @@ fun PlaylistScreen(
         println("🔥 CLOSE EDIT SHEET START")
         editSheetState.hide()  // Сначала анимация закрытия
         println("🔥 CLOSE EDIT SHEET: animation finished")
-        editingTrack = null    // Потом сброс состояния
-        println("🔥 CLOSE EDIT SHEET: editingTrack = null")
+        editingTrackId = null    // Потом сброс состояния
+        println("🔥 CLOSE EDIT SHEET: editingTrackId = null")
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -186,7 +190,7 @@ fun PlaylistScreen(
                 viewModel = viewModel,
                 onEditTrack = { track ->
                     println("🔥 EDIT TRACK: track=$track")
-                    editingTrack = track
+                    editingTrackId = track.id
                 }  // 🔥 Открываем отдельный sheet
             )
         }
