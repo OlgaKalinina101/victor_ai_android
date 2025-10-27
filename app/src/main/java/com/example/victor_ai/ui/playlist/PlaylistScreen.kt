@@ -160,12 +160,6 @@ fun PlaylistScreen(
                     }
                 },
                 onSeek = { position -> viewModel.seekTo(position) },
-                onTrackClick = { track ->
-                    // 🔥 Это больше не нужно
-                    // keepPlaylistOpen = true
-                    // showEditSheet = track
-                    // println(...)
-                },
                 onEnergyChange = { trackId, energy ->
                     viewModel.updateDescription(trackId, energy, null)
                 },
@@ -173,8 +167,22 @@ fun PlaylistScreen(
                     viewModel.updateDescription(trackId, null, temp)
                 },
                 viewModel = viewModel,
-                editingTrack = editingTrack,  // 🔥 НОВОЕ: передаём состояние
-                onEditTrack = { track -> editingTrack = track }  // 🔥 НОВОЕ: передаём сеттер
+                onEditTrack = { track -> editingTrack = track }  // 🔥 Открываем отдельный sheet
+            )
+        }
+    }
+
+    // 🔥 НОВОЕ: Отдельный ModalBottomSheet для редактирования
+    if (editingTrack != null) {
+        ModalBottomSheet(
+            onDismissRequest = { editingTrack = null },
+            containerColor = Color(0xFF2B2929),
+            modifier = Modifier.heightIn(max = screenHeight * 7 / 8)
+        ) {
+            EditTrackMetadataSheet(
+                track = editingTrack!!,
+                viewModel = viewModel,
+                onDismiss = { editingTrack = null }
             )
         }
     }
@@ -190,13 +198,11 @@ fun PlaylistSheet(
     currentPosition: Float,
     onPlayPause: (Int?) -> Unit,
     onSeek: (Float) -> Unit,
-    onTrackClick: (Track) -> Unit,
     onEnergyChange: (String, String?) -> Unit,
     onTemperatureChange: (String, String?) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PlaylistViewModel,  // 🔥 Указываем ТИП
-    editingTrack: Track?,  // 🔥 НОВОЕ: состояние редактирования из родителя
-    onEditTrack: (Track?) -> Unit  // 🔥 НОВОЕ: колбэк для изменения состояния
+    viewModel: PlaylistViewModel,
+    onEditTrack: (Track?) -> Unit  // 🔥 Колбэк для открытия редактирования
 ) {
     val grayText = Color(0xFFE0E0E0)
     val barEmpty = Color(0xFF555555)
@@ -242,15 +248,14 @@ fun PlaylistSheet(
         }
     }
 
-    if (editingTrack == null) {
-        // 🔥 Экран списка треков
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .nestedScroll(rememberNestedScrollInteropConnection()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    // 🔥 Всегда показываем список треков
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .nestedScroll(rememberNestedScrollInteropConnection()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Text(
             text = "Плейлист",
             fontSize = 20.sp,
@@ -458,15 +463,8 @@ fun PlaylistSheet(
                 }
             }
         }
-        }
-    } else {
-        // 🔥 Экран редактирования
-        EditTrackMetadataSheet(
-            track = editingTrack!!,  // уже проверили что не null
-            viewModel = viewModel,
-            onDismiss = { onEditTrack(null) }  // 🔥 Используем колбэк из родителя
-        )
-    }}
+    }
+}
 
 
 @Composable
