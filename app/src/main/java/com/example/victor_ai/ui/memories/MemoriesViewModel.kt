@@ -1,12 +1,14 @@
-package com.example.victor_ai.data.models
+package com.example.victor_ai.ui.memories
 
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.victor_ai.data.network.dto.DeleteRequest
+import com.example.victor_ai.data.network.dto.MemoryResponse
+import com.example.victor_ai.data.network.dto.UpdateMemoryRequest
 import com.example.victor_ai.data.network.RetrofitInstance
-import com.example.victor_ai.data.network.RetrofitInstance.apiService
 import kotlinx.coroutines.launch
 
 class MemoriesViewModel : ViewModel() {
@@ -58,7 +60,9 @@ class MemoriesViewModel : ViewModel() {
             _loading.value = true
             try {
                 Log.d("MemoriesViewModel", "Обновление: recordId=$recordId, accountId=$accountId, text=$text")
-                RetrofitInstance.apiService.updateMemory(recordId, accountId, UpdateMemoryRequest(text, metadata))
+                RetrofitInstance.apiService.updateMemory(recordId, accountId,
+                    UpdateMemoryRequest(text, metadata)
+                )
                 Log.d("MemoriesViewModel", "Успешно обновлена запись: $recordId")
                 fetchMemories(accountId)
             } catch (e: Exception) {

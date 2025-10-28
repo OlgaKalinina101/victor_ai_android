@@ -1,7 +1,6 @@
 package com.example.victor_ai.ui.screens
 
 import android.util.Log
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -44,8 +43,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.victor_ai.data.models.MemoriesViewModel
-import com.example.victor_ai.data.models.MemoryResponse
+import com.example.victor_ai.ui.memories.MemoriesViewModel
+import com.example.victor_ai.data.network.dto.MemoryResponse
 import com.example.victor_ai.data.network.AssistantMind
 import com.example.victor_ai.data.network.AssistantState
 import com.example.victor_ai.data.network.ModelUsage

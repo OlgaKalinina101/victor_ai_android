@@ -17,7 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.victor_ai.data.models.AssistantRequest
+import com.example.victor_ai.data.network.dto.AssistantRequest
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.ui.theme.Victor_AITheme
 import kotlinx.coroutines.launch
@@ -40,7 +40,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
 import androidx.navigation.compose.rememberNavController
-import com.example.victor_ai.data.models.GeoLocation
+import com.example.victor_ai.data.network.dto.GeoLocation
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.logic.SoundPlayer
 import com.example.victor_ai.logic.VoiceRecognizer
@@ -48,8 +48,8 @@ import com.example.victor_ai.logic.processStreamingMessage
 import com.example.victor_ai.logic.updateChatHistory
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.domain.model.ReminderPopup
-import com.example.victor_ai.data.models.MainViewModel
-import com.example.victor_ai.data.models.PlaylistViewModelFactory
+import com.example.victor_ai.ui.main.MainViewModel
+import com.example.victor_ai.ui.main.PlaylistViewModelFactory
 import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.common.AnimatedBackgroundBox
 import com.example.victor_ai.ui.components.ReminderOverlay

@@ -1,4 +1,4 @@
-package com.example.victor_ai.data.models
+package com.example.victor_ai.data.network.dto
 
 import com.example.victor_ai.domain.model.ChatMessage
 import com.squareup.moshi.Json
