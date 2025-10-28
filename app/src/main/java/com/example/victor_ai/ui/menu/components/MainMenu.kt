@@ -1,12 +1,9 @@
-package com.example.victor_ai.ui.components
+package com.example.victor_ai.ui.menu.components
 
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.compose.runtime.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,14 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import com.example.victor_ai.R
 import com.example.victor_ai.data.network.RetrofitInstance
-import com.example.victor_ai.ui.screens.CalendarGrid
+import com.example.victor_ai.ui.menu.MenuState
 import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
-import com.example.victor_ai.ui.theme.MenuState
 import java.time.LocalDate
 
 @OptIn(ExperimentalFoundationApi::class)

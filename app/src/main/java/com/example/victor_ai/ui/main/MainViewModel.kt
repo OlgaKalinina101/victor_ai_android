@@ -1,4 +1,4 @@
-package com.example.victor_ai.data.models
+package com.example.victor_ai.ui.main
 
 import android.app.Application
 import android.util.Log

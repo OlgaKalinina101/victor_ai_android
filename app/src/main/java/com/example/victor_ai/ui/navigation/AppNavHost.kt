@@ -1,19 +1,16 @@
 package com.example.victor_ai.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.runtime.State
 import com.example.victor_ai.logic.ReminderManager
-import com.example.victor_ai.model.ChatMessage
+import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.screens.ChatScreen
 import com.example.victor_ai.ui.screens.MainScreen
-import com.example.victor_ai.ui.screens.ReminderScreen
 
 @Composable
 fun AppNavHost(

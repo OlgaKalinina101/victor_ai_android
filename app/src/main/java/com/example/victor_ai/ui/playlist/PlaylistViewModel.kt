@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.victor_ai.data.network.ApiService
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.logic.AudioPlayer
+import com.example.victor_ai.domain.model.Track
+import com.example.victor_ai.domain.model.TrackDescriptionUpdate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

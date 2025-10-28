@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.components
+package com.example.victor_ai.ui.menu.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.victor_ai.R
-import com.example.victor_ai.ui.theme.MenuState
+import com.example.victor_ai.ui.menu.MenuState
 
 @Composable
 fun RootMenu(onClick: (MenuState) -> Unit) {

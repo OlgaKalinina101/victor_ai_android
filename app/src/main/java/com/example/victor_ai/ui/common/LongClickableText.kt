@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.components
+package com.example.victor_ai.ui.common
 
 import android.content.Intent
 import androidx.compose.foundation.gestures.detectTapGestures

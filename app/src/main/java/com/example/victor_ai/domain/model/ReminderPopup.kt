@@ -1,4 +1,4 @@
-package com.example.victor_ai.model
+package com.example.victor_ai.domain.model
 
 data class ReminderPopup(
     val id: String,

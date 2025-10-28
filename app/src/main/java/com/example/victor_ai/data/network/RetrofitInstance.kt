@@ -1,7 +1,5 @@
 package com.example.victor_ai.data.network
 
-import com.example.victor_ai.data.models.AssistantRequest
-import com.example.victor_ai.data.models.AssistantResponse
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient

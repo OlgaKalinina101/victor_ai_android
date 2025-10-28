@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.victor_ai.logic.ReminderManager
+import com.example.victor_ai.ui.menu.components.AssistantMenu
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 
 // ui/assistant/AssistantButtonArea.kt

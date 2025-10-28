@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.components
+package com.example.victor_ai.ui.common
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope

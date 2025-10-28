@@ -1,8 +1,7 @@
 package com.example.victor_ai.logic
 
-import com.example.victor_ai.data.models.AssistantRequest
+import com.example.victor_ai.data.network.dto.AssistantRequest
 import com.example.victor_ai.data.network.RetrofitInstance
-import com.example.victor_ai.data.network.RetrofitInstance.apiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONException

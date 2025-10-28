@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.theme
+package com.example.victor_ai.ui.menu
 
 enum class MenuState {
     ROOT,

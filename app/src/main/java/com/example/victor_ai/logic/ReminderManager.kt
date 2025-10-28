@@ -1,15 +1,12 @@
 package com.example.victor_ai.logic
 
 import android.annotation.SuppressLint
-import com.example.victor_ai.model.ReminderPopup
-import android.app.Activity
+import com.example.victor_ai.domain.model.ReminderPopup
 import android.content.*
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.core.app.NotificationManagerCompat
-import androidx.lifecycle.Lifecycle
 import com.example.victor_ai.data.network.ApiService
 import com.example.victor_ai.data.network.ReminderRequest
 import kotlinx.coroutines.CoroutineScope
@@ -18,9 +15,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 
 class ReminderManager(
     private val activity: ComponentActivity,

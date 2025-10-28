@@ -1,4 +1,4 @@
-package com.example.victor_ai.data.models
+package com.example.victor_ai.data.network.dto
 
 import com.squareup.moshi.JsonClass
 
