@@ -23,7 +23,7 @@ import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.components.AssistantButtonArea
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
-import com.example.victor_ai.ui.theme.MenuState
+import com.example.victor_ai.ui.menu.MenuState
 
 @Composable
 fun MainScreen(

@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.playlist
+package com.example.victor_ai.domain.model
 
 import com.squareup.moshi.Json
 

@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.components
+package com.example.victor_ai.ui.menu.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
@@ -6,9 +6,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
 @Composable
-fun PlacesMenu(onBack: () -> Unit) {
+fun ChatMenu(onBack: () -> Unit) {
     Column {
-        Text("Карта мест")
+        Text("Вызов чата")
         Button(onClick = onBack) {
             Text("Назад")
         }

@@ -2,7 +2,7 @@ package com.example.victor_ai.logic
 
 import android.util.Log
 import com.example.victor_ai.data.models.UpdateHistoryRequest
-import com.example.victor_ai.model.ChatMessage
+import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.data.network.ChatApi
 import com.example.victor_ai.data.network.RetrofitInstance
 import retrofit2.Retrofit

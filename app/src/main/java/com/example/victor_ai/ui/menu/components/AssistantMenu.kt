@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.components
+package com.example.victor_ai.ui.menu.components
 
 import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,16 +11,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import com.example.victor_ai.data.network.ReminderApi
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.logic.UsageRepository
+import com.example.victor_ai.ui.menu.MenuState
 import com.example.victor_ai.ui.playlist.PlaylistScreen
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
-import com.example.victor_ai.ui.screens.CalendarScreen
 import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
 import com.example.victor_ai.ui.screens.SystemMenuScreen
-import com.example.victor_ai.ui.theme.MenuState
 
 @Composable
 fun AssistantMenu(

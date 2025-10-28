@@ -1,6 +1,6 @@
 package com.example.victor_ai.data.models
 
-import com.example.victor_ai.model.ChatMessage
+import com.example.victor_ai.domain.model.ChatMessage
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 

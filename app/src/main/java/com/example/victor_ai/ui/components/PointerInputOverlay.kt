@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
-import com.example.victor_ai.ui.theme.MenuState
+import com.example.victor_ai.ui.menu.MenuState
 
 @Composable
 fun PointerInputOverlay(

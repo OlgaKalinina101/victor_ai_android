@@ -1,4 +1,4 @@
-package com.example.victor_ai.model
+package com.example.victor_ai.domain.model
 
 import com.google.gson.annotations.SerializedName
 

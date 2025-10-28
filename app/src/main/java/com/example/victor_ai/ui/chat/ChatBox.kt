@@ -1,34 +1,23 @@
 package com.example.victor_ai.ui.chat
 
-import android.content.Intent
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -47,13 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import com.example.victor_ai.data.network.sendToDiaryEntry
 import com.example.victor_ai.logic.fetchChatHistory
-import com.example.victor_ai.model.ChatMessage
+import com.example.victor_ai.domain.model.ChatMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.core.net.toUri
-import com.example.victor_ai.data.models.UpdateHistoryRequest
-import com.example.victor_ai.data.network.RetrofitInstance
-import com.example.victor_ai.ui.components.LongClickableText
+import com.example.victor_ai.ui.common.LongClickableText
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

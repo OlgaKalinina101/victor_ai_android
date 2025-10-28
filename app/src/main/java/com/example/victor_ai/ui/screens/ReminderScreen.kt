@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.example.victor_ai.logic.ReminderManager
-import com.example.victor_ai.model.ReminderPopup
+import com.example.victor_ai.domain.model.ReminderPopup
 import com.example.victor_ai.ui.components.ReminderOverlay
 
 @Composable

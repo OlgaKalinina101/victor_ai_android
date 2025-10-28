@@ -13,9 +13,9 @@ import com.example.victor_ai.data.models.UpdateHistoryRequest
 import com.example.victor_ai.data.models.UpdateHistoryResponse
 import com.example.victor_ai.data.models.UpdateMemoryRequest
 import com.example.victor_ai.data.models.UpdateMemoryResponse
-import com.example.victor_ai.model.ChatMessage
-import com.example.victor_ai.ui.playlist.Track
-import com.example.victor_ai.ui.playlist.TrackDescriptionUpdate
+import com.example.victor_ai.domain.model.ChatMessage
+import com.example.victor_ai.domain.model.Track
+import com.example.victor_ai.domain.model.TrackDescriptionUpdate
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Response
