@@ -119,8 +119,12 @@ class PlaylistViewModel(
     // 🔥 НОВОЕ: синхронизация состояния UI с реальным состоянием плеера
     fun syncPlayerState() {
         val realIsPlaying = audioPlayer.isPlaying()
+        val currentId = _currentPlayingTrackId.value
+
+        Log.d("PlaylistViewModel", "🔄 syncPlayerState called: currentId=$currentId, realIsPlaying=$realIsPlaying, viewModelIsPlaying=${_isPlaying.value}")
+
         if (_isPlaying.value != realIsPlaying) {
-            Log.d("PlaylistViewModel", "🔄 Syncing player state: was=${_isPlaying.value}, now=$realIsPlaying")
+            Log.d("PlaylistViewModel", "🔄 Syncing isPlaying: was=${_isPlaying.value}, now=$realIsPlaying")
             _isPlaying.value = realIsPlaying
         }
     }

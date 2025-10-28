@@ -106,6 +106,8 @@ fun PlaylistScreen(
     // 🔥 Синхронизируем состояние плеера при открытии плейлиста
     LaunchedEffect(showPlaylistSheet) {
         if (showPlaylistSheet) {
+            println("🔄 PlaylistScreen: showPlaylistSheet=true, calling syncPlayerState()")
+            println("🔄 PlaylistScreen: currentPlayingTrackId=$currentPlayingTrackId, isPlaying=$isPlaying")
             viewModel.syncPlayerState()
         }
     }
@@ -269,6 +271,12 @@ fun PlaylistSheet(
 
     // ← ДОБАВЛЕНО: текущий трек
     val currentTrack = tracks.firstOrNull { it.id == currentPlayingTrackId }
+
+    // 🔥 Логирование для отладки
+    LaunchedEffect(currentPlayingTrackId, isPlaying, tracks.size) {
+        println("🎵 PlaylistSheet: currentPlayingTrackId=$currentPlayingTrackId, isPlaying=$isPlaying, tracksCount=${tracks.size}")
+        println("🎵 PlaylistSheet: currentTrack=${currentTrack?.title ?: "null"}")
+    }
 
     LaunchedEffect(sortBy) {
         if (filteredTracks.isNotEmpty()) {
