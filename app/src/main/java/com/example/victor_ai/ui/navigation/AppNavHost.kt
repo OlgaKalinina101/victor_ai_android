@@ -25,6 +25,7 @@ fun AppNavHost(
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
     isListeningState: State<Boolean>,
+    isTypingState: State<Boolean>,
     permissionManager: PermissionManager,
     onStopListening: () -> Unit
 ) {
@@ -53,6 +54,7 @@ fun AppNavHost(
                 onClose = { navController.popBackStack() },
                 permissionManager = permissionManager,
                 isListeningState = isListeningState,
+                isTypingState = isTypingState,
                 onStopListening = onStopListening
             )
         }
