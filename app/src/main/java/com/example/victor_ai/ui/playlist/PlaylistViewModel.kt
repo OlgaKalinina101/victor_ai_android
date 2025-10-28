@@ -85,10 +85,18 @@ class PlaylistViewModel(
     fun playTrack(trackId: Int?) {
         if (trackId == null) return
 
+        Log.d("PlaylistViewModel", "🎵 Starting playback: trackId=$trackId")
+
         // ПРАВИЛЬНО: слэш между частями, & перед параметрами
         val streamUrl = "${RetrofitInstance.BASE_URL.trimEnd('/')}/assistant/stream/$trackId?account_id=$accountId"
 
         Log.d("PlaylistViewModel", "Stream URL: $streamUrl")
+
+        // Останавливаем текущий трек перед запуском нового
+        if (_currentPlayingTrackId.value != null && _currentPlayingTrackId.value != trackId) {
+            Log.d("PlaylistViewModel", "🛑 Stopping previous track: ${_currentPlayingTrackId.value}")
+            audioPlayer.stop()
+        }
 
         audioPlayer.playFromUrl(streamUrl)
         _currentPlayingTrackId.value = trackId
@@ -97,13 +105,24 @@ class PlaylistViewModel(
     }
 
     fun pauseTrack() {
+        Log.d("PlaylistViewModel", "⏸️ Pausing track")
         audioPlayer.pause()
         _isPlaying.value = false  // ← ДОБАВЛЕНО
     }
 
     fun resumeTrack() {
+        Log.d("PlaylistViewModel", "▶️ Resuming track")
         audioPlayer.resume()
         _isPlaying.value = true  // ← ДОБАВЛЕНО
+    }
+
+    // 🔥 НОВОЕ: синхронизация состояния UI с реальным состоянием плеера
+    fun syncPlayerState() {
+        val realIsPlaying = audioPlayer.isPlaying()
+        if (_isPlaying.value != realIsPlaying) {
+            Log.d("PlaylistViewModel", "🔄 Syncing player state: was=${_isPlaying.value}, now=$realIsPlaying")
+            _isPlaying.value = realIsPlaying
+        }
     }
 
     // ← ДОБАВЛЕНО: удобная функция для UI

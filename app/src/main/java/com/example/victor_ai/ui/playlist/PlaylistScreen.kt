@@ -103,6 +103,13 @@ fun PlaylistScreen(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
 
+    // 🔥 Синхронизируем состояние плеера при открытии плейлиста
+    LaunchedEffect(showPlaylistSheet) {
+        if (showPlaylistSheet) {
+            viewModel.syncPlayerState()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // TopBar как обычный Row
         Row(
@@ -158,7 +165,7 @@ fun PlaylistScreen(
                 PlaylistSheet(
                     tracks = tracks,
                     loading = isLoading,
-                    currentPlayingTrackId = currentPlayingTrackId.toString(),
+                    currentPlayingTrackId = currentPlayingTrackId,
                     isPlaying = isPlaying,
                     currentPosition = currentPosition,
                     onPlayPause = { trackId ->
@@ -214,7 +221,7 @@ fun PlaylistScreen(
 fun PlaylistSheet(
     tracks: List<Track>,
     loading: Boolean,
-    currentPlayingTrackId: String?,
+    currentPlayingTrackId: Int?,
     isPlaying: Boolean,
     currentPosition: Float,
     onPlayPause: (Int?) -> Unit,
@@ -261,7 +268,7 @@ fun PlaylistSheet(
         }
 
     // ← ДОБАВЛЕНО: текущий трек
-    val currentTrack = tracks.firstOrNull { it.id.toString() == currentPlayingTrackId }
+    val currentTrack = tracks.firstOrNull { it.id == currentPlayingTrackId }
 
     LaunchedEffect(sortBy) {
         if (filteredTracks.isNotEmpty()) {
@@ -481,7 +488,7 @@ fun PlaylistSheet(
                 items(filteredTracks, key = { it.id }) { track ->
                     TrackItemCompact(
                         track = track,
-                        isPlaying = currentPlayingTrackId == track.id.toString(),
+                        isPlaying = currentPlayingTrackId == track.id && isPlaying,
                         onPlayPause = { onPlayPause(track.id) },
                         onClick = { onEditTrack(track) },  // 🔥 Используем колбэк из родителя
                         grayText = grayText
