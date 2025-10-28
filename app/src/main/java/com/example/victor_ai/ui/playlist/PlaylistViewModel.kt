@@ -44,6 +44,7 @@ class PlaylistViewModel(
     private val audioPlayer = AudioPlayer()
 
     init {
+        Log.d("PlaylistViewModel", "🏗️ ViewModel created (init block)")
         loadTracks()
         startPositionUpdater()
         // 🔥 Устанавливаем callback для автовоспроизведения следующего трека
@@ -139,6 +140,8 @@ class PlaylistViewModel(
     }
 
     fun stopTrack() {
+        Log.d("PlaylistViewModel", "🛑 stopTrack() called - RESETTING STATE")
+        Log.d("PlaylistViewModel", "🛑 Stack trace:", Exception("Stack trace"))
         audioPlayer.stop()
         _currentPlayingTrackId.value = null
         _isPlaying.value = false  // ← ДОБАВЛЕНО
@@ -190,6 +193,8 @@ class PlaylistViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        Log.d("PlaylistViewModel", "💀 ViewModel onCleared() - DESTROYING")
+        Log.d("PlaylistViewModel", "💀 Current state: trackId=${_currentPlayingTrackId.value}, isPlaying=${_isPlaying.value}")
         audioPlayer.stop()
     }
 

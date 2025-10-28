@@ -1,9 +1,11 @@
 package com.example.victor_ai.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,12 +36,19 @@ fun AssistantMenu(
 
     // ViewModel для плейлиста (создаём один раз)
     val playlistViewModel: PlaylistViewModel = remember {
+        Log.d("AssistantMenu", "🏗️ Creating PlaylistViewModel via remember{}")
         PlaylistViewModel(
             apiService = RetrofitInstance.apiService,
             accountId = "test_user",
             cacheDir = context.cacheDir  // ← передаём cacheDir
         )
     }
+
+    // 🔥 Логируем когда меняется currentMenu
+    LaunchedEffect(currentMenu) {
+        Log.d("AssistantMenu", "📍 currentMenu changed to: $currentMenu")
+    }
+
     when (currentMenu) {
         MenuState.ROOT -> RootMenu(onClick = { currentMenu = it })
 
