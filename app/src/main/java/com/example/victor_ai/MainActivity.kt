@@ -238,6 +238,7 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         AppNavHost(
                             navController = navController,
+                            playlistViewModel = playlistViewModel,  // 🔥 Передаём
                             reminderManager = reminderManager,
                             chatMessages = chatMessages.collectAsState().value,
                             onSendMessage = { userText ->

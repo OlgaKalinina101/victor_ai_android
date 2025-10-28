@@ -10,6 +10,7 @@ import androidx.compose.runtime.State
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.model.ChatMessage
 import com.example.victor_ai.permissions.PermissionManager
+import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.screens.ChatScreen
 import com.example.victor_ai.ui.screens.MainScreen
 import com.example.victor_ai.ui.screens.ReminderScreen
@@ -17,6 +18,7 @@ import com.example.victor_ai.ui.screens.ReminderScreen
 @Composable
 fun AppNavHost(
     navController: NavHostController,
+    playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
     reminderManager: ReminderManager,
     chatMessages: List<ChatMessage>,
     onSendMessage: (String) -> Unit,
@@ -36,6 +38,7 @@ fun AppNavHost(
         composable("main") {
             MainScreen(
                 navController = navController,
+                playlistViewModel = playlistViewModel,  // 🔥 Передаём
                 reminderManager = reminderManager,
                 onStartVoiceRecognition = onStartVoiceRecognition,
                 onRequestMicrophone = onRequestMicrophone,

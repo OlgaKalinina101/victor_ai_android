@@ -22,11 +22,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.components.AssistantButtonArea
+import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.theme.MenuState
 
 @Composable
 fun MainScreen(
     navController: NavController,
+    playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
     reminderManager: ReminderManager,
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
@@ -78,6 +80,7 @@ fun MainScreen(
         // 🔹 Кнопка ассистента
         AssistantButtonArea(
             modifier = Modifier.align(Alignment.BottomEnd),
+            playlistViewModel = playlistViewModel,  // 🔥 Передаём
             reminderManager = reminderManager,
             onStartVoiceRecognition = onStartVoiceRecognition,
             onRequestMicrophone = onRequestMicrophone,

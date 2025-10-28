@@ -25,24 +25,12 @@ import com.example.victor_ai.ui.theme.MenuState
 @Composable
 fun AssistantMenu(
     modifier: Modifier = Modifier,
+    playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
     onRequestVoice: () -> Unit,
     onRequestPermission: () -> Unit
 ) {
     var text by remember { mutableStateOf("") }
     var currentMenu: MenuState by remember { mutableStateOf(MenuState.ROOT) }
-
-    // Получаем context для cacheDir
-    val context = LocalContext.current
-
-    // ViewModel для плейлиста (создаём один раз)
-    val playlistViewModel: PlaylistViewModel = remember {
-        Log.d("AssistantMenu", "🏗️ Creating PlaylistViewModel via remember{}")
-        PlaylistViewModel(
-            apiService = RetrofitInstance.apiService,
-            accountId = "test_user",
-            cacheDir = context.cacheDir  // ← передаём cacheDir
-        )
-    }
 
     // 🔥 Логируем когда меняется currentMenu
     LaunchedEffect(currentMenu) {
