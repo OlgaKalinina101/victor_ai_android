@@ -103,6 +103,9 @@ class MainActivity : ComponentActivity() {
     private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages
 
+    private val _isTyping = MutableStateFlow(false)
+    val isTyping: StateFlow<Boolean> = _isTyping
+
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage
 
@@ -268,6 +271,7 @@ class MainActivity : ComponentActivity() {
                                 requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
                             },
                             isListeningState = isListeningState,
+                            isTypingState = isTyping.collectAsState(),
                             permissionManager = permissionManager,
                             onStopListening = { voiceRecognizer.stopListening() }
                         )
@@ -375,6 +379,8 @@ class MainActivity : ComponentActivity() {
     private fun sendTextToAssistant(text: String) {
         lifecycleScope.launch {
             try {
+                _isTyping.value = true // 🔥 Включаем анимацию
+
                 val request = AssistantRequest(
                     sessionId = "test_user",
                     text = text,
@@ -446,8 +452,11 @@ class MainActivity : ComponentActivity() {
                 charQueue.close()
                 typingJob.join()
 
+                _isTyping.value = false // 🔥 Выключаем анимацию
+
             } catch (e: Exception) {
                 Log.e("Assistant", "❌ Ошибка отправки: ${e.message}")
+                _isTyping.value = false // 🔥 Выключаем анимацию при ошибке
             }
         }
     }

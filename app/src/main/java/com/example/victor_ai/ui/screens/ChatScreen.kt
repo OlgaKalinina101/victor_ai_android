@@ -28,6 +28,7 @@ fun ChatScreen(
     onClose: () -> Unit,
     permissionManager: PermissionManager,
     isListeningState: State<Boolean>,
+    isTypingState: State<Boolean>,
     onStopListening: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -38,7 +39,7 @@ fun ChatScreen(
             onEditMessage = onEditMessage, // 👈 пробрасываем в ChatBox
             onInitHistory = onInitHistory,
             visible = true,
-            isTyping = true
+            isTyping = isTypingState.value
         )
 
         // 🔹 Прозрачная полоса сверху — тап/долгий тап
