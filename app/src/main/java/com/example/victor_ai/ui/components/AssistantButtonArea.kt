@@ -19,11 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.victor_ai.logic.ReminderManager
+import com.example.victor_ai.ui.playlist.PlaylistViewModel
 
 // ui/assistant/AssistantButtonArea.kt
 @Composable
 fun AssistantButtonArea(
     modifier: Modifier = Modifier,  // ← вот он
+    playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
     reminderManager: ReminderManager,
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
@@ -75,6 +77,7 @@ fun AssistantButtonArea(
         ) {
             AssistantMenu(
                 modifier = Modifier.padding(top = 48.dp),
+                playlistViewModel = playlistViewModel,  // 🔥 Передаём
                 onRequestVoice = onStartVoiceRecognition,
                 onRequestPermission = onRequestMicrophone
             )
