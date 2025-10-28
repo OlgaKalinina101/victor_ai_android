@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
+import com.example.victor_ai.ui.playlist.components.CustomFont
 
 /**
  * Форма для редактирования метаданных трека (энергия и температура)

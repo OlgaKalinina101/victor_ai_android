@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.victor_ai.domain.model.Track
+import com.example.victor_ai.ui.playlist.components.formatDuration
 
 /**
  * Компонент для отображения текущего играющего трека с плеером
