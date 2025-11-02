@@ -20,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.ui.menu.components.AssistantMenu
+import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 
 // ui/assistant/AssistantButtonArea.kt
@@ -27,6 +28,7 @@ import com.example.victor_ai.ui.playlist.PlaylistViewModel
 fun AssistantButtonArea(
     modifier: Modifier = Modifier,  // ← вот он
     playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
+    placesViewModel: PlacesViewModel,
     reminderManager: ReminderManager,
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
@@ -79,6 +81,7 @@ fun AssistantButtonArea(
             AssistantMenu(
                 modifier = Modifier.padding(top = 48.dp),
                 playlistViewModel = playlistViewModel,  // 🔥 Передаём
+                placesViewModel = placesViewModel,
                 onRequestVoice = onStartVoiceRecognition,
                 onRequestPermission = onRequestMicrophone
             )

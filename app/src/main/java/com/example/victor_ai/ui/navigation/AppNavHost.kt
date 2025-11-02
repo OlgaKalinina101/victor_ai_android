@@ -8,6 +8,7 @@ import androidx.compose.runtime.State
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.permissions.PermissionManager
+import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.screens.ChatScreen
 import com.example.victor_ai.ui.screens.MainScreen
@@ -16,6 +17,7 @@ import com.example.victor_ai.ui.screens.MainScreen
 fun AppNavHost(
     navController: NavHostController,
     playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
+    placesViewModel: PlacesViewModel,
     reminderManager: ReminderManager,
     chatMessages: List<ChatMessage>,
     onSendMessage: (String) -> Unit,
@@ -36,6 +38,7 @@ fun AppNavHost(
             MainScreen(
                 navController = navController,
                 playlistViewModel = playlistViewModel,  // 🔥 Передаём
+                placesViewModel = placesViewModel,
                 reminderManager = reminderManager,
                 onStartVoiceRecognition = onStartVoiceRecognition,
                 onRequestMicrophone = onRequestMicrophone,

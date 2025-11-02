@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,9 +66,9 @@ import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 import com.example.victor_ai.ui.playlist.components.EditTrackMetadataSheet
 import com.example.victor_ai.ui.playlist.components.TrackItemCompact
-import androidx.compose.material3.ButtonDefaults
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreen(
     viewModel: PlaylistViewModel,
@@ -194,7 +195,7 @@ fun PlaylistScreen(
                             }
                     ) {
                         EditTrackMetadataSheet(
-                            track = editingTrack!!,
+                            track = editingTrack,
                             viewModel = viewModel,
                             onDismiss = {
                                 println("🔥 EDIT SHEET ON DISMISS CALLED")

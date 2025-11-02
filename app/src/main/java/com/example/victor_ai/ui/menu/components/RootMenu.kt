@@ -42,7 +42,7 @@ fun RootMenu(onClick: (MenuState) -> Unit) {
             modifier = Modifier
                 .width(200.dp)
                 .height(64.dp)
-                .clickable { println("Места: в разработке") }
+                .clickable { onClick(MenuState.PLACES) }
         )
 
         // Кнопка "Браузер"

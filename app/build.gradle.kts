@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     //id("com.google.gms.google-services")
     id("kotlin-kapt")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -70,6 +71,8 @@ dependencies {
     implementation(libs.cronet.embedded)
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.compose.material3.material3)
+    implementation(libs.ads.mobile.sdk)
+    implementation(libs.androidx.compose.ui.ui.graphics)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -111,4 +114,21 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
     implementation("androidx.navigation:navigation-compose:2.9.5")
+
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+
+    // Hilt + ViewModel
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+
+    // Если используешь ViewModel в Activity
+    implementation("androidx.activity:activity-compose:1.9.0")
+
+    implementation("com.google.maps.android:android-maps-utils:3.0.0")
+
+
+    implementation(project(":unityLibrary"))
+    implementation(files("../unityLibrary/libs/unity-classes.jar"))
+    implementation("com.google.code.gson:gson:2.10.1")
 }
