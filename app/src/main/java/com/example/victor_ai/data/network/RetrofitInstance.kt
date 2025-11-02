@@ -60,4 +60,6 @@ object RetrofitInstance {
     val assistantApi: AssistantStateApi by lazy {
         retrofit.create(AssistantStateApi::class.java)
     }
+
+    val placesApi: PlacesApi = retrofit.create(PlacesApi::class.java)
 }

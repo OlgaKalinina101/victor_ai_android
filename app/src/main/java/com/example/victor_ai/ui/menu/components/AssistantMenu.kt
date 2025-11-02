@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.logic.UsageRepository
 import com.example.victor_ai.ui.menu.MenuState
+import com.example.victor_ai.ui.places.PlacesMenu
+import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.playlist.PlaylistScreen
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
@@ -23,6 +25,7 @@ import com.example.victor_ai.ui.screens.SystemMenuScreen
 fun AssistantMenu(
     modifier: Modifier = Modifier,
     playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
+    placesViewModel: PlacesViewModel,  // ← добавляем!
     onRequestVoice: () -> Unit,
     onRequestPermission: () -> Unit
 ) {
@@ -44,8 +47,10 @@ fun AssistantMenu(
             onItemClick = { item ->
                 text = item
                 // Если кликнули на "Плейлист", переходим
-                if (item == "Плейлист") {
-                    currentMenu = MenuState.PLAYLIST
+                when (item) {
+                    "Плейлист" -> currentMenu = MenuState.PLAYLIST
+                    "Места" -> currentMenu = MenuState.PLACES  // ← ДОБАВЬ ЭТО!
+                    else -> Unit
                 }
             }
         )
@@ -57,8 +62,10 @@ fun AssistantMenu(
             modifier = Modifier.fillMaxSize()
         )
 
-        MenuState.PLACES -> PlacesMenu(onBack = { currentMenu = MenuState.ROOT })
-
+        MenuState.PLACES -> PlacesMenu(
+            onBack = { currentMenu = MenuState.ROOT },
+            viewModel = placesViewModel
+        )
         MenuState.CALENDAR -> CalendarScreenWithReminders {
             RetrofitInstance.reminderApi.getReminders(accountId = "test_user")
         }

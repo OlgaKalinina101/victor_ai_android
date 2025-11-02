@@ -1,0 +1,23 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace "com.unity3d.player"
+    ndkPath "C:/Program Files/Unity/Hub/Editor/2022.3.62f3/Editor/Data/PlaybackEngines/AndroidPlayer/NDK"
+
+    aaptOptions {
+        noCompress = ['.ress', '.resource', '.obb']
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }
+
+    compileSdkVersion 34
+
+    defaultConfig {
+        minSdkVersion 26
+        targetSdkVersion 34
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.google.android.material:material:1.9.0'
+}

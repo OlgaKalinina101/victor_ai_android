@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.victor_ai.logic.ReminderManager
@@ -24,11 +22,13 @@ import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.components.AssistantButtonArea
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.menu.MenuState
+import com.example.victor_ai.ui.places.PlacesViewModel
 
 @Composable
 fun MainScreen(
     navController: NavController,
     playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
+    placesViewModel: PlacesViewModel,
     reminderManager: ReminderManager,
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
@@ -78,9 +78,11 @@ fun MainScreen(
         }
 
         // 🔹 Кнопка ассистента
+
         AssistantButtonArea(
             modifier = Modifier.align(Alignment.BottomEnd),
             playlistViewModel = playlistViewModel,  // 🔥 Передаём
+            placesViewModel = placesViewModel,
             reminderManager = reminderManager,
             onStartVoiceRecognition = onStartVoiceRecognition,
             onRequestMicrophone = onRequestMicrophone,

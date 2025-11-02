@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Victor_AI"
 include(":app")
+include(":unityLibrary")

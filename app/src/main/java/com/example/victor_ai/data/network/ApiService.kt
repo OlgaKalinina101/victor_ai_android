@@ -8,6 +8,7 @@ import com.example.victor_ai.data.network.dto.AssistantResponse
 import com.example.victor_ai.data.network.dto.DeleteRequest
 import com.example.victor_ai.data.network.dto.DeleteResponse
 import com.example.victor_ai.data.network.dto.MemoryResponse
+import com.example.victor_ai.data.network.dto.PlacesResponse
 import com.example.victor_ai.data.network.dto.ReminderResponse
 import com.example.victor_ai.data.network.dto.UpdateHistoryRequest
 import com.example.victor_ai.data.network.dto.UpdateHistoryResponse
@@ -102,6 +103,15 @@ interface ChatApi {
     ): UpdateHistoryResponse
 }
 
+
+interface PlacesApi {
+    @GET("assistant/places")
+    suspend fun getPlaces(
+        @Query("limit") limit: Int = 15000,
+        @Query("offset") offset: Int = 0,
+        @Query("bbox") bbox: String? = null // "min_lon,min_lat,max_lon,max_lat"
+    ): com.example.victor_ai.ui.places.PlacesResponse
+}
 data class ReminderRequest(val reminder_id: String)
 
 suspend fun sendToDiaryEntry(text: String) {

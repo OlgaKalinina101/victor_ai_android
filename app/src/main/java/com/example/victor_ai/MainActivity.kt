@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.Box
 import android.content.Context
 import androidx.activity.viewModels
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -54,6 +55,8 @@ import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.common.AnimatedBackgroundBox
 import com.example.victor_ai.ui.components.ReminderOverlay
 import com.example.victor_ai.ui.navigation.AppNavHost
+import com.example.victor_ai.ui.places.PlacesViewModel
+import com.example.victor_ai.ui.places.PlacesViewModelFactory
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.channels.Channel
@@ -61,6 +64,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import me.pushy.sdk.Pushy
 import kotlin.getValue
+
 
 class MainActivity : ComponentActivity() {
 
@@ -97,6 +101,12 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val placesViewModel: PlacesViewModel by viewModels {
+        PlacesViewModelFactory(
+            placesApi = RetrofitInstance.placesApi
+        )
+    }
+
     private fun handleLocationResult(geo: GeoLocation) {
         Log.d("Geo", "Location ready: $geo")
         latestGeo = geo
@@ -112,9 +122,9 @@ class MainActivity : ComponentActivity() {
         reminderManager.unregisterReceiver()
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Log.d("ReminderManager","[DEBUG] onNewIntent вызван: action=${intent?.action}, extras=${intent?.extras?.toString()}")
+        Log.d("ReminderManager","[DEBUG] onNewIntent вызван: action=${intent.action}, extras=${intent.extras?.toString()}")
         setIntent(intent)
         reminderManager.handleReminderIntent(intent)
     }
@@ -211,6 +221,7 @@ class MainActivity : ComponentActivity() {
                         AppNavHost(
                             navController = navController,
                             playlistViewModel = playlistViewModel,  // 🔥 Передаём
+                            placesViewModel = placesViewModel,
                             reminderManager = reminderManager,
                             chatMessages = chatMessages.collectAsState().value,
                             onSendMessage = { userText ->
