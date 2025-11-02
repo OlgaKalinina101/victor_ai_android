@@ -163,7 +163,7 @@ fun PlacesMenu(
  */
 @Composable
 fun UnityMapView(
-    places: List<OSMElement>,
+    places: List<PlaceElement>,
     userLocation: GeoLocation?,
     unityPlayer: UnityPlayer?,
     isFullScreen: Boolean,
@@ -235,13 +235,13 @@ private fun setupUnityHandlers(viewModel: PlacesViewModel) {
 /**
  * Отправляет данные о местах в Unity
  */
-private fun sendDataToUnity(places: List<OSMElement>, userLocation: GeoLocation) {
+private fun sendDataToUnity(places: List<PlaceElement>, userLocation: GeoLocation) {
     try {
         // Конвертируем PlacesResponse → MapData для Unity
         val center = LatLng(userLocation.lat, userLocation.lon)
         val bounds = MapBounds.fromCenterAndRadius(center, 1000)
 
-        // Преобразуем OSMElement → POI
+        // Преобразуем PlaceElement → POI
         val pois = places.mapNotNull { element ->
             convertOSMElementToPOI(element)
         }
@@ -265,9 +265,9 @@ private fun sendDataToUnity(places: List<OSMElement>, userLocation: GeoLocation)
 }
 
 /**
- * Конвертирует OSMElement в POI для Unity
+ * Конвертирует PlaceElement в POI для Unity
  */
-private fun convertOSMElementToPOI(element: OSMElement): POI? {
+private fun convertOSMElementToPOI(element: PlaceElement): POI? {
     // Получаем координаты
     val (lat, lon) = when {
         element.point != null -> element.point[1] to element.point[0] // [lon, lat] → (lat, lon)
@@ -278,7 +278,7 @@ private fun convertOSMElementToPOI(element: OSMElement): POI? {
         else -> return null // Нет координат
     }
 
-    // Собираем теги из всех возможных полей OSMElement
+    // Собираем теги из всех возможных полей PlaceElement
     val tags = buildMap<String, String> {
         element.name?.let { put("name", it) }
         element.amenity?.let { put("amenity", it) }

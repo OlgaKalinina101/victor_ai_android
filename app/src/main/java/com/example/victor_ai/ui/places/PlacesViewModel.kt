@@ -19,8 +19,8 @@ class PlacesViewModel(
     private val placesApi: PlacesApi = RetrofitInstance.placesApi
 ) : ViewModel() {
 
-    private val _places = mutableStateOf<List<OSMElement>>(emptyList())
-    val places: State<List<OSMElement>> = _places
+    private val _places = mutableStateOf<List<PlaceElement>>(emptyList())
+    val places: State<List<PlaceElement>> = _places
 
     private val _loading = mutableStateOf(false)
     val loading: State<Boolean> = _loading
