@@ -63,9 +63,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.victor_ai.domain.model.Track
+import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 import com.example.victor_ai.ui.playlist.components.EditTrackMetadataSheet
 import com.example.victor_ai.ui.playlist.components.TrackItemCompact
-import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 
 
 @OptIn(ExperimentalMaterial3Api::class)
