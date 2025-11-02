@@ -339,8 +339,8 @@ data class OSMElement(
     @Json(name = "amenity") val amenity: String? = null,
     @Json(name = "shop") val shop: String? = null,
     @Json(name = "leisure") val leisure: String? = null,
-    // ... другие теги по необходимости
+    @Json(name = "tourism") val tourism: String? = null,
 
-    // Или Map для гибкости:
-    // val tags: Map<String, Any>? = null
+    // Map для дополнительных тегов
+    val tags: Map<String, String>? = null
 )
