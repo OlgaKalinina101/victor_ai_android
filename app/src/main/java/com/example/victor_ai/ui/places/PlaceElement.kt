@@ -6,16 +6,16 @@ import com.squareup.moshi.Json
  * 🗺️ Ответ от Places API
  */
 data class PlacesResponse(
-    val items: List<OSMElement>,
+    val items: List<PlaceElement>,
     val count: Int,
     val limit: Int,
     val offset: Int
 )
 
 /**
- * 📍 Элемент OpenStreetMap
+ * 📍 Элемент места из Places API
  */
-data class OSMElement(
+data class PlaceElement(
     val id: Long,
     val type: String, // "node", "way", "relation"
 
