@@ -126,12 +126,6 @@ dependencies {
 
     implementation("com.google.maps.android:android-maps-utils:3.0.0")
 
-
-    implementation(project(":unityLibrary"))
-    implementation(files("../unityLibrary/libs/unity-classes.jar"))
-
-    // Unity зависимости
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.core:core-ktx:1.12.0")
+    // JSON парсинг (оставляем Gson для работы с данными)
     implementation("com.google.code.gson:gson:2.10.1")
 }

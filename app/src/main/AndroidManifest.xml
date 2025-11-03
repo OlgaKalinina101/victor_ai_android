@@ -94,18 +94,12 @@
         <meta-data
             android:name="firebase_analytics_collection_enabled"
             android:value="false" />
-        <!-- Unity Activity -->
-        <activity
-            android:name="com.unity3d.player.UnityPlayerActivity"
-            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
-            android:hardwareAccelerated="true"
-            android:exported="false"
-            tools:replace="android:exported,android:hardwareAccelerated" />
 
-        <!-- Добавь внутрь <application> -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDummy_Key_For_Compile" />
+        <!-- Map Activity -->
+        <activity
+            android:name=".ui.map.MapActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Victor_AI" />
     </application>
 
 </manifest>
