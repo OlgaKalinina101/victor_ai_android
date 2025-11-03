@@ -17,20 +17,28 @@ data class PlacesResponse(
  */
 data class PlaceElement(
     val id: Long,
-    val type: String, // "node", "way", "relation"
-
-    // Геометрия (одно из трёх)
-    val point: List<Double>? = null,      // [lon, lat]
-    val points: List<List<Double>>? = null, // [[lon, lat], ...]
-    val rings: List<List<List<Double>>>? = null, // [[[lon, lat], ...]]
-
-    // Все остальные поля из tags (динамически)
+    val type: String,
+    val point: List<Double>? = null,
+    val points: List<List<Double>>? = null,
+    val rings: List<List<List<Double>>>? = null,
     @Json(name = "name") val name: String? = null,
     @Json(name = "amenity") val amenity: String? = null,
     @Json(name = "shop") val shop: String? = null,
     @Json(name = "leisure") val leisure: String? = null,
     @Json(name = "tourism") val tourism: String? = null,
-
-    // Map для дополнительных тегов
     val tags: Map<String, String>? = null
-)
+) {
+    /**
+     * Собирает теги в Map для POIType.fromOsmTags
+     */
+    fun toTagsMap(): Map<String, String> = buildMap {
+        amenity?.let { put("amenity", it) }
+        name?.let { put("name", it) }
+        shop?.let { put("shop", it) }
+        leisure?.let { put("leisure", it) }
+        tourism?.let { put("tourism", it) }
+
+        // Добавляем дополнительные теги, если есть
+        tags?.let { putAll(it) }
+    }
+}

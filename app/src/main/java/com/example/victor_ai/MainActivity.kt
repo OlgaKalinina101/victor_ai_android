@@ -59,6 +59,7 @@ import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.places.PlacesViewModelFactory
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.google.android.gms.location.LocationServices
+import com.unity3d.player.UnityPlayer
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -106,6 +107,7 @@ class MainActivity : ComponentActivity() {
             placesApi = RetrofitInstance.placesApi
         )
     }
+    private var unityPlayer: UnityPlayer? = null
 
     private fun handleLocationResult(geo: GeoLocation) {
         Log.d("Geo", "Location ready: $geo")
@@ -200,6 +202,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            // Создаём Unity Player один раз
+            try {
+                unityPlayer = UnityPlayer(this)
+                Log.d("MainActivity", "✅ UnityPlayer создан")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "❌ Ошибка создания Unity", e)
+            }
             Scaffold(
                 snackbarHost = {
                     SnackbarHost(

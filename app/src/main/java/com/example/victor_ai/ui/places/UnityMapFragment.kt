@@ -3,6 +3,7 @@ package com.example.victor_ai.ui.places
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +16,7 @@ import com.example.victor_ai.data.network.RetrofitInstance.placesApi
 import com.google.android.gms.location.LocationServices
 import com.unity3d.player.UnityPlayer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,9 +59,14 @@ class UnityMapFragment : Fragment() {
 
         // Настраиваем обработчики событий из Unity
         setupUnityEventHandlers()
-
-        // Загружаем и отправляем данные карты
-        loadAndSendMapData()
+        // Фоллбэк: если Unity не ответит за 3 секунды, загрузим принудительно
+        lifecycleScope.launch {
+            delay(3000)
+            if (unityPlayer != null) {
+                Log.d("UnityMap", "⏰ Таймаут ожидания Unity, загружаем данные принудительно")
+                loadAndSendMapData()
+            }
+        }
     }
 
     /**
@@ -132,36 +139,40 @@ class UnityMapFragment : Fragment() {
     private fun loadAndSendMapData() {
         lifecycleScope.launch {
             try {
-                // 1. Получаем текущую геолокацию
-                val location = getCurrentLocation()
+                Log.d("UnityMap", "🔄 Начало загрузки")
 
-                // 2. Загружаем OSM данные в радиусе 10км
+                val location = getCurrentLocation()
+                Log.d("UnityMap", "📍 Локация: ${location.lat}, ${location.lon}")
+
                 val osmData = loadPlacesFromBackend(
                     latitude = location.lat,
                     longitude = location.lon,
                     radiusMeters = 10000
                 )
+                Log.d("UnityMap", "✅ Загружено items: ${osmData.items.size}")
 
-                // 3. Получаем список посещенных мест из БД
                 val visitedPlaceIds = getVisitedPlacesFromDatabase()
 
-                // 4. Создаем MapData
                 val bounds = MapBounds.fromCenterAndRadius(location, 10000)
-                val mapData = MapDataConverter.fromOverpassResponse(
+
+                val mapData = MapDataConverter.fromBackendResponse(
                     response = osmData,
                     bounds = bounds,
                     visitedPlaceIds = visitedPlaceIds
                 )
+                Log.d("UnityMap", "✅ Создано POI: ${mapData.pois.size}")
+                Log.d("UnityMap", "✅ Bounds: ${mapData.bounds}")
 
-                // 5. Отправляем в Unity
+                // КРИТИЧНО
                 UnityBridge.sendMapData(mapData)
+                Log.d("UnityMap", "📤 Отправлено в Unity")
 
-                // 6. Центрируем карту на пользователе
                 UnityBridge.updateUserLocation(location)
 
             } catch (e: Exception) {
+                Log.e("UnityMap", "❌ Ошибка загрузки", e)
                 e.printStackTrace()
-                Toast.makeText(context, "Ошибка загрузки данных: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

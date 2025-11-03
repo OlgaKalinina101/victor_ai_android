@@ -19,7 +19,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
@@ -130,5 +129,9 @@ dependencies {
 
     implementation(project(":unityLibrary"))
     implementation(files("../unityLibrary/libs/unity-classes.jar"))
+
+    // Unity зависимости
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.core:core-ktx:1.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 }

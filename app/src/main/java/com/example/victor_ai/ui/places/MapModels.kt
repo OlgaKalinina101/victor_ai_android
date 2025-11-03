@@ -221,51 +221,64 @@ data class ImpressionUpdatedEvent(
 /**
  * Событие: Карта готова к использованию
  */
-data class MapReadyEvent(
-    @SerializedName("isReady")
-    val isReady: Boolean = true
-)
-
-// ════════════════════════════════════════════════════════════
-// 🔄 ВСПОМОГАТЕЛЬНЫЕ МОДЕЛИ
-// ════════════════════════════════════════════════════════════
-
 /**
- * Ответ от Overpass API (OpenStreetMap)
+ * Ответ от собственного бэкенда
  */
-data class OverpassResponse(
-    @SerializedName("version")
-    val version: Double,
+/**
+ * Ответ от собственного бэкенда
+ */
 
-    @SerializedName("elements")
-    val elements: List<OsmElement>
-)
+data class PlaceItem(
+    @SerializedName("id")
+    val id: Long,
+
+    @SerializedName("type")
+    val type: String, // "node", "way", "relation"
+
+    // Точка (для type = "node")
+    @SerializedName("point")
+    val point: List<Double>?, // [lon, lat]
+
+    // Линия (для type = "way")
+    @SerializedName("points")
+    val points: List<List<Double>>?, // [[lon, lat], ...]
+
+    // Полигон (для type = "relation")
+    @SerializedName("rings")
+    val rings: List<List<List<Double>>>?, // [[[lon, lat], ...]]
+
+    // OSM теги (amenity, name, shop и т.д.)
+    // Они уже распакованы в корень объекта
+    @SerializedName("amenity")
+    val amenity: String? = null,
+
+    @SerializedName("name")
+    val name: String? = null,
+
+    @SerializedName("shop")
+    val shop: String? = null,
+
+    @SerializedName("leisure")
+    val leisure: String? = null,
+
+    @SerializedName("tourism")
+    val tourism: String? = null
+) {
+    /**
+     * Собирает теги обратно в Map для совместимости с POIType.fromOsmTags
+     */
+    fun toTagsMap(): Map<String, String> = buildMap {
+        amenity?.let { put("amenity", it) }
+        name?.let { put("name", it) }
+        shop?.let { put("shop", it) }
+        leisure?.let { put("leisure", it) }
+        tourism?.let { put("tourism", it) }
+    }
+}
 
 /**
  * Элемент OSM
  */
-data class OsmElement(
-    @SerializedName("type")
-    val type: String, // "node", "way", "relation"
-
-    @SerializedName("id")
-    val id: Long,
-
-    @SerializedName("lat")
-    val lat: Double?,
-
-    @SerializedName("lon")
-    val lon: Double?,
-
-    @SerializedName("tags")
-    val tags: Map<String, String>?,
-
-    @SerializedName("nodes")
-    val nodes: List<Long>? = null,
-
-    @SerializedName("geometry")
-    val geometry: List<GeometryPoint>? = null
-)
 
 data class GeometryPoint(
     @SerializedName("lat")
@@ -284,29 +297,31 @@ data class GeometryPoint(
  */
 object MapDataConverter {
 
-    /**
-     * Преобразует Overpass ответ в MapData
-     */
-    fun fromOverpassResponse(
+    fun fromBackendResponse(
         response: PlacesResponse,
         bounds: MapBounds,
         visitedPlaceIds: Set<String> = emptySet()
     ): MapData {
-        val pois = response.elements
-            .filter { it.type == "node" && it.tags != null }
-            .filter { element ->
-                element.tags!!.containsKey("amenity") ||
-                        element.tags.containsKey("shop") ||
-                        element.tags.containsKey("leisure") ||
-                        element.tags.containsKey("tourism")
+        val pois = response.items
+            .filter { it.type == "node" && it.point != null }
+            .filter { item ->
+                item.amenity != null ||
+                        item.shop != null ||
+                        item.leisure != null ||
+                        item.tourism != null
             }
-            .map { element ->
+            .map { item ->
+                val tags = item.toTagsMap()
+
                 POI(
-                    id = element.id.toString(),
-                    name = element.tags!!["name"] ?: element.tags["amenity"] ?: "Unknown",
-                    type = POIType.fromOsmTags(element.tags),
-                    location = LatLng(element.lat!!, element.lon!!),
-                    isVisited = visitedPlaceIds.contains(element.id.toString())
+                    id = item.id.toString(),
+                    name = (tags["name"] ?: tags["amenity"] ?: "Unknown") as String,
+                    type = POIType.fromOsmTags(tags),
+                    location = LatLng(
+                        lat = item.point!![1], // point = [lon, lat]
+                        lon = item.point[0]
+                    ),
+                    isVisited = visitedPlaceIds.contains(item.id.toString())
                 )
             }
 

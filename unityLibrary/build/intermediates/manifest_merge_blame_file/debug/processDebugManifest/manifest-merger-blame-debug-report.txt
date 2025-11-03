@@ -1,0 +1,112 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.unity3d.player" >
+4
+5    <uses-sdk android:minSdkVersion="33" />
+5-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:3:3-72
+5-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:3:13-39
+6
+7    <uses-feature android:glEsVersion="0x00030000" />
+7-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:18:3-52
+7-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:18:17-49
+8    <uses-feature
+8-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:19:3-91
+9        android:name="android.hardware.vulkan.version"
+9-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:19:17-63
+10        android:required="false" />
+10-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:19:64-88
+11    <uses-feature
+11-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:20:3-88
+12        android:name="android.hardware.touchscreen"
+12-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:20:17-60
+13        android:required="false" />
+13-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:20:61-85
+14    <uses-feature
+14-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:21:3-99
+15        android:name="android.hardware.touchscreen.multitouch"
+15-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:21:17-71
+16        android:required="false" />
+16-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:21:72-96
+17    <uses-feature
+17-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:22:3-108
+18        android:name="android.hardware.touchscreen.multitouch.distinct"
+18-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:22:17-80
+19        android:required="false" />
+19-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:22:81-105
+20
+21    <application
+21-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:4:3-17:17
+22        android:allowBackup="true"
+22-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:4:16-42
+23        android:extractNativeLibs="true" >
+23-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:4:43-75
+24        <activity
+24-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:5-11:16
+25            android:name="com.unity3d.player.UnityPlayerActivity"
+25-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:15-68
+26            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
+26-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:180-361
+27            android:exported="true"
+27-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:433-456
+28            android:hardwareAccelerated="false"
+28-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:397-432
+29            android:launchMode="singleTask"
+29-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:148-179
+30            android:resizeableActivity="false"
+30-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:362-396
+31            android:screenOrientation="fullUser"
+31-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:111-147
+32            android:theme="@style/UnityThemeSelector" >
+32-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:5:69-110
+33            <intent-filter>
+33-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:6:7-9:23
+34                <action android:name="android.intent.action.MAIN" />
+34-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:7:9-61
+34-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:7:17-58
+35
+36                <category android:name="android.intent.category.LAUNCHER" />
+36-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:8:9-69
+36-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:8:19-66
+37            </intent-filter>
+38
+39            <meta-data
+39-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:10:7-78
+40                android:name="android.notch_support"
+40-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:10:18-54
+41                android:value="true" />
+41-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:10:55-75
+42        </activity>
+43
+44        <meta-data
+44-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:12:5-69
+45            android:name="unity.splash-mode"
+45-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:12:16-48
+46            android:value="0" />
+46-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:12:49-66
+47        <meta-data
+47-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:13:5-74
+48            android:name="unity.splash-enable"
+48-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:13:16-50
+49            android:value="True" />
+49-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:13:51-71
+50        <meta-data
+50-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:14:5-78
+51            android:name="unity.launch-fullscreen"
+51-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:14:16-54
+52            android:value="True" />
+52-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:14:55-75
+53        <meta-data
+53-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:15:5-81
+54            android:name="notch.config"
+54-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:15:16-43
+55            android:value="portrait|landscape" />
+55-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:15:44-78
+56        <meta-data
+56-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:16:5-84
+57            android:name="unity.auto-report-fully-drawn"
+57-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:16:16-60
+58            android:value="true" />
+58-->C:\Users\Alien\AndroidStudioProjects\Victor_AI\unityLibrary\src\main\AndroidManifest.xml:16:61-81
+59    </application>
+60
+61</manifest>
