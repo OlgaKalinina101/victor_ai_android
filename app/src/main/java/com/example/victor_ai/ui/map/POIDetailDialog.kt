@@ -107,7 +107,7 @@ fun POIDetailDialog(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = poi.impression,
+                                text = poi.impression!!,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
