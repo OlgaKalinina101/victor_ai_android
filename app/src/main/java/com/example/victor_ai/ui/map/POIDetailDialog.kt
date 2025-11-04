@@ -10,7 +10,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.victor_ai.ui.places.LatLng
 import com.example.victor_ai.ui.places.POI
+import com.example.victor_ai.ui.map.utils.LocationUtils
 
 /**
  * 💬 Диалог с деталями POI
@@ -19,15 +21,25 @@ import com.example.victor_ai.ui.places.POI
  * - Отметить место как посещенное
  * - Добавить впечатление
  * - Просмотреть детали
+ * - Показывает расстояние до POI
  */
 @Composable
 fun POIDetailDialog(
     poi: POI,
+    userLocation: LatLng?,
     onDismiss: () -> Unit,
     onMarkAsVisited: (String) -> Unit // Callback с впечатлением
 ) {
     var impression by remember { mutableStateOf(poi.impression ?: "") }
     var showImpressionInput by remember { mutableStateOf(!poi.isVisited) }
+
+    // Вычисляем расстояние до POI
+    val distance = userLocation?.let {
+        LocationUtils.calculateDistance(it, poi.location)
+    }
+    val distanceText = distance?.let {
+        LocationUtils.formatDistance(it)
+    } ?: "Расстояние неизвестно"
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -67,12 +79,25 @@ fun POIDetailDialog(
 
                 Divider()
 
-                // Координаты
-                Text(
-                    text = "Координаты: ${String.format("%.6f", poi.location.lat)}, ${String.format("%.6f", poi.location.lon)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Расстояние до POI
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "📍", fontSize = 20.sp)
+                        Text(
+                            text = "Расстояние: $distanceText",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
 
                 // Статус посещения
                 if (poi.isVisited) {
