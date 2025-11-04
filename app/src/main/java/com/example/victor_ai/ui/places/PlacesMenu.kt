@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,7 +60,7 @@ fun PlacesMenu(
                 loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.size(64.dp),
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color(0xFF2B2929)
                     )
                     Text(
                         text = "Загрузка мест...",
@@ -88,28 +89,30 @@ fun PlacesMenu(
 
                     // Статистика
                     Text(
-                        text = "Карта интересных мест",
+                        text = "WeWanderMoments",
                         style = MaterialTheme.typography.headlineMedium,
                         color = Color(0xFFE0E0E0),
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
                     Text(
-                        text = "Исследуйте места вокруг вас",
+                        text = "Статистика появится здесь",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFFB0B0B0),
+                        color = Color(0xFFE0E0E0),
                         modifier = Modifier.padding(bottom = 32.dp)
                     )
 
                     // Кнопка открытия карты
                     Button(
-                        onClick = {
-                            MapActivity.start(context)
-                        },
+                        onClick = { MapActivity.start(context) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 32.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFE0E0E0), // фон кнопки
+                            contentColor = Color.White        // цвет иконки и текста
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Map,
@@ -119,7 +122,8 @@ fun PlacesMenu(
                                 .padding(end = 8.dp)
                         )
                         Text(
-                            text = "Открыть карту",
+                            text = "Открыть уровень",
+                            color = Color(0xFF2B2929),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }

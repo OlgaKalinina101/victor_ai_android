@@ -24,6 +24,8 @@ import androidx.lifecycle.lifecycleScope
 import com.example.victor_ai.data.network.RetrofitInstance.placesApi
 import com.example.victor_ai.data.repository.VisitedPlacesRepository
 import com.example.victor_ai.ui.map.canvas.MapCanvasView
+import com.example.victor_ai.ui.map.renderer.Canvas2DMapRenderer
+import com.example.victor_ai.ui.map.renderer.MapRenderer
 import com.example.victor_ai.ui.places.*
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
@@ -93,11 +95,12 @@ class MapActivity : ComponentActivity() {
 
         val context = LocalContext.current
         var mapView: MapCanvasView? by remember { mutableStateOf(null) }
+        var mapRenderer: MapRenderer? by remember { mutableStateOf(null) }
 
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Карта мест") },
+                    title = { Text("Points") },
                     navigationIcon = {
                         IconButton(onClick = { finish() }) {
                             Icon(Icons.Default.ArrowBack, "Назад")
@@ -116,6 +119,7 @@ class MapActivity : ComponentActivity() {
                     factory = { ctx ->
                         MapCanvasView(ctx).apply {
                             mapView = this
+                            mapRenderer = Canvas2DMapRenderer(this)
                             // Callback для кликов на POI
                             onPOIClicked = { poi ->
                                 selectedPOI = poi
@@ -148,7 +152,7 @@ class MapActivity : ComponentActivity() {
                     poi.impression = impression
 
                     // Обновляем карту
-                    mapView?.updatePOIs(pois)
+                    mapRenderer?.renderPOIs(pois)
                 }
             )
         }
@@ -161,6 +165,9 @@ class MapActivity : ComponentActivity() {
                 pois = data.pois
                 userLocation = data.userLocation
                 mapView?.setMapData(data.bounds, data.pois, data.userLocation)
+                mapRenderer?.renderPOIs(data.pois)
+                mapRenderer?.updateUserLocation(data.userLocation ?: LatLng(55.7558, 37.6173))
+                mapRenderer?.centerOnPoint(data.userLocation ?: LatLng(55.7558, 37.6173), 5f)
             }
             isLoading = false
         }

@@ -119,8 +119,8 @@ fun POIDetailDialog(
                     OutlinedTextField(
                         value = impression,
                         onValueChange = { impression = it },
-                        label = { Text("Ваше впечатление") },
-                        placeholder = { Text("Что вам понравилось или не понравилось?") },
+                        label = { Text("Запомним что-нибудь?") },
+                        placeholder = { Text("Tags") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         maxLines = 5

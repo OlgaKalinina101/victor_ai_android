@@ -6,12 +6,15 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.MotionEvent
+import android.view.GestureDetector
+import android.view.ScaleGestureDetector
 import android.view.View
 import com.example.victor_ai.ui.map.renderer.POIMarkerRenderer
 import com.example.victor_ai.ui.map.utils.CoordinateConverter
 import com.example.victor_ai.ui.places.LatLng
 import com.example.victor_ai.ui.places.MapBounds
 import com.example.victor_ai.ui.places.POI
+import com.example.victor_ai.ui.places.POIType
 
 /**
  * 🗺️ Custom View для отображения карты с POI маркерами
@@ -28,10 +31,41 @@ class MapCanvasView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    companion object {
-        private const val GRID_CELL_SIZE = 100f // Размер ячейки сетки в пикселях
-        private const val USER_MARKER_RADIUS = 20f // Радиус маркера пользователя
-    }
+companion object {
+    private const val GRID_CELL_SIZE = 200f // Размер ячейки сетки в пикселях
+    private const val USER_MARKER_RADIUS = 20f // Радиус маркера пользователя
+
+    private const val MAX_ZOOM = 12f // Зум на старте
+}
+
+/**
+ * Проверяет, является ли тип POI разрешенным
+ */
+private fun isAllowedPOIType(poiType: POIType): Boolean {
+    val type = poiType.osmTag.lowercase()
+    if (type.isEmpty()) return false
+
+    // Кофейни
+    if (type.contains("cafe") || type.contains("coffee")) return true
+
+    // Рестораны
+    if (type.contains("restaurant") || type.contains("food")) return true
+
+    // Бары
+    if (type.contains("bar") || type.contains("pub") || type.contains("nightclub")) return true
+
+    // Кальянные
+    if (type.contains("hookah") || type.contains("shisha") || type.contains("кальян")) return true
+
+    // Парки
+    if (type.contains("park") || type.contains("garden") || type.contains("playground")) return true
+
+    return false
+}
+
+    private var initialLatRange: Double = 0.0
+    private var initialLonRange: Double = 0.0
+    private var currentZoom: Float = 300f
 
     // Данные карты
     private var mapBounds: MapBounds? = null
@@ -41,6 +75,10 @@ class MapCanvasView @JvmOverloads constructor(
     // Утилиты
     private var coordinateConverter: CoordinateConverter? = null
     private val markerRenderer = POIMarkerRenderer(context)
+
+    // Gesture detectors
+    private val gestureDetector = GestureDetector(context, GestureListener())
+    private val scaleDetector = ScaleGestureDetector(context, ScaleListener())
 
     // Callback для кликов на POI
     var onPOIClicked: ((POI) -> Unit)? = null
@@ -81,21 +119,28 @@ class MapCanvasView @JvmOverloads constructor(
         userLocation: LatLng? = null
     ) {
         this.mapBounds = bounds
-        this.pois = pois
+        this.pois = pois.filter { isAllowedPOIType(it.type) }
         this.userLocation = userLocation
 
-        // Пересоздаем конвертер с новыми размерами
+        this.initialLatRange = bounds.maxLat - bounds.minLat
+        this.initialLonRange = bounds.maxLon - bounds.minLon
+
         if (width > 0 && height > 0) {
             coordinateConverter = CoordinateConverter(
                 bounds = bounds,
                 viewWidth = width.toFloat(),
                 viewHeight = height.toFloat()
             )
+
+            // ВАЖНО: СНАЧАЛА ЦЕНТРИРУЕМ НА ПОЛЬЗОВАТЕЛЕ
+            userLocation?.let { panTo(it) }
+
+            // ТОЛЬКО ПОТОМ — ЗУМИМ ДО МАКСИМУМА
+            zoomTo(MAX_ZOOM)
         }
 
-        invalidate() // Перерисовываем View
+        invalidate()
     }
-
     /**
      * Обновляет позицию пользователя
      */
@@ -108,7 +153,7 @@ class MapCanvasView @JvmOverloads constructor(
      * Обновляет список POI
      */
     fun updatePOIs(newPOIs: List<POI>) {
-        this.pois = newPOIs
+        this.pois = newPOIs.filter { isAllowedPOIType(it.type) }
         invalidate()
     }
 
@@ -183,11 +228,52 @@ class MapCanvasView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_DOWN) {
-            handleClick(event.x, event.y)
+        var handled = scaleDetector.onTouchEvent(event)
+        handled = gestureDetector.onTouchEvent(event) || handled
+        return handled || super.onTouchEvent(event)
+    }
+
+    private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean {
             return true
         }
-        return super.onTouchEvent(event)
+
+        override fun onScroll(
+            e1: MotionEvent?,
+            e2: MotionEvent,
+            distanceX: Float,
+            distanceY: Float
+        ): Boolean {
+            val converter = coordinateConverter ?: return false
+
+            val deltaLat = (distanceY / height) * (mapBounds!!.maxLat - mapBounds!!.minLat)
+            val deltaLon = (distanceX / width) * (mapBounds!!.maxLon - mapBounds!!.minLon)
+
+            mapBounds = MapBounds(
+                minLat = mapBounds!!.minLat + deltaLat,
+                maxLat = mapBounds!!.maxLat + deltaLat,
+                minLon = mapBounds!!.minLon - deltaLon,
+                maxLon = mapBounds!!.maxLon - deltaLon
+            )
+
+            updateConverter()
+            invalidate()
+            return true
+        }
+
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            handleClick(e.x, e.y)
+            return true
+        }
+    }
+
+    private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            val scaleFactor = detector.scaleFactor
+            val newZoom = currentZoom * scaleFactor
+            zoomTo(newZoom.coerceIn(0.5f, 10f)) // Ограничение зума
+            return true
+        }
     }
 
     /**
@@ -202,6 +288,57 @@ class MapCanvasView @JvmOverloads constructor(
         if (clickedPOI != null) {
             onPOIClicked?.invoke(clickedPOI)
         }
+    }
+
+    private fun updateConverter() {
+        if (width > 0 && height > 0 && mapBounds != null) {
+            coordinateConverter = CoordinateConverter(
+                mapBounds!!,
+                width.toFloat(),
+                height.toFloat()
+            )
+        }
+    }
+
+    private fun getCurrentCenter(): LatLng {
+        val b = mapBounds ?: return LatLng(0.0, 0.0)
+        return LatLng(
+            (b.minLat + b.maxLat) / 2,
+            (b.minLon + b.maxLon) / 2
+        )
+    }
+
+    fun panTo(location: LatLng) {
+        val currentLatRange = mapBounds?.let { it.maxLat - it.minLat } ?: return
+        val currentLonRange = mapBounds?.let { it.maxLon - it.minLon } ?: return
+
+        mapBounds = MapBounds(
+            minLat = location.lat - currentLatRange / 2,
+            maxLat = location.lat + currentLatRange / 2,
+            minLon = location.lon - currentLonRange / 2,
+            maxLon = location.lon + currentLonRange / 2
+        )
+
+        updateConverter()
+        invalidate()
+    }
+
+    fun zoomTo(zoom: Float) {
+        currentZoom = zoom.coerceIn(1f, MAX_ZOOM)  // ОК
+
+        val center = getCurrentCenter()
+        val newLatRange = initialLatRange / currentZoom
+        val newLonRange = initialLonRange / currentZoom
+
+        mapBounds = MapBounds(
+            minLat = center.lat - newLatRange / 2,
+            maxLat = center.lat + newLatRange / 2,
+            minLon = center.lon - newLonRange / 2,
+            maxLon = center.lon + newLonRange / 2
+        )
+
+        updateConverter()
+        invalidate()
     }
 
     /**

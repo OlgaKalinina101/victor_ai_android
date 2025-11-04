@@ -78,8 +78,8 @@ class Canvas2DMapRenderer(
     }
 
     override fun centerOnPoint(location: LatLng, zoom: Float?) {
-        // TODO: Реализовать центрирование и зум
-        // Можно добавить методы zoom/pan в MapCanvasView
+        mapView.panTo(location)
+        zoom?.let { mapView.zoomTo(it) }
     }
 
     override fun clear() {
