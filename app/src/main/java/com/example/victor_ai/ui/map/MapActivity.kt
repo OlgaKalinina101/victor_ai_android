@@ -27,13 +27,14 @@ import com.example.victor_ai.ui.map.canvas.MapCanvasView
 import com.example.victor_ai.ui.map.renderer.Canvas2DMapRenderer
 import com.example.victor_ai.ui.map.renderer.MapRenderer
 import com.example.victor_ai.ui.places.*
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.math.cos
+import android.os.Looper
 
 /**
  * 🗺️ MapActivity - Activity для отображения карты с POI
@@ -53,6 +54,8 @@ class MapActivity : ComponentActivity() {
     }
 
     private lateinit var repository: VisitedPlacesRepository
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var locationCallback: LocationCallback? = null
 
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -73,6 +76,7 @@ class MapActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         repository = VisitedPlacesRepository(this)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         setContent {
             MaterialTheme {
@@ -82,6 +86,12 @@ class MapActivity : ComponentActivity() {
 
         // Запрашиваем разрешение на геолокацию
         requestLocationPermission()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Останавливаем отслеживание позиции при уничтожении Activity
+        stopLocationUpdates()
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -140,9 +150,18 @@ class MapActivity : ComponentActivity() {
 
         // Диалог с деталями POI
         selectedPOI?.let { poi ->
+            // Устанавливаем выбранный POI в MapView для поворота стрелки
+            LaunchedEffect(poi) {
+                mapView?.setSelectedPOI(poi)
+            }
+
             POIDetailDialog(
                 poi = poi,
-                onDismiss = { selectedPOI = null },
+                userLocation = userLocation,
+                onDismiss = {
+                    selectedPOI = null
+                    mapView?.setSelectedPOI(null) // Сбрасываем направление стрелки
+                },
                 onMarkAsVisited = { impression ->
                     // Сохраняем посещение
                     repository.markPlaceAsVisited(poi.id, impression)
@@ -168,6 +187,12 @@ class MapActivity : ComponentActivity() {
                 mapRenderer?.renderPOIs(data.pois)
                 mapRenderer?.updateUserLocation(data.userLocation ?: LatLng(55.7558, 37.6173))
                 mapRenderer?.centerOnPoint(data.userLocation ?: LatLng(55.7558, 37.6173), 5f)
+
+                // Запускаем отслеживание позиции в real-time
+                startLocationUpdates { newLocation ->
+                    userLocation = newLocation
+                    mapRenderer?.updateUserLocation(newLocation)
+                }
             }
             isLoading = false
         }
@@ -312,5 +337,51 @@ class MapActivity : ComponentActivity() {
             maxLat = lat + latDelta,
             maxLon = lon + lonDelta
         )
+    }
+
+    /**
+     * Запускает отслеживание позиции пользователя в real-time
+     *
+     * @param onLocationUpdate Callback, который вызывается при обновлении позиции
+     */
+    private fun startLocationUpdates(onLocationUpdate: (LatLng) -> Unit) {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        val locationRequest = LocationRequest.Builder(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            5000 // Обновление каждые 5 секунд
+        ).apply {
+            setMinUpdateIntervalMillis(2000) // Минимальный интервал 2 секунды
+            setWaitForAccurateLocation(false)
+        }.build()
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let { location ->
+                    onLocationUpdate(LatLng(location.latitude, location.longitude))
+                }
+            }
+        }
+
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback!!,
+            Looper.getMainLooper()
+        )
+    }
+
+    /**
+     * Останавливает отслеживание позиции пользователя
+     */
+    private fun stopLocationUpdates() {
+        locationCallback?.let {
+            fusedLocationClient.removeLocationUpdates(it)
+        }
     }
 }
