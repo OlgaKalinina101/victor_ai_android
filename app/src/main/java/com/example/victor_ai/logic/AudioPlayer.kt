@@ -30,6 +30,7 @@ class AudioPlayer(private val context: Context? = null) {
 
     fun playFromUrl(url: String) {
         try {
+            Log.d("AudioPlayer", "🎵 playFromUrl called with URL: $url")
             stop()
 
             // 🔥 Создаём Wake Lock для работы при блокировке экрана
@@ -39,6 +40,7 @@ class AudioPlayer(private val context: Context? = null) {
                 // 🔥 Устанавливаем Wake Mode для MediaPlayer
                 context?.let { ctx ->
                     setWakeMode(ctx, PowerManager.PARTIAL_WAKE_LOCK)
+                    Log.d("AudioPlayer", "✅ Wake mode set")
                 }
 
                 setAudioAttributes(
@@ -47,27 +49,60 @@ class AudioPlayer(private val context: Context? = null) {
                         .setUsage(AudioAttributes.USAGE_MEDIA)
                         .build()
                 )
+
+                Log.d("AudioPlayer", "📡 Setting data source: $url")
                 setDataSource(url)
+
                 setOnPreparedListener {
-                    Log.d("AudioPlayer", "MediaPlayer prepared, starting...")
-                    start()
+                    Log.d("AudioPlayer", "✅ MediaPlayer prepared successfully, starting playback...")
+                    try {
+                        start()
+                        Log.d("AudioPlayer", "🎶 Playback started")
+                    } catch (e: Exception) {
+                        Log.e("AudioPlayer", "❌ Error starting playback after prepare", e)
+                        releaseWakeLock()
+                    }
                 }
-                setOnErrorListener { _, what, extra ->
-                    Log.e("AudioPlayer", "MediaPlayer error: what=$what, extra=$extra")
+
+                setOnErrorListener { mp, what, extra ->
+                    Log.e("AudioPlayer", "❌ MediaPlayer error: what=$what, extra=$extra")
+                    Log.e("AudioPlayer", "   URL was: $url")
+
+                    // Декодируем ошибки
+                    val whatStr = when(what) {
+                        MediaPlayer.MEDIA_ERROR_UNKNOWN -> "MEDIA_ERROR_UNKNOWN (1)"
+                        MediaPlayer.MEDIA_ERROR_SERVER_DIED -> "MEDIA_ERROR_SERVER_DIED (100)"
+                        else -> "UNKNOWN ($what)"
+                    }
+                    val extraStr = when(extra) {
+                        MediaPlayer.MEDIA_ERROR_IO -> "MEDIA_ERROR_IO (-1004) - network/file error"
+                        MediaPlayer.MEDIA_ERROR_MALFORMED -> "MEDIA_ERROR_MALFORMED (-1007) - bitstream error"
+                        MediaPlayer.MEDIA_ERROR_UNSUPPORTED -> "MEDIA_ERROR_UNSUPPORTED (-1010) - format not supported"
+                        MediaPlayer.MEDIA_ERROR_TIMED_OUT -> "MEDIA_ERROR_TIMED_OUT (-110) - operation timeout"
+                        else -> "UNKNOWN ($extra)"
+                    }
+
+                    Log.e("AudioPlayer", "   what: $whatStr")
+                    Log.e("AudioPlayer", "   extra: $extraStr")
+
                     releaseWakeLock()  // 🔥 Отпускаем Wake Lock при ошибке
                     true
                 }
+
                 setOnCompletionListener {
-                    Log.d("AudioPlayer", "Playback completed")
+                    Log.d("AudioPlayer", "✅ Playback completed normally")
                     releaseWakeLock()  // 🔥 Отпускаем Wake Lock после завершения
                     onCompletionCallback?.invoke()  // 🔥 Вызываем callback
                 }
+
+                Log.d("AudioPlayer", "⏳ Preparing async...")
                 prepareAsync()  // ← стримит и готовит в фоне
             }
 
-            Log.d("AudioPlayer", "Started streaming from $url")
+            Log.d("AudioPlayer", "✅ MediaPlayer created, waiting for prepare...")
         } catch (e: Exception) {
-            Log.e("AudioPlayer", "Error playing from URL", e)
+            Log.e("AudioPlayer", "❌ Exception in playFromUrl: ${e.message}", e)
+            Log.e("AudioPlayer", "   URL was: $url")
             releaseWakeLock()
         }
     }
