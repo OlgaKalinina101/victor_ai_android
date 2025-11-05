@@ -113,6 +113,23 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         isAntiAlias = true
     }
 
+    private val trailPaint = Paint().apply {
+        color = Color.GRAY
+        style = Paint.Style.STROKE
+        strokeWidth = 6f
+        alpha = 160
+        isAntiAlias = true
+    }
+
+    private val trailPoints: MutableList<LatLng> = mutableListOf()
+
+    fun setTrail(points: List<LatLng>) {
+        trailPoints.clear()
+        trailPoints.addAll(points)
+        invalidate()
+    }
+
+
     /**
      * Устанавливает данные карты
      */
@@ -190,6 +207,9 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         // 2. Рисуем серую сетку
         drawGrid(canvas)
 
+        // 2.5. Трек пользователя
+        drawTrail(canvas)
+
         // 3. Рисуем POI маркеры
         val converter = coordinateConverter
         if (converter != null && pois.isNotEmpty()) {
@@ -265,6 +285,24 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         // Восстанавливаем состояние canvas
         canvas.restore()
     }
+
+    /**
+     * Рисует след на карте
+     */
+    private fun drawTrail(canvas: Canvas) {
+        val converter = coordinateConverter ?: return
+        if (trailPoints.size < 2) return
+
+        val path = Path()
+        val (sx, sy) = converter.gpsToScreen(trailPoints.first())
+        path.moveTo(sx, sy)
+        for (p in trailPoints.drop(1)) {
+            val (x, y) = converter.gpsToScreen(p)
+            path.lineTo(x, y)
+        }
+        canvas.drawPath(path, trailPaint)
+    }
+
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         var handled = scaleDetector.onTouchEvent(event)

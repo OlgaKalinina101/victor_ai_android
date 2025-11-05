@@ -35,6 +35,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.math.cos
 import android.os.Looper
+import com.example.victor_ai.ui.map.utils.LocationUtils
 
 /**
  * 🗺️ MapActivity - Activity для отображения карты с POI
@@ -106,77 +107,120 @@ class MapActivity : ComponentActivity() {
         val context = LocalContext.current
         var mapView: MapCanvasView? by remember { mutableStateOf(null) }
         var mapRenderer: MapRenderer? by remember { mutableStateOf(null) }
+        var searching by remember { mutableStateOf(false) }
+        var searchStart by remember { mutableStateOf<Long?>(null) }
+        var elapsedSec by remember { mutableStateOf(0L) }
+        var walkedMeters by remember { mutableStateOf(0.0) }
+        var path by remember { mutableStateOf(listOf<LatLng>()) }
+        var nearby by remember { mutableStateOf<List<POI>>(emptyList()) }
+        var lastPoint: LatLng? by remember { mutableStateOf(null) }
+
+        LaunchedEffect(searching, searchStart) {
+            while (searching) {
+                kotlinx.coroutines.delay(1000)
+                elapsedSec = ((System.currentTimeMillis() - (searchStart ?: System.currentTimeMillis())) / 1000)
+            }
+        }
 
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = { Text("Points") },
                     navigationIcon = {
-                        IconButton(onClick = { finish() }) {
-                            Icon(Icons.Default.ArrowBack, "Назад")
+                        IconButton(onClick = { (context as? ComponentActivity)?.finish() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
                         }
                     }
                 )
             }
         ) { paddingValues ->
+            // Весь контент карты и оверлеев в одном Box
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Map Canvas View
+                // Карта
                 AndroidView(
                     factory = { ctx ->
                         MapCanvasView(ctx).apply {
                             mapView = this
                             mapRenderer = Canvas2DMapRenderer(this)
-                            // Callback для кликов на POI
-                            onPOIClicked = { poi ->
-                                selectedPOI = poi
-                            }
+                            onPOIClicked = { poi -> selectedPOI = poi }
                         }
                     },
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Loading indicator
+                // Прелоадер
                 if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+
+                // 🧩 Наш оверлей (внутри Box → без затемнения)
+                selectedPOI?.let { poi ->
+                    // чтобы стрелка пользователя крутилась на POI
+                    LaunchedEffect(poi) { mapView?.setSelectedPOI(poi) }
+
+                    POIOverlay(
+                        poi = poi,
+                        userLocation = userLocation,
+                        searching = searching,
+                        elapsedSec = elapsedSec,
+                        walkedMeters = walkedMeters,
+                        nearby = nearby,
+                        onToggleSearch = {
+                            if (!searching) {
+                                // старт
+                                searching = true
+                                searchStart = System.currentTimeMillis()
+                                elapsedSec = 0L
+                                walkedMeters = 0.0
+                                lastPoint = userLocation
+                                path = userLocation?.let { listOf(it) } ?: emptyList()
+                                mapView?.setTrail(path)
+
+                                // показываем только текущий POI (и, при желании, «рядом» – подсказки)
+                                nearby = calcNearby(poi, pois, radiusM = 400, limit = 6)
+                                mapView?.updatePOIs(listOf(poi) + nearby) // или только listOf(poi) если хочешь строго один
+                            } else {
+                                // стоп
+                                searching = false
+                                searchStart = null
+                                lastPoint = null
+                                // можно оставить трек на карте или сбросить:
+                                // mapView?.setTrail(emptyList())
+                                // вернуть все POI:
+                                mapView?.updatePOIs(pois)
+                            }
+                        },
+                        onDismiss = {
+                            selectedPOI = null
+                            mapView?.setSelectedPOI(null)
+                            // при закрытии — можно тоже вернуть обычный режим
+                            if (searching) {
+                                searching = false
+                                mapView?.updatePOIs(pois)
+                            }
+                        },
+                        onSelectNearby = { n ->
+                            // выбрать другой POI из подсказок
+                            selectedPOI = n
+                            if (searching) {
+                                // перезапустить поиск на новом POI
+                                nearby = calcNearby(n, pois, 200, 6)
+                                mapView?.updatePOIs(listOf(n) + nearby)
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)   // 👈 вот это!
+                            .padding(top = 30.dp)        // 👈 и отступ вниз от верхнего края
                     )
                 }
             }
         }
 
-        // Диалог с деталями POI
-        selectedPOI?.let { poi ->
-            // Устанавливаем выбранный POI в MapView для поворота стрелки
-            LaunchedEffect(poi) {
-                mapView?.setSelectedPOI(poi)
-            }
-
-            POIDetailDialog(
-                poi = poi,
-                userLocation = userLocation,
-                onDismiss = {
-                    selectedPOI = null
-                    mapView?.setSelectedPOI(null) // Сбрасываем направление стрелки
-                },
-                onMarkAsVisited = { impression ->
-                    // Сохраняем посещение
-                    repository.markPlaceAsVisited(poi.id, impression)
-
-                    // Обновляем POI в списке
-                    poi.isVisited = true
-                    poi.impression = impression
-
-                    // Обновляем карту
-                    mapRenderer?.renderPOIs(pois)
-                }
-            )
-        }
-
-        // Загружаем данные при старте
+        // Загрузка данных при старте
         LaunchedEffect(Unit) {
             val data = loadMapDataCoroutine()
             if (data != null) {
@@ -188,15 +232,33 @@ class MapActivity : ComponentActivity() {
                 mapRenderer?.updateUserLocation(data.userLocation ?: LatLng(55.7558, 37.6173))
                 mapRenderer?.centerOnPoint(data.userLocation ?: LatLng(55.7558, 37.6173), 5f)
 
-                // Запускаем отслеживание позиции в real-time
                 startLocationUpdates { newLocation ->
                     userLocation = newLocation
                     mapRenderer?.updateUserLocation(newLocation)
+
+                    if (searching) {
+                        val prev = lastPoint
+                        if (prev != null) {
+                            val d = LocationUtils.calculateDistance(prev, newLocation) // в метрах
+                            // отфильтровать шум < 2-3 м
+                            if (d > 2.5) {
+                                walkedMeters += d
+                                path = path + newLocation
+                                mapView?.setTrail(path)
+                            }
+                        } else {
+                            path = listOf(newLocation)
+                            mapView?.setTrail(path)
+                        }
+                        lastPoint = newLocation
+                    }
                 }
+
             }
             isLoading = false
         }
     }
+
 
     /**
      * Запрашивает разрешение на геолокацию
@@ -224,6 +286,15 @@ class MapActivity : ComponentActivity() {
                 Toast.makeText(this@MapActivity, "Ошибка загрузки данных: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun calcNearby(centerPoi: POI, all: List<POI>, radiusM: Int, limit: Int): List<POI> {
+        return all.asSequence()
+            .filter { it.id != centerPoi.id }
+            .filter { LocationUtils.calculateDistance(centerPoi.location, it.location) <= radiusM }
+            .sortedBy { LocationUtils.calculateDistance(centerPoi.location, it.location) }
+            .take(limit)
+            .toList()
     }
 
     /**
