@@ -31,13 +31,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 class PlaylistViewModelFactory(
     private val apiService: ApiService,
     private val accountId: String,
-    private val cacheDir: File
+    private val cacheDir: File,
+    private val application: Application  // 🔥 Добавлен context для Wake Lock
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PlaylistViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return PlaylistViewModel(apiService, accountId, cacheDir) as T
+            return PlaylistViewModel(apiService, accountId, cacheDir, application.applicationContext) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
