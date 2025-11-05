@@ -1,17 +1,19 @@
 package com.example.victor_ai.logic
 
-// AudioPlayer.kt
+// AudioPlayer.kt - переведён на ExoPlayer для стабильности
 import android.content.Context
-import android.media.AudioAttributes
-import android.media.MediaPlayer
 import android.os.PowerManager
 import android.util.Log
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import okhttp3.ResponseBody
 import java.io.File
 import java.io.FileOutputStream
 
 class AudioPlayer(private val context: Context? = null) {
-    private var mediaPlayer: MediaPlayer? = null
+    private var exoPlayer: ExoPlayer? = null
     private var currentTempFile: File? = null
     private var onCompletionCallback: (() -> Unit)? = null  // 🔥 Callback для окончания трека
     private var wakeLock: PowerManager.WakeLock? = null  // 🔥 Wake Lock для работы при блокировке экрана
@@ -21,85 +23,90 @@ class AudioPlayer(private val context: Context? = null) {
     }
 
     fun getCurrentPosition(): Int {
-        return mediaPlayer?.currentPosition ?: 0
+        return exoPlayer?.currentPosition?.toInt() ?: 0
     }
 
     fun seekTo(position: Int) {
-        mediaPlayer?.seekTo(position)
+        exoPlayer?.seekTo(position.toLong())
     }
 
     fun playFromUrl(url: String) {
         try {
-            Log.d("AudioPlayer", "🎵 playFromUrl called with URL: $url")
+            Log.d("AudioPlayer", "🎵 [ExoPlayer] playFromUrl called with URL: $url")
             stop()
+
+            if (context == null) {
+                Log.e("AudioPlayer", "❌ Context is null, cannot create ExoPlayer")
+                return
+            }
 
             // 🔥 Создаём Wake Lock для работы при блокировке экрана
             acquireWakeLock()
 
-            mediaPlayer = MediaPlayer().apply {
-                // 🔥 Устанавливаем Wake Mode для MediaPlayer
-                context?.let { ctx ->
-                    setWakeMode(ctx, PowerManager.PARTIAL_WAKE_LOCK)
-                    Log.d("AudioPlayer", "✅ Wake mode set")
-                }
+            // 🎵 Создаём ExoPlayer
+            exoPlayer = ExoPlayer.Builder(context).build().apply {
+                // Настройка wake lock через setWakeMode
+                setWakeMode(PowerManager.PARTIAL_WAKE_LOCK)
+                Log.d("AudioPlayer", "✅ ExoPlayer created with wake mode")
 
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .build()
-                )
+                // Добавляем listener для событий
+                addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        when (playbackState) {
+                            Player.STATE_IDLE -> Log.d("AudioPlayer", "📱 State: IDLE")
+                            Player.STATE_BUFFERING -> Log.d("AudioPlayer", "⏳ State: BUFFERING")
+                            Player.STATE_READY -> Log.d("AudioPlayer", "✅ State: READY")
+                            Player.STATE_ENDED -> {
+                                Log.d("AudioPlayer", "✅ Playback completed normally")
+                                releaseWakeLock()
+                                onCompletionCallback?.invoke()
+                            }
+                        }
+                    }
 
-                Log.d("AudioPlayer", "📡 Setting data source: $url")
-                setDataSource(url)
+                    override fun onPlayerError(error: PlaybackException) {
+                        Log.e("AudioPlayer", "❌ ExoPlayer error: ${error.message}")
+                        Log.e("AudioPlayer", "   URL was: $url")
+                        Log.e("AudioPlayer", "   Error code: ${error.errorCode}")
+                        Log.e("AudioPlayer", "   Cause: ${error.cause}")
 
-                setOnPreparedListener {
-                    Log.d("AudioPlayer", "✅ MediaPlayer prepared successfully, starting playback...")
-                    try {
-                        start()
-                        Log.d("AudioPlayer", "🎶 Playback started")
-                    } catch (e: Exception) {
-                        Log.e("AudioPlayer", "❌ Error starting playback after prepare", e)
+                        // Декодируем ошибки ExoPlayer
+                        val errorType = when (error.errorCode) {
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> "NETWORK_CONNECTION_FAILED"
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> "NETWORK_TIMEOUT"
+                            PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE -> "INVALID_HTTP_CONTENT_TYPE"
+                            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> "BAD_HTTP_STATUS"
+                            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED -> "MALFORMED_CONTAINER"
+                            PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED -> "MALFORMED_MANIFEST"
+                            else -> "UNKNOWN (${error.errorCode})"
+                        }
+                        Log.e("AudioPlayer", "   Error type: $errorType")
+
                         releaseWakeLock()
                     }
-                }
 
-                setOnErrorListener { mp, what, extra ->
-                    Log.e("AudioPlayer", "❌ MediaPlayer error: what=$what, extra=$extra")
-                    Log.e("AudioPlayer", "   URL was: $url")
-
-                    // Декодируем ошибки
-                    val whatStr = when(what) {
-                        MediaPlayer.MEDIA_ERROR_UNKNOWN -> "MEDIA_ERROR_UNKNOWN (1)"
-                        MediaPlayer.MEDIA_ERROR_SERVER_DIED -> "MEDIA_ERROR_SERVER_DIED (100)"
-                        else -> "UNKNOWN ($what)"
+                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        Log.d("AudioPlayer", "🎶 Playing state changed: $isPlaying")
                     }
-                    val extraStr = when(extra) {
-                        MediaPlayer.MEDIA_ERROR_IO -> "MEDIA_ERROR_IO (-1004) - network/file error"
-                        MediaPlayer.MEDIA_ERROR_MALFORMED -> "MEDIA_ERROR_MALFORMED (-1007) - bitstream error"
-                        MediaPlayer.MEDIA_ERROR_UNSUPPORTED -> "MEDIA_ERROR_UNSUPPORTED (-1010) - format not supported"
-                        MediaPlayer.MEDIA_ERROR_TIMED_OUT -> "MEDIA_ERROR_TIMED_OUT (-110) - operation timeout"
-                        else -> "UNKNOWN ($extra)"
-                    }
+                })
 
-                    Log.e("AudioPlayer", "   what: $whatStr")
-                    Log.e("AudioPlayer", "   extra: $extraStr")
+                // Создаём MediaItem из URL
+                val mediaItem = MediaItem.fromUri(url)
+                Log.d("AudioPlayer", "📡 Setting media item: $url")
 
-                    releaseWakeLock()  // 🔥 Отпускаем Wake Lock при ошибке
-                    true
-                }
+                // Устанавливаем media item
+                setMediaItem(mediaItem)
 
-                setOnCompletionListener {
-                    Log.d("AudioPlayer", "✅ Playback completed normally")
-                    releaseWakeLock()  // 🔥 Отпускаем Wake Lock после завершения
-                    onCompletionCallback?.invoke()  // 🔥 Вызываем callback
-                }
+                // Подготавливаем плеер
+                Log.d("AudioPlayer", "⏳ Preparing ExoPlayer...")
+                prepare()
 
-                Log.d("AudioPlayer", "⏳ Preparing async...")
-                prepareAsync()  // ← стримит и готовит в фоне
+                // Начинаем воспроизведение
+                Log.d("AudioPlayer", "▶️ Starting playback...")
+                play()
             }
 
-            Log.d("AudioPlayer", "✅ MediaPlayer created, waiting for prepare...")
+            Log.d("AudioPlayer", "✅ ExoPlayer configured and started")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Exception in playFromUrl: ${e.message}", e)
             Log.e("AudioPlayer", "   URL was: $url")
@@ -142,34 +149,32 @@ class AudioPlayer(private val context: Context? = null) {
 
     fun pause() {
         try {
-            mediaPlayer?.pause()
+            exoPlayer?.pause()
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при паузе
-            Log.d("AudioPlayer", "Paused")
+            Log.d("AudioPlayer", "⏸️ Paused")
         } catch (e: Exception) {
-            Log.e("AudioPlayer", "Error pausing", e)
+            Log.e("AudioPlayer", "❌ Error pausing", e)
         }
     }
 
     fun resume() {
         try {
             acquireWakeLock()  // 🔥 Захватываем Wake Lock при возобновлении
-            mediaPlayer?.start()
-            Log.d("AudioPlayer", "Resumed")
+            exoPlayer?.play()
+            Log.d("AudioPlayer", "▶️ Resumed")
         } catch (e: Exception) {
-            Log.e("AudioPlayer", "Error resuming", e)
+            Log.e("AudioPlayer", "❌ Error resuming", e)
             releaseWakeLock()
         }
     }
 
     fun stop() {
         try {
-            mediaPlayer?.apply {
-                if (isPlaying) {
-                    stop()
-                }
+            exoPlayer?.apply {
+                stop()
                 release()
             }
-            mediaPlayer = null
+            exoPlayer = null
 
             // Удаляем временный файл
             currentTempFile?.delete()
@@ -177,15 +182,15 @@ class AudioPlayer(private val context: Context? = null) {
 
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при остановке
 
-            Log.d("AudioPlayer", "Stopped and released")
+            Log.d("AudioPlayer", "🛑 Stopped and released")
         } catch (e: Exception) {
-            Log.e("AudioPlayer", "Error stopping", e)
+            Log.e("AudioPlayer", "❌ Error stopping", e)
         }
     }
 
     fun isPlaying(): Boolean {
         return try {
-            mediaPlayer?.isPlaying ?: false
+            exoPlayer?.isPlaying ?: false
         } catch (e: Exception) {
             false
         }
