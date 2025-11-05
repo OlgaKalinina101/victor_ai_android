@@ -97,7 +97,8 @@ class MainActivity : ComponentActivity() {
         PlaylistViewModelFactory(
             apiService = RetrofitInstance.api,
             accountId = "test_user",
-            cacheDir = cacheDir
+            cacheDir = cacheDir,
+            application = application  // 🔥 Передаём application для Wake Lock
         )
     }
 

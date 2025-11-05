@@ -1,5 +1,6 @@
 package com.example.victor_ai.ui.playlist
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,7 +20,8 @@ import java.io.File
 class PlaylistViewModel(
     private val apiService: ApiService,
     private val accountId: String,
-    private val cacheDir: File
+    private val cacheDir: File,
+    private val context: Context  // 🔥 Добавлен context для Wake Lock
 ) : ViewModel() {
 
     private val _tracks = MutableStateFlow<List<Track>>(emptyList())
@@ -43,7 +45,7 @@ class PlaylistViewModel(
     private val _temperatureFilter = MutableStateFlow<String?>(null)
     private val _sortBy = MutableStateFlow("recent")
 
-    private val audioPlayer = AudioPlayer()
+    private val audioPlayer = AudioPlayer(context)  // 🔥 Передаём context для Wake Lock
 
     init {
         Log.d("PlaylistViewModel", "🏗️ ViewModel created (init block)")
