@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.victor_ai.data.network.RetrofitInstance.placesApi
 import com.example.victor_ai.data.repository.VisitedPlacesRepository
 import com.example.victor_ai.ui.map.canvas.MapCanvasView
@@ -64,11 +65,10 @@ class MapActivity : ComponentActivity() {
         when {
             permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true -> {
-                loadMapData()
+                // Загрузка данных происходит в LaunchedEffect в MapScreen
             }
             else -> {
                 Toast.makeText(this, "Разрешение на геолокацию не предоставлено", Toast.LENGTH_SHORT).show()
-                loadMapDataWithDefaultLocation()
             }
         }
     }
@@ -98,27 +98,34 @@ class MapActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MapScreen() {
-        var mapBounds by remember { mutableStateOf<MapBounds?>(null) }
-        var pois by remember { mutableStateOf<List<POI>>(emptyList()) }
-        var userLocation by remember { mutableStateOf<LatLng?>(null) }
-        var selectedPOI by remember { mutableStateOf<POI?>(null) }
-        var isLoading by remember { mutableStateOf(true) }
+        // ✅ Используем ViewModel для сохранения state при пересоздании Activity
+        val viewModel: MapViewModel = viewModel(
+            factory = MapViewModelFactory(placesApi, repository)
+        )
+
+        // Подписываемся на state из ViewModel
+        val mapBounds by viewModel.mapBounds.collectAsState()
+        val pois by viewModel.pois.collectAsState()
+        val userLocation by viewModel.userLocation.collectAsState()
+        val selectedPOI by viewModel.selectedPOI.collectAsState()
+        val isLoading by viewModel.isLoading.collectAsState()
+        val searching by viewModel.searching.collectAsState()
+        val searchStart by viewModel.searchStart.collectAsState()
+        val elapsedSec by viewModel.elapsedSec.collectAsState()
+        val walkedMeters by viewModel.walkedMeters.collectAsState()
+        val path by viewModel.path.collectAsState()
+        val nearby by viewModel.nearby.collectAsState()
 
         val context = LocalContext.current
         var mapView: MapCanvasView? by remember { mutableStateOf(null) }
         var mapRenderer: MapRenderer? by remember { mutableStateOf(null) }
-        var searching by remember { mutableStateOf(false) }
-        var searchStart by remember { mutableStateOf<Long?>(null) }
-        var elapsedSec by remember { mutableStateOf(0L) }
-        var walkedMeters by remember { mutableStateOf(0.0) }
-        var path by remember { mutableStateOf(listOf<LatLng>()) }
-        var nearby by remember { mutableStateOf<List<POI>>(emptyList()) }
-        var lastPoint: LatLng? by remember { mutableStateOf(null) }
+        var isLocationUpdatesStarted by remember { mutableStateOf(false) }
 
         LaunchedEffect(searching, searchStart) {
             while (searching) {
                 kotlinx.coroutines.delay(1000)
-                elapsedSec = ((System.currentTimeMillis() - (searchStart ?: System.currentTimeMillis())) / 1000)
+                val elapsed = ((System.currentTimeMillis() - (searchStart ?: System.currentTimeMillis())) / 1000)
+                viewModel.updateElapsedTime(elapsed)
             }
         }
 
@@ -146,7 +153,7 @@ class MapActivity : ComponentActivity() {
                         MapCanvasView(ctx).apply {
                             mapView = this
                             mapRenderer = Canvas2DMapRenderer(this)
-                            onPOIClicked = { poi -> selectedPOI = poi }
+                            onPOIClicked = { poi -> viewModel.setSelectedPOI(poi) }
                         }
                     },
                     modifier = Modifier.fillMaxSize()
@@ -172,43 +179,31 @@ class MapActivity : ComponentActivity() {
                         onToggleSearch = {
                             if (!searching) {
                                 // старт
-                                searching = true
-                                searchStart = System.currentTimeMillis()
-                                elapsedSec = 0L
-                                walkedMeters = 0.0
-                                lastPoint = userLocation
-                                path = userLocation?.let { listOf(it) } ?: emptyList()
+                                viewModel.startSearch(poi, pois, radiusM = 400, limit = 6)
                                 mapView?.setTrail(path)
-
-                                // показываем только текущий POI (и, при желании, «рядом» – подсказки)
-                                nearby = calcNearby(poi, pois, radiusM = 400, limit = 6)
-                                mapView?.updatePOIs(listOf(poi) + nearby) // или только listOf(poi) если хочешь строго один
+                                mapView?.updatePOIs(listOf(poi) + nearby)
                             } else {
                                 // стоп
-                                searching = false
-                                searchStart = null
-                                lastPoint = null
-                                // можно оставить трек на карте или сбросить:
-                                // mapView?.setTrail(emptyList())
+                                viewModel.stopSearch()
                                 // вернуть все POI:
                                 mapView?.updatePOIs(pois)
                             }
                         },
                         onDismiss = {
-                            selectedPOI = null
+                            viewModel.setSelectedPOI(null)
                             mapView?.setSelectedPOI(null)
                             // при закрытии — можно тоже вернуть обычный режим
                             if (searching) {
-                                searching = false
+                                viewModel.stopSearch()
                                 mapView?.updatePOIs(pois)
                             }
                         },
                         onSelectNearby = { n ->
                             // выбрать другой POI из подсказок
-                            selectedPOI = n
+                            viewModel.setSelectedPOI(n)
                             if (searching) {
                                 // перезапустить поиск на новом POI
-                                nearby = calcNearby(n, pois, 200, 6)
+                                viewModel.startSearch(n, pois, 200, 6)
                                 mapView?.updatePOIs(listOf(n) + nearby)
                             }
                         },
@@ -222,40 +217,34 @@ class MapActivity : ComponentActivity() {
 
         // Загрузка данных при старте
         LaunchedEffect(Unit) {
-            val data = loadMapDataCoroutine()
-            if (data != null) {
-                mapBounds = data.bounds
-                pois = data.pois
-                userLocation = data.userLocation
-                mapView?.setMapData(data.bounds, data.pois, data.userLocation)
-                mapRenderer?.renderPOIs(data.pois)
-                mapRenderer?.updateUserLocation(data.userLocation ?: LatLng(55.7558, 37.6173))
-                mapRenderer?.centerOnPoint(data.userLocation ?: LatLng(55.7558, 37.6173), 5f)
+            val location = getCurrentLocation()
+            viewModel.loadMapData(location, radiusMeters = 10000)
+        }
 
-                startLocationUpdates { newLocation ->
-                    userLocation = newLocation
-                    mapRenderer?.updateUserLocation(newLocation)
+        // Обновление карты при изменении данных из ViewModel
+        LaunchedEffect(mapBounds, pois, userLocation) {
+            if (mapBounds != null && pois.isNotEmpty()) {
+                mapView?.setMapData(mapBounds!!, pois, userLocation)
+                mapRenderer?.renderPOIs(pois)
+                mapRenderer?.updateUserLocation(userLocation ?: LatLng(55.7558, 37.6173))
+                mapRenderer?.centerOnPoint(userLocation ?: LatLng(55.7558, 37.6173), 5f)
 
-                    if (searching) {
-                        val prev = lastPoint
-                        if (prev != null) {
-                            val d = LocationUtils.calculateDistance(prev, newLocation) // в метрах
-                            // отфильтровать шум < 2-3 м
-                            if (d > 2.5) {
-                                walkedMeters += d
-                                path = path + newLocation
+                // Запускаем location updates только один раз
+                if (!isLocationUpdatesStarted) {
+                    startLocationUpdates { newLocation, accuracy ->
+                        // ✅ Используем ViewModel с фильтрацией GPS
+                        val accepted = viewModel.updateUserLocation(newLocation, accuracy)
+                        if (accepted) {
+                            mapRenderer?.updateUserLocation(newLocation)
+                            // Обновляем трек если идёт поиск
+                            if (searching) {
                                 mapView?.setTrail(path)
                             }
-                        } else {
-                            path = listOf(newLocation)
-                            mapView?.setTrail(path)
                         }
-                        lastPoint = newLocation
                     }
+                    isLocationUpdatesStarted = true
                 }
-
             }
-            isLoading = false
         }
     }
 
@@ -272,59 +261,7 @@ class MapActivity : ComponentActivity() {
         )
     }
 
-    /**
-     * Загружает данные карты
-     */
-    private fun loadMapData() {
-        lifecycleScope.launch {
-            try {
-                val location = getCurrentLocation()
-                val mapData = loadPlacesData(location, 10000)
-                // Данные загружены, обновляем UI через Compose State
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this@MapActivity, "Ошибка загрузки данных: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    private fun calcNearby(centerPoi: POI, all: List<POI>, radiusM: Int, limit: Int): List<POI> {
-        return all.asSequence()
-            .filter { it.id != centerPoi.id }
-            .filter { LocationUtils.calculateDistance(centerPoi.location, it.location) <= radiusM }
-            .sortedBy { LocationUtils.calculateDistance(centerPoi.location, it.location) }
-            .take(limit)
-            .toList()
-    }
-
-    /**
-     * Загружает данные с дефолтной локацией (Москва)
-     */
-    private fun loadMapDataWithDefaultLocation() {
-        val defaultLocation = LatLng(55.7558, 37.6173) // Москва
-        lifecycleScope.launch {
-            try {
-                val mapData = loadPlacesData(defaultLocation, 10000)
-                // Данные загружены
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this@MapActivity, "Ошибка загрузки данных: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    /**
-     * Корутина для загрузки данных карты
-     */
-    private suspend fun loadMapDataCoroutine(): MapData? = withContext(Dispatchers.IO) {
-        try {
-            val location = getCurrentLocation()
-            loadPlacesData(location, 10000)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
+    // ✅ Методы loadMapData, calcNearby, loadMapDataCoroutine перенесены в MapViewModel
 
     /**
      * Получает текущую геолокацию
@@ -353,69 +290,14 @@ class MapActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Загружает места из API
-     */
-    private suspend fun loadPlacesData(
-        location: LatLng,
-        radiusMeters: Int
-    ): MapData = withContext(Dispatchers.IO) {
-        val bbox = calculateBoundingBox(location.lat, location.lon, radiusMeters)
-
-        val placesResponse = placesApi.getPlaces(
-            limit = 15000,
-            bbox = "${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}"
-        )
-
-        val visitedPlaceIds = repository.getVisitedPlaceIds()
-        val bounds = MapBounds.fromCenterAndRadius(location, radiusMeters)
-
-        val mapData = MapDataConverter.fromBackendResponse(
-            response = placesResponse,
-            bounds = bounds,
-            visitedPlaceIds = visitedPlaceIds
-        )
-
-        // Обновляем POI с впечатлениями
-        mapData.pois.forEach { poi ->
-            if (poi.isVisited) {
-                poi.impression = repository.getImpression(poi.id)
-                poi.visitDate = repository.getVisitDate(poi.id)
-            }
-        }
-
-        mapData.copy(userLocation = location)
-    }
-
-    private data class BBox(
-        val minLat: Double,
-        val minLon: Double,
-        val maxLat: Double,
-        val maxLon: Double
-    )
-
-    private fun calculateBoundingBox(
-        lat: Double,
-        lon: Double,
-        radiusMeters: Int
-    ): BBox {
-        val latDelta = radiusMeters / 111_000.0
-        val lonDelta = radiusMeters / (111_000.0 * cos(Math.toRadians(lat)))
-
-        return BBox(
-            minLat = lat - latDelta,
-            minLon = lon - lonDelta,
-            maxLat = lat + latDelta,
-            maxLon = lon + lonDelta
-        )
-    }
+    // ✅ Методы loadPlacesData, calculateBoundingBox перенесены в MapViewModel
 
     /**
      * Запускает отслеживание позиции пользователя в real-time
      *
-     * @param onLocationUpdate Callback, который вызывается при обновлении позиции
+     * @param onLocationUpdate Callback, который вызывается при обновлении позиции (location, accuracy)
      */
-    private fun startLocationUpdates(onLocationUpdate: (LatLng) -> Unit) {
+    private fun startLocationUpdates(onLocationUpdate: (LatLng, Float) -> Unit) {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -435,7 +317,11 @@ class MapActivity : ComponentActivity() {
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let { location ->
-                    onLocationUpdate(LatLng(location.latitude, location.longitude))
+                    // ✅ Передаём accuracy для фильтрации
+                    onLocationUpdate(
+                        LatLng(location.latitude, location.longitude),
+                        location.accuracy
+                    )
                 }
             }
         }
