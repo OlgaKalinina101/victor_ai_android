@@ -203,22 +203,3 @@ fun POIDetailDialog(
     }
 }
 
-/**
- * Preview для диалога
- */
-@Composable
-private fun POIDetailDialogPreview() {
-    val samplePOI = POI(
-        id = "1",
-        name = "Кафе Пушкин",
-        type = com.example.victor_ai.ui.places.POIType.CAFE,
-        location = com.example.victor_ai.ui.places.LatLng(55.7558, 37.6173),
-        isVisited = false
-    )
-
-    POIDetailDialog(
-        poi = samplePOI,
-        onDismiss = {},
-        onMarkAsVisited = {}
-    )
-}
