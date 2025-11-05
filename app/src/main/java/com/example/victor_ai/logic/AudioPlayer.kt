@@ -11,6 +11,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import okhttp3.ResponseBody
 import java.io.File
@@ -62,13 +63,18 @@ class AudioPlayer(private val context: Context? = null) {
                 5  // 5 попыток переподключения
             )
 
+            // 🎵 MediaSourceFactory с retry policy
+            val mediaSourceFactory = DefaultMediaSourceFactory(context)
+                .setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
+
             // 🎵 Создаём ExoPlayer с retry и буферизацией
             exoPlayer = ExoPlayer.Builder(context)
                 .setLoadControl(loadControl)
+                .setMediaSourceFactory(mediaSourceFactory)  // 🔥 Подключаем retry policy
                 .build().apply {
-                // Настройка wake lock через setWakeMode
-                setWakeMode(PowerManager.PARTIAL_WAKE_LOCK)
-                Log.d("AudioPlayer", "✅ ExoPlayer created with wake mode")
+                    Log.d("AudioPlayer", "✅ ExoPlayer created with retry policy (5 attempts) and wake mode")
+                    // Настройка wake lock через setWakeMode
+                    setWakeMode(PowerManager.PARTIAL_WAKE_LOCK)
 
                 // Добавляем listener для событий
                 var hadError = false
