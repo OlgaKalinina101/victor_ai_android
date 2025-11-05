@@ -86,15 +86,21 @@ class MapViewModel(
             _error.value = null
 
             try {
+                Log.d(TAG, "🔍 Начинаем загрузку карты для location: lat=${location.lat}, lon=${location.lon}, radius=${radiusMeters}м")
+
                 val mapData = loadPlacesData(location, radiusMeters)
 
                 _mapBounds.value = mapData.bounds
                 _pois.value = mapData.pois
                 _userLocation.value = mapData.userLocation
 
-                Log.d(TAG, "Карта загружена: ${mapData.pois.size} POI")
+                Log.d(TAG, "✅ Карта загружена: ${mapData.pois.size} POI")
+
+                if (mapData.pois.isEmpty()) {
+                    Log.w(TAG, "⚠️ Бэкенд вернул 0 POI! Проверь данные на сервере или bbox параметры")
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Ошибка загрузки карты", e)
+                Log.e(TAG, "❌ Ошибка загрузки карты", e)
                 _error.value = e.message ?: "Неизвестная ошибка"
             } finally {
                 _isLoading.value = false
@@ -213,11 +219,16 @@ class MapViewModel(
         radiusMeters: Int
     ): MapData = withContext(Dispatchers.IO) {
         val bbox = calculateBoundingBox(location.lat, location.lon, radiusMeters)
+        val bboxString = "${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}"
+
+        Log.d(TAG, "📦 Запрашиваем данные с bbox: $bboxString")
 
         val placesResponse = placesApi.getPlaces(
             limit = 15000,
-            bbox = "${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}"
+            bbox = bboxString
         )
+
+        Log.d(TAG, "📥 Ответ от бэкенда: count=${placesResponse.count}, items.size=${placesResponse.items.size}")
 
         val visitedPlaceIds = repository?.getVisitedPlaceIds() ?: emptySet()
         val bounds = MapBounds.fromCenterAndRadius(location, radiusMeters)
@@ -227,6 +238,8 @@ class MapViewModel(
             bounds = bounds,
             visitedPlaceIds = visitedPlaceIds
         )
+
+        Log.d(TAG, "🔄 После конвертации: pois.size=${mapData.pois.size}")
 
         // Обновляем POI с впечатлениями
         mapData.pois.forEach { poi ->
