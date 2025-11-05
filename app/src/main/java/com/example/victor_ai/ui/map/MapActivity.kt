@@ -223,11 +223,23 @@ class MapActivity : ComponentActivity() {
 
         // Обновление карты при изменении данных из ViewModel
         LaunchedEffect(mapBounds, pois, userLocation) {
-            if (mapBounds != null && pois.isNotEmpty()) {
+            // ✅ ИСПРАВЛЕНО: Инициализируем карту даже если POI пустой!
+            if (mapBounds != null) {
                 mapView?.setMapData(mapBounds!!, pois, userLocation)
                 mapRenderer?.renderPOIs(pois)
                 mapRenderer?.updateUserLocation(userLocation ?: LatLng(55.7558, 37.6173))
                 mapRenderer?.centerOnPoint(userLocation ?: LatLng(55.7558, 37.6173), 5f)
+
+                // Показываем Toast если POI не найдены
+                if (pois.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            this@MapActivity,
+                            "⚠️ Не найдены места рядом. Проверьте подключение к серверу",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
 
                 // Запускаем location updates только один раз
                 if (!isLocationUpdatesStarted) {
