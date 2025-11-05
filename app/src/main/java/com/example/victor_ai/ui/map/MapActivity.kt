@@ -182,14 +182,17 @@ class MapActivity : ComponentActivity() {
                                 // старт
                                 viewModel.startSearch(poi, pois, radiusM = 400, limit = 6)
                                 mapView?.updatePOIs(listOf(poi) + nearby)
-                                // Центрируем на пользователе при старте
+                                mapView?.startSearchMode()
+                                // Увеличиваем зум и центрируем на пользователе
                                 userLocation?.let { loc ->
-                                    mapRenderer?.centerOnPoint(loc, 5f)
+                                    mapView?.zoomTo(10f) // Большой зум для детализации
+                                    mapView?.panTo(loc)
                                 }
                                 // trail обновится автоматически через LaunchedEffect(path)
                             } else {
                                 // стоп
                                 viewModel.stopSearch()
+                                mapView?.stopSearchMode()
                                 // вернуть все POI:
                                 mapView?.updatePOIs(pois)
                                 mapView?.setTrail(emptyList())
@@ -201,6 +204,7 @@ class MapActivity : ComponentActivity() {
                             // при закрытии — можно тоже вернуть обычный режим
                             if (searching) {
                                 viewModel.stopSearch()
+                                mapView?.stopSearchMode()
                                 mapView?.updatePOIs(pois)
                                 mapView?.setTrail(emptyList())
                             }
@@ -262,11 +266,16 @@ class MapActivity : ComponentActivity() {
         }
 
         // Обновляем userLocation на карте (без полной перерисовки)
-        LaunchedEffect(userLocation) {
+        LaunchedEffect(userLocation, searching) {
             userLocation?.let { loc ->
                 mapRenderer?.updateUserLocation(loc)
-                // Центрируем только при первой загрузке
-                if (mapRenderer != null && mapBounds != null && !hasInitialCentered) {
+
+                // Центрируем при первой загрузке ИЛИ во время поиска
+                if (searching) {
+                    // Во время поиска постоянно следуем за пользователем
+                    mapView?.panTo(loc)
+                } else if (mapRenderer != null && mapBounds != null && !hasInitialCentered) {
+                    // Центрируем только один раз при первой загрузке
                     mapRenderer?.centerOnPoint(loc, 5f)
                     hasInitialCentered = true
                 }

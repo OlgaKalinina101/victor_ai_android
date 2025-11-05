@@ -3,6 +3,7 @@ package com.example.victor_ai.ui.map.canvas
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
@@ -17,6 +18,7 @@ import com.example.victor_ai.ui.places.LatLng
 import com.example.victor_ai.ui.places.MapBounds
 import com.example.victor_ai.ui.places.POI
 import com.example.victor_ai.ui.places.POIType
+import kotlin.math.sin
 
 /**
  * 🗺️ Custom View для отображения карты с POI маркерами
@@ -74,10 +76,23 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     private var pois: List<POI> = emptyList()
     private var userLocation: LatLng? = null
     private var selectedPOI: POI? = null // Выбранный POI для направления стрелки
+    private var isSearching: Boolean = false // Режим поиска/навигации
 
     // Утилиты
     private var coordinateConverter: CoordinateConverter? = null
     private val markerRenderer = POIMarkerRenderer(context)
+
+    // Анимация
+    private var animationTime: Long = 0
+    private val animationRunnable = object : Runnable {
+        override fun run() {
+            if (isSearching) {
+                animationTime = System.currentTimeMillis()
+                invalidate()
+                postDelayed(this, 50) // 20 FPS
+            }
+        }
+    }
 
     // Gesture detectors
     private val gestureDetector = GestureDetector(context, GestureListener())
@@ -121,11 +136,48 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         isAntiAlias = true
     }
 
+    // Paint для пунктирной линии до цели
+    private val dashedLinePaint = Paint().apply {
+        color = Color.BLUE
+        style = Paint.Style.STROKE
+        strokeWidth = 8f
+        alpha = 200
+        isAntiAlias = true
+        pathEffect = DashPathEffect(floatArrayOf(20f, 15f), 0f)
+    }
+
+    // Paint для пульсирующего круга на цели
+    private val pulseCirclePaint = Paint().apply {
+        color = Color.RED
+        style = Paint.Style.STROKE
+        strokeWidth = 5f
+        isAntiAlias = true
+    }
+
     private val trailPoints: MutableList<LatLng> = mutableListOf()
 
     fun setTrail(points: List<LatLng>) {
         trailPoints.clear()
         trailPoints.addAll(points)
+        invalidate()
+    }
+
+    /**
+     * Включает режим поиска с анимацией
+     */
+    fun startSearchMode() {
+        isSearching = true
+        animationTime = System.currentTimeMillis()
+        removeCallbacks(animationRunnable)
+        post(animationRunnable)
+    }
+
+    /**
+     * Выключает режим поиска
+     */
+    fun stopSearchMode() {
+        isSearching = false
+        removeCallbacks(animationRunnable)
         invalidate()
     }
 
@@ -210,13 +262,23 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         // 2.5. Трек пользователя
         drawTrail(canvas)
 
-        // 3. Рисуем POI маркеры
+        // 3. Пунктирная линия до цели (если режим поиска)
+        if (isSearching) {
+            drawDashedLineToTarget(canvas)
+        }
+
+        // 4. Рисуем POI маркеры
         val converter = coordinateConverter
         if (converter != null && pois.isNotEmpty()) {
             markerRenderer.drawMarkers(canvas, pois, converter)
         }
 
-        // 4. Рисуем маркер пользователя
+        // 5. Пульсирующая анимация на цели (если режим поиска)
+        if (isSearching) {
+            drawPulsingTarget(canvas)
+        }
+
+        // 6. Рисуем маркер пользователя
         drawUserMarker(canvas)
     }
 
@@ -301,6 +363,43 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
             path.lineTo(x, y)
         }
         canvas.drawPath(path, trailPaint)
+    }
+
+    /**
+     * Рисует пунктирную линию от пользователя до целевого POI
+     */
+    private fun drawDashedLineToTarget(canvas: Canvas) {
+        val converter = coordinateConverter ?: return
+        val target = selectedPOI ?: return
+        val userLoc = userLocation ?: return
+
+        if (!converter.isInBounds(userLoc) || !converter.isInBounds(target.location)) return
+
+        val (userX, userY) = converter.gpsToScreen(userLoc)
+        val (targetX, targetY) = converter.gpsToScreen(target.location)
+
+        canvas.drawLine(userX, userY, targetX, targetY, dashedLinePaint)
+    }
+
+    /**
+     * Рисует пульсирующую анимацию на целевой точке
+     */
+    private fun drawPulsingTarget(canvas: Canvas) {
+        val converter = coordinateConverter ?: return
+        val target = selectedPOI ?: return
+
+        if (!converter.isInBounds(target.location)) return
+
+        val (x, y) = converter.gpsToScreen(target.location)
+
+        // Вычисляем радиус пульсации (от 50 до 80 пикселей)
+        val time = animationTime % 1500 // Период 1.5 секунды
+        val progress = time / 1500f
+        val radius = 50f + 30f * sin(progress * Math.PI * 2).toFloat()
+        val alpha = (255 * (1 - progress)).toInt().coerceIn(0, 255)
+
+        pulseCirclePaint.alpha = alpha
+        canvas.drawCircle(x, y, radius, pulseCirclePaint)
     }
 
 
