@@ -1,15 +1,22 @@
 package com.example.victor_ai.ui.map.canvas
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.os.Build
+import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.GestureDetector
 import android.view.ScaleGestureDetector
 import android.view.View
+import android.view.animation.LinearInterpolator
 import com.example.victor_ai.ui.map.renderer.POIMarkerRenderer
 import com.example.victor_ai.ui.map.utils.CoordinateConverter
 import com.example.victor_ai.ui.map.utils.LocationUtils
@@ -74,6 +81,29 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     private var pois: List<POI> = emptyList()
     private var userLocation: LatLng? = null
     private var selectedPOI: POI? = null // Выбранный POI для направления стрелки
+    private var previousLocation: LatLng? = null
+
+    private val trailPath: MutableList<LatLng> = mutableListOf()
+    private val trailPaint = Paint().apply {
+        color = Color.argb(120, 33, 150, 243)
+        style = Paint.Style.STROKE
+        strokeWidth = 6f
+        isAntiAlias = true
+    }
+
+    private var pulseScale: Float = 1f
+    private var pulseAnimator: ValueAnimator? = null
+
+    private val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val vibratorManager =
+            context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+        vibratorManager?.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
+    private var lastVibrationBucket: Int? = null
+    private var lastVibrationTimestamp: Long = 0L
 
     // Утилиты
     private var coordinateConverter: CoordinateConverter? = null
@@ -124,9 +154,13 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         this.mapBounds = bounds
         this.pois = pois.filter { isAllowedPOIType(it.type) }
         this.userLocation = userLocation
+        this.previousLocation = userLocation
 
         this.initialLatRange = bounds.maxLat - bounds.minLat
         this.initialLonRange = bounds.maxLon - bounds.minLon
+
+        trailPath.clear()
+        userLocation?.let { trailPath.add(it) }
 
         if (width > 0 && height > 0) {
             coordinateConverter = CoordinateConverter(
@@ -149,6 +183,17 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
      */
     fun updateUserLocation(location: LatLng) {
         this.userLocation = location
+
+        val lastPoint = trailPath.lastOrNull()
+        if (lastPoint == null || LocationUtils.calculateDistance(lastPoint, location) > 1.0) {
+            trailPath.add(location)
+            if (trailPath.size > 2000) {
+                trailPath.removeAt(0)
+            }
+        }
+
+        updatePulseAndVibration(location)
+        previousLocation = location
         invalidate()
     }
 
@@ -165,6 +210,10 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
      */
     fun setSelectedPOI(poi: POI?) {
         this.selectedPOI = poi
+        if (poi == null) {
+            stopPulseAnimation()
+            lastVibrationBucket = null
+        }
         invalidate()
     }
 
@@ -189,6 +238,9 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
 
         // 2. Рисуем серую сетку
         drawGrid(canvas)
+
+        // 2.1. След пользователя
+        drawTrail(canvas)
 
         // 3. Рисуем POI маркеры
         val converter = coordinateConverter
@@ -223,6 +275,32 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     }
 
     /**
+     * Рисует след пользователя на карте
+     */
+    private fun drawTrail(canvas: Canvas) {
+        val converter = coordinateConverter ?: return
+        if (trailPath.size < 2) return
+
+        val path = Path()
+        var started = false
+        trailPath.forEach { latLng ->
+            if (converter.isInBounds(latLng)) {
+                val (x, y) = converter.gpsToScreen(latLng)
+                if (!started) {
+                    path.moveTo(x, y)
+                    started = true
+                } else {
+                    path.lineTo(x, y)
+                }
+            } else {
+                started = false
+            }
+        }
+
+        canvas.drawPath(path, trailPaint)
+    }
+
+    /**
      * Рисует маркер текущей позиции пользователя в виде стрелки
      */
     private fun drawUserMarker(canvas: Canvas) {
@@ -244,6 +322,7 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         // Перемещаемся в точку пользователя и поворачиваем
         canvas.translate(x, y)
         canvas.rotate(bearing)
+        canvas.scale(pulseScale, pulseScale)
 
         // Создаем путь для стрелки (треугольник)
         val arrowPath = Path().apply {
@@ -380,6 +459,101 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         invalidate()
     }
 
+    private fun updatePulseAndVibration(location: LatLng) {
+        val target = selectedPOI ?: run {
+            stopPulseAnimation()
+            lastVibrationBucket = null
+            return
+        }
+
+        val targetLocation = target.location
+        val distance = LocationUtils.calculateDistance(location, targetLocation).toFloat()
+        val previous = previousLocation
+        val previousDistance = previous?.let { LocationUtils.calculateDistance(it, targetLocation) }
+
+        val heading = if (previous != null) {
+            LocationUtils.calculateBearing(previous, location)
+        } else null
+        val bearingToTarget = LocationUtils.calculateBearing(location, targetLocation)
+
+        val onCourse = heading?.let {
+            val diff = angularDifference(it, bearingToTarget)
+            val gettingCloser = previousDistance == null || previousDistance > distance
+            diff < 25f && gettingCloser
+        } ?: false
+
+        if (onCourse) {
+            startPulseAnimation(distance)
+        } else {
+            stopPulseAnimation()
+        }
+
+        handleVibration(distance)
+    }
+
+    private fun angularDifference(a: Float, b: Float): Float {
+        var diff = Math.abs(a - b) % 360f
+        if (diff > 180f) diff = 360f - diff
+        return diff
+    }
+
+    private fun startPulseAnimation(distance: Float) {
+        val duration = (distance.coerceIn(0f, 300f) / 300f * 600f + 400f).toLong()
+        val animator = pulseAnimator
+        if (animator == null) {
+            pulseAnimator = ValueAnimator.ofFloat(1f, 1.25f).apply {
+                this.duration = duration
+                repeatMode = ValueAnimator.REVERSE
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                addUpdateListener {
+                    pulseScale = it.animatedValue as Float
+                    invalidate()
+                }
+                start()
+            }
+        } else {
+            if (animator.duration != duration) {
+                animator.duration = duration
+            }
+            if (!animator.isStarted) {
+                animator.start()
+            }
+        }
+    }
+
+    private fun stopPulseAnimation() {
+        pulseAnimator?.cancel()
+        pulseAnimator = null
+        pulseScale = 1f
+    }
+
+    private fun handleVibration(distance: Float) {
+        if (distance >= 50f) {
+            lastVibrationBucket = null
+            return
+        }
+
+        val step = if (distance < 10f) 2 else 10
+        val bucket = (distance / step).toInt()
+        val now = SystemClock.elapsedRealtime()
+
+        if (lastVibrationBucket != bucket || now - lastVibrationTimestamp > 1500L) {
+            vibrator?.let { vib ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val duration = if (distance < 10f) 100L else 50L
+                    val amplitude = if (distance < 10f) 200 else 120
+                    vib.vibrate(VibrationEffect.createOneShot(duration, amplitude))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vib.vibrate(if (distance < 10f) 100L else 50L)
+                }
+            }
+            lastVibrationBucket = bucket
+            lastVibrationTimestamp = now
+        }
+    }
+
     /**
      * Очистка ресурсов
      */
@@ -387,5 +561,6 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         super.onDetachedFromWindow()
         // Очищаем кэш эмодзи при удалении View
         // (можно вызвать EmojiMapper.clearCache(), но лучше сделать это в Activity)
+        stopPulseAnimation()
     }
 }
