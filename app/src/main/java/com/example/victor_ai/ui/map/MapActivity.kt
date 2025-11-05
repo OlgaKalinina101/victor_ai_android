@@ -177,6 +177,9 @@ class MapActivity : ComponentActivity() {
                         elapsedSec = elapsedSec,
                         walkedMeters = walkedMeters,
                         nearby = nearby,
+                        // 🆕 НОВЫЕ ПАРАМЕТРЫ для посещений:
+                        isVisited = false, // или selectedPOI.name если нет id
+                        visitEmotion = null,
                         onToggleSearch = {
                             if (!searching) {
                                 // старт
@@ -218,6 +221,12 @@ class MapActivity : ComponentActivity() {
                                 mapView?.updatePOIs(listOf(n) + nearby)
                                 // trail обновится автоматически через LaunchedEffect(path)
                             }
+                        },
+                        onMarkVisited = { emotion ->
+                            if (emotion != null) {
+                                // Отметить как посещенное с эмоцией
+                                val visit = null
+                                }
                         },
                         modifier = Modifier
                             .align(Alignment.TopCenter)   // 👈 вот это!

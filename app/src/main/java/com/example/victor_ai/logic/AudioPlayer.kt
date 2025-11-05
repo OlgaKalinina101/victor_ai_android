@@ -4,10 +4,12 @@ package com.example.victor_ai.logic
 import android.content.Context
 import android.os.PowerManager
 import android.util.Log
+import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
@@ -35,6 +37,7 @@ class AudioPlayer(private val context: Context? = null) {
         exoPlayer?.seekTo(position.toLong())
     }
 
+    @OptIn(UnstableApi::class)
     fun playFromUrl(url: String) {
         try {
             Log.d("AudioPlayer", "🎵 [ExoPlayer] playFromUrl called with URL: $url")
