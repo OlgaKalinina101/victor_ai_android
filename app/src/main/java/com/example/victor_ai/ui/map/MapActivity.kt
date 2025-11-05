@@ -120,6 +120,7 @@ class MapActivity : ComponentActivity() {
         var mapView: MapCanvasView? by remember { mutableStateOf(null) }
         var mapRenderer: MapRenderer? by remember { mutableStateOf(null) }
         var isLocationUpdatesStarted by remember { mutableStateOf(false) }
+        var hasInitialCentered by remember { mutableStateOf(false) }
 
         LaunchedEffect(searching, searchStart) {
             while (searching) {
@@ -180,13 +181,18 @@ class MapActivity : ComponentActivity() {
                             if (!searching) {
                                 // старт
                                 viewModel.startSearch(poi, pois, radiusM = 400, limit = 6)
-                                mapView?.setTrail(path)
                                 mapView?.updatePOIs(listOf(poi) + nearby)
+                                // Центрируем на пользователе при старте
+                                userLocation?.let { loc ->
+                                    mapRenderer?.centerOnPoint(loc, 5f)
+                                }
+                                // trail обновится автоматически через LaunchedEffect(path)
                             } else {
                                 // стоп
                                 viewModel.stopSearch()
                                 // вернуть все POI:
                                 mapView?.updatePOIs(pois)
+                                mapView?.setTrail(emptyList())
                             }
                         },
                         onDismiss = {
@@ -196,6 +202,7 @@ class MapActivity : ComponentActivity() {
                             if (searching) {
                                 viewModel.stopSearch()
                                 mapView?.updatePOIs(pois)
+                                mapView?.setTrail(emptyList())
                             }
                         },
                         onSelectNearby = { n ->
@@ -205,6 +212,7 @@ class MapActivity : ComponentActivity() {
                                 // перезапустить поиск на новом POI
                                 viewModel.startSearch(n, pois, 200, 6)
                                 mapView?.updatePOIs(listOf(n) + nearby)
+                                // trail обновится автоматически через LaunchedEffect(path)
                             }
                         },
                         modifier = Modifier
@@ -221,14 +229,12 @@ class MapActivity : ComponentActivity() {
             viewModel.loadMapData(location, radiusMeters = 10000)
         }
 
-        // Обновление карты при изменении данных из ViewModel
-        LaunchedEffect(mapBounds, pois, userLocation) {
+        // Обновление карты при изменении данных из ViewModel (БЕЗ userLocation!)
+        LaunchedEffect(mapBounds, pois) {
             // ✅ ИСПРАВЛЕНО: Инициализируем карту даже если POI пустой!
             if (mapBounds != null) {
                 mapView?.setMapData(mapBounds!!, pois, userLocation)
                 mapRenderer?.renderPOIs(pois)
-                mapRenderer?.updateUserLocation(userLocation ?: LatLng(55.7558, 37.6173))
-                mapRenderer?.centerOnPoint(userLocation ?: LatLng(55.7558, 37.6173), 5f)
 
                 // Показываем Toast если POI не найдены
                 if (pois.isEmpty()) {
@@ -248,14 +254,29 @@ class MapActivity : ComponentActivity() {
                         val accepted = viewModel.updateUserLocation(newLocation, accuracy)
                         if (accepted) {
                             mapRenderer?.updateUserLocation(newLocation)
-                            // Обновляем трек если идёт поиск
-                            if (searching) {
-                                mapView?.setTrail(path)
-                            }
                         }
                     }
                     isLocationUpdatesStarted = true
                 }
+            }
+        }
+
+        // Обновляем userLocation на карте (без полной перерисовки)
+        LaunchedEffect(userLocation) {
+            userLocation?.let { loc ->
+                mapRenderer?.updateUserLocation(loc)
+                // Центрируем только при первой загрузке
+                if (mapRenderer != null && mapBounds != null && !hasInitialCentered) {
+                    mapRenderer?.centerOnPoint(loc, 5f)
+                    hasInitialCentered = true
+                }
+            }
+        }
+
+        // Обновляем trail при изменении path
+        LaunchedEffect(path) {
+            if (searching) {
+                mapView?.setTrail(path)
             }
         }
     }
