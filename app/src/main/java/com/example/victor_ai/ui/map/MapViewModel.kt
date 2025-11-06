@@ -9,6 +9,7 @@ import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.data.repository.VisitedPlacesRepository
 import com.example.victor_ai.ui.map.utils.LocationUtils
 import com.example.victor_ai.ui.places.*
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.cos
+import com.example.victor_ai.data.network.dto.*
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 /**
  * 🗺️ ViewModel для MapActivity
@@ -74,8 +78,16 @@ class MapViewModel(
     private val _nearby = MutableStateFlow<List<POI>>(emptyList())
     val nearby: StateFlow<List<POI>> = _nearby.asStateFlow()
 
+    // Посещенные POI с эмоциями (хранится только в текущей сессии)
+    private val _visitedPOIs = MutableStateFlow<Map<String, VisitEmotion>>(emptyMap())
+    val visitedPOIs: StateFlow<Map<String, VisitEmotion>> = _visitedPOIs.asStateFlow()
+
+    // Список посещений для текущей walk session
+    private val _currentSessionVisits = mutableListOf<POIVisit>()
+
     private var lastPoint: LatLng? = null
     private var lastAccurateLocation: LatLng? = null // Последняя точная локация
+    private var currentSessionId: Int? = null // ID текущей walk session
 
     /**
      * Загружает данные карты вокруг указанной точки
@@ -99,11 +111,37 @@ class MapViewModel(
                 if (mapData.pois.isEmpty()) {
                     Log.w(TAG, "⚠️ Бэкенд вернул 0 POI! Проверь данные на сервере или bbox параметры")
                 }
+
+                // Загружаем посещенные места из journal
+                loadVisitedPlacesFromJournal()
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Ошибка загрузки карты", e)
                 _error.value = e.message ?: "Неизвестная ошибка"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Загружает посещенные места из journal
+     */
+    private fun loadVisitedPlacesFromJournal() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = placesApi.getJournalEntries("test_user") // TODO: Получать из настроек
+                if (response.isSuccessful) {
+                    val entries = response.body() ?: emptyList()
+                    Log.d(TAG, "✅ Загружено ${entries.size} записей из дневника")
+
+                    // Пока не можем восстановить эмоции из journal (нужно расширить API)
+                    // Просто пометим как посещенные без эмоций
+                    // Это задел на будущее
+                } else {
+                    Log.e(TAG, "❌ Ошибка загрузки journal: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Исключение при загрузке journal", e)
             }
         }
     }
@@ -184,12 +222,18 @@ class MapViewModel(
     }
 
     /**
-     * Останавливает поиск
+     * Останавливает поиск и сохраняет walk session
      */
     fun stopSearch() {
+        // Сохраняем walk session перед остановкой
+        if (_searching.value && _searchStart.value != null) {
+            saveWalkSession()
+        }
+
         _searching.value = false
         _searchStart.value = null
         lastPoint = null
+        _currentSessionVisits.clear()
     }
 
     /**
@@ -279,6 +323,123 @@ class MapViewModel(
      * Получает последнюю точную локацию (для восстановления после плохого GPS)
      */
     fun getLastAccurateLocation(): LatLng? = lastAccurateLocation
+
+    /**
+     * Отмечает POI как посещенное с эмоцией
+     */
+    fun markPOIAsVisited(poi: POI, emotion: VisitEmotion?) {
+        if (emotion != null) {
+            // Добавляем в карту посещенных
+            _visitedPOIs.value = _visitedPOIs.value + (poi.name to emotion)
+
+            // Если идет walk session, добавляем в список посещений
+            if (_searching.value) {
+                val visit = POIVisit(
+                    poi_id = poi.id,
+                    poi_name = poi.name,
+                    distance_from_start = _walkedMeters.value.toFloat(),
+                    found_at = Instant.now().toString(),
+                    emotion_emoji = emotion.emoji,
+                    emotion_label = emotion.name,
+                    emotion_color = String.format("#%06X", (0xFFFFFF and emotion.color.value.toInt()))
+                )
+                _currentSessionVisits.add(visit)
+            }
+
+            // Сохраняем в journal
+            saveJournalEntry(poi, emotion)
+        } else {
+            // Убираем из посещенных (если эмоция null)
+            _visitedPOIs.value = _visitedPOIs.value - poi.name
+        }
+    }
+
+    /**
+     * Проверяет, посещен ли POI
+     */
+    fun isPOIVisited(poiName: String): Boolean {
+        return _visitedPOIs.value.containsKey(poiName)
+    }
+
+    /**
+     * Получает эмоцию для посещенного POI
+     */
+    fun getVisitEmotion(poiName: String): VisitEmotion? {
+        return _visitedPOIs.value[poiName]
+    }
+
+    /**
+     * Сохраняет запись в дневник о посещении POI
+     */
+    private fun saveJournalEntry(poi: POI, emotion: VisitEmotion) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val entry = JournalEntryIn(
+                    date = Instant.now().toString(),
+                    text = "Посетил ${poi.name}. Впечатление: ${emotion.name} ${emotion.emoji}",
+                    photo_path = null,
+                    poi_name = poi.name,
+                    session_id = currentSessionId,
+                    account_id = "test_user" // TODO: Получать из настроек/авторизации
+                )
+
+                val response = placesApi.createJournalEntry(entry)
+                if (response.isSuccessful) {
+                    Log.d(TAG, "✅ Запись в дневник сохранена для ${poi.name}")
+                } else {
+                    Log.e(TAG, "❌ Ошибка сохранения в дневник: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Исключение при сохранении в дневник", e)
+            }
+        }
+    }
+
+    /**
+     * Сохраняет walk session на бэкенд
+     */
+    private fun saveWalkSession() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val startTime = _searchStart.value ?: return@launch
+                val endTime = System.currentTimeMillis()
+
+                // Конвертируем path в StepPoint
+                val stepPoints = _path.value.mapIndexed { index, latLng ->
+                    StepPoint(
+                        lat = latLng.lat,
+                        lon = latLng.lon,
+                        timestamp = Instant.ofEpochMilli(startTime + (index * 5000L)).toString() // примерно каждые 5 сек
+                    )
+                }
+
+                // Примерный расчет шагов (1 шаг ≈ 0.75 метра)
+                val steps = (_walkedMeters.value / 0.75).toInt()
+
+                val walkSession = WalkSessionCreate(
+                    account_id = "test_user", // TODO: Получать из настроек/авторизации
+                    start_time = Instant.ofEpochMilli(startTime).toString(),
+                    end_time = Instant.ofEpochMilli(endTime).toString(),
+                    distance_m = _walkedMeters.value.toFloat(),
+                    steps = steps,
+                    mode = "search", // Режим поиска POI
+                    notes = "Прогулка с поиском точек интереса",
+                    poi_visits = _currentSessionVisits.toList(),
+                    step_points = stepPoints
+                )
+
+                val response = placesApi.createWalkSession(walkSession)
+                if (response.isSuccessful) {
+                    currentSessionId = response.body()?.session_id
+                    Log.d(TAG, "✅ Walk session сохранена с ID: $currentSessionId")
+                } else {
+                    Log.e(TAG, "❌ Ошибка сохранения walk session: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Исключение при сохранении walk session", e)
+            }
+        }
+    }
 }
 
 /**

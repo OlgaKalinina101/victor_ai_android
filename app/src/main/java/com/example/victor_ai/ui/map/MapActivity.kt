@@ -115,6 +115,7 @@ class MapActivity : ComponentActivity() {
         val walkedMeters by viewModel.walkedMeters.collectAsState()
         val path by viewModel.path.collectAsState()
         val nearby by viewModel.nearby.collectAsState()
+        val visitedPOIs by viewModel.visitedPOIs.collectAsState()
 
         val context = LocalContext.current
         var mapView: MapCanvasView? by remember { mutableStateOf(null) }
@@ -177,9 +178,9 @@ class MapActivity : ComponentActivity() {
                         elapsedSec = elapsedSec,
                         walkedMeters = walkedMeters,
                         nearby = nearby,
-                        // 🆕 НОВЫЕ ПАРАМЕТРЫ для посещений:
-                        isVisited = false, // или selectedPOI.name если нет id
-                        visitEmotion = null,
+                        // 🆕 Проверяем статус посещения из ViewModel
+                        isVisited = viewModel.isPOIVisited(poi.name),
+                        visitEmotion = viewModel.getVisitEmotion(poi.name),
                         onToggleSearch = {
                             if (!searching) {
                                 // старт
@@ -223,10 +224,8 @@ class MapActivity : ComponentActivity() {
                             }
                         },
                         onMarkVisited = { emotion ->
-                            if (emotion != null) {
-                                // Отметить как посещенное с эмоцией
-                                val visit = null
-                                }
+                            // Отмечаем посещение в ViewModel (который сохранит в API)
+                            viewModel.markPOIAsVisited(poi, emotion)
                         },
                         modifier = Modifier
                             .align(Alignment.TopCenter)   // 👈 вот это!
