@@ -19,6 +19,7 @@ import com.example.victor_ai.ui.places.MapBounds
 import com.example.victor_ai.ui.places.POI
 import com.example.victor_ai.ui.places.POIType
 import kotlin.math.sin
+import androidx.core.graphics.toColorInt
 
 /**
  * 🗺️ Custom View для отображения карты с POI маркерами
@@ -138,12 +139,13 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
 
     // Paint для пунктирной линии до цели
     private val dashedLinePaint = Paint().apply {
-        color = Color.BLUE
+        color = "#4A4A4A".toColorInt()
         style = Paint.Style.STROKE
-        strokeWidth = 8f
-        alpha = 200
+        strokeWidth = 16f                // в 2 раза толще
+        alpha = 220                      // чуть плотнее
         isAntiAlias = true
-        pathEffect = DashPathEffect(floatArrayOf(20f, 15f), 0f)
+        pathEffect = DashPathEffect(floatArrayOf(30f, 20f), 0f)
+        strokeCap = Paint.Cap.ROUND
     }
 
     // Paint для пульсирующего круга на цели
@@ -314,39 +316,48 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         if (!converter.isInBounds(location)) return
 
         val (x, y) = converter.gpsToScreen(location)
-
-        // Вычисляем угол направления к выбранному POI
         val bearing = selectedPOI?.let { poi ->
             LocationUtils.calculateBearing(location, poi.location)
-        } ?: 0f // Если POI не выбран, стрелка направлена на север
+        } ?: 0f
 
-        // Сохраняем состояние canvas
         canvas.save()
-
-        // Перемещаемся в точку пользователя и поворачиваем
         canvas.translate(x, y)
         canvas.rotate(bearing)
 
-        // Создаем путь для стрелки (треугольник)
+        // Размер стрелки
+        val arrowSize = 32f
+
+        // Немного закругленные углы
         val arrowPath = Path().apply {
-            // Верхняя точка (направление стрелки)
-            moveTo(0f, -ARROW_SIZE)
-            // Правая нижняя точка
-            lineTo(ARROW_SIZE * 0.6f, ARROW_SIZE * 0.4f)
-            // Левая нижняя точка
-            lineTo(-ARROW_SIZE * 0.6f, ARROW_SIZE * 0.4f)
-            // Замыкаем путь
+            moveTo(0f, -arrowSize)                          // верх
+            lineTo(arrowSize * 0.7f, arrowSize * 0.4f)     // нижний правый угол
+            lineTo(arrowSize * 0.4f, arrowSize * 0.4f)     // вырез под основание
+            lineTo(arrowSize * 0.4f, arrowSize)            // край основания
+            lineTo(-arrowSize * 0.4f, arrowSize)           // противоположный край основания
+            lineTo(-arrowSize * 0.4f, arrowSize * 0.4f)    // вырез под основание
+            lineTo(-arrowSize * 0.7f, arrowSize * 0.4f)    // нижний левый угол
             close()
         }
 
-        // Рисуем белую обводку
+        val arrowPaint = Paint().apply {
+            color = Color.parseColor("#4A4A4A")
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+        val arrowStrokePaint = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+            isAntiAlias = true
+        }
+
         canvas.drawPath(arrowPath, arrowStrokePaint)
-        // Рисуем синюю заливку
         canvas.drawPath(arrowPath, arrowPaint)
 
-        // Восстанавливаем состояние canvas
         canvas.restore()
     }
+
 
     /**
      * Рисует след на карте

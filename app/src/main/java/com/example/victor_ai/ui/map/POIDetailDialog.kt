@@ -354,16 +354,14 @@ fun POIOverlay(
                     if (!searching) {
                         Button(
                             onClick = {
-                                if (isVisited) {
-                                    // Сброс посещения
-                                    onMarkVisited(null)
-                                } else {
-                                    // Открыть селектор эмоций
-                                    showEmotionSelector = true
-                                }
+                                if (isVisited) onMarkVisited(null)
+                                else showEmotionSelector = true
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isVisited) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+                                containerColor = if (isVisited)
+                                    Color(0xFFFFB74D) // тёплый янтарный
+                                else
+                                    Color(0xFF616161), // нейтрально-графитовый
                                 contentColor = Color.White
                             ),
                             modifier = Modifier.weight(1f)
