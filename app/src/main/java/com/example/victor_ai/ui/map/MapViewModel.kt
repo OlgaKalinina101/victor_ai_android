@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.victor_ai.data.network.PlacesApi
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.data.repository.VisitedPlacesRepository
+import com.example.victor_ai.data.repository.StatsRepository
 import com.example.victor_ai.ui.map.utils.LocationUtils
 import com.example.victor_ai.ui.places.*
 import androidx.compose.ui.graphics.Color
@@ -31,7 +32,8 @@ import java.time.format.DateTimeFormatter
  */
 class MapViewModel(
     private val placesApi: PlacesApi = RetrofitInstance.placesApi,
-    private val repository: VisitedPlacesRepository? = null
+    private val repository: VisitedPlacesRepository? = null,
+    private val statsRepository: StatsRepository? = null
 ) : ViewModel() {
 
     companion object {
@@ -432,6 +434,13 @@ class MapViewModel(
                 if (response.isSuccessful) {
                     currentSessionId = response.body()?.session_id
                     Log.d(TAG, "✅ Walk session сохранена с ID: $currentSessionId")
+
+                    // Обновляем локальную статистику
+                    statsRepository?.let {
+                        it.addTodayDistance(_walkedMeters.value.toFloat())
+                        it.addTodaySteps(steps)
+                        Log.d(TAG, "✅ Локальная статистика обновлена")
+                    }
                 } else {
                     Log.e(TAG, "❌ Ошибка сохранения walk session: ${response.errorBody()?.string()}")
                 }
@@ -447,13 +456,14 @@ class MapViewModel(
  */
 class MapViewModelFactory(
     private val placesApi: PlacesApi,
-    private val repository: VisitedPlacesRepository?
+    private val repository: VisitedPlacesRepository?,
+    private val statsRepository: StatsRepository? = null
 ) : androidx.lifecycle.ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-            return MapViewModel(placesApi, repository) as T
+            return MapViewModel(placesApi, repository, statsRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

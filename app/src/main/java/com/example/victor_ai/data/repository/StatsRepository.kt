@@ -1,0 +1,217 @@
+package com.example.victor_ai.data.repository
+
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
+import com.example.victor_ai.data.network.PlacesApi
+import com.example.victor_ai.data.network.dto.Achievement
+import com.example.victor_ai.data.network.dto.JournalEntry
+import com.example.victor_ai.data.network.dto.StatsResponse
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
+
+/**
+ * 📊 Repository для управления статистикой пользователя
+ *
+ * Хранит данные локально в SharedPreferences и синхронизирует с API:
+ * - Статистика (расстояние, шаги, стрик)
+ * - Достижения
+ * - Последние записи из дневника
+ */
+class StatsRepository(
+    private val context: Context,
+    private val placesApi: PlacesApi
+) {
+
+    companion object {
+        private const val TAG = "StatsRepository"
+        private const val PREFS_NAME = "user_stats"
+        private const val KEY_TODAY_DISTANCE = "today_distance"
+        private const val KEY_TODAY_STEPS = "today_steps"
+        private const val KEY_WEEKLY_CHART = "weekly_chart"
+        private const val KEY_STREAK = "streak"
+        private const val KEY_ACHIEVEMENTS = "achievements"
+        private const val KEY_JOURNAL_ENTRIES = "journal_entries"
+        private const val KEY_LAST_UPDATE = "last_update"
+        private const val ACCOUNT_ID = "test_user" // TODO: Получать из настроек
+    }
+
+    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val gson = Gson()
+
+    /**
+     * Локальная модель статистики
+     */
+    data class LocalStats(
+        val todayDistance: Float = 0f,
+        val todaySteps: Int = 0,
+        val weeklyChart: List<Float> = listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f),
+        val streak: Int = 0,
+        val achievements: List<String> = emptyList(),
+        val lastUpdate: Long = 0L
+    )
+
+    /**
+     * Получает статистику из локального хранилища
+     */
+    fun getLocalStats(): LocalStats {
+        return LocalStats(
+            todayDistance = prefs.getFloat(KEY_TODAY_DISTANCE, 0f),
+            todaySteps = prefs.getInt(KEY_TODAY_STEPS, 0),
+            weeklyChart = getWeeklyChart(),
+            streak = prefs.getInt(KEY_STREAK, 0),
+            achievements = getAchievements(),
+            lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0L)
+        )
+    }
+
+    /**
+     * Сохраняет статистику локально
+     */
+    fun saveStats(stats: StatsResponse) {
+        prefs.edit().apply {
+            putFloat(KEY_TODAY_DISTANCE, stats.today_distance)
+            putInt(KEY_TODAY_STEPS, stats.today_steps)
+            putInt(KEY_STREAK, stats.streak)
+            putLong(KEY_LAST_UPDATE, System.currentTimeMillis())
+            apply()
+        }
+
+        // Сохраняем weekly chart
+        saveWeeklyChart(stats.weekly_chart)
+
+        // Сохраняем достижения
+        saveAchievements(stats.achievements)
+
+        Log.d(TAG, "✅ Статистика сохранена локально: ${stats.today_distance}м, ${stats.today_steps} шагов")
+    }
+
+    /**
+     * Обновляет сегодняшнюю дистанцию (добавляет к текущей)
+     */
+    fun addTodayDistance(meters: Float) {
+        val current = prefs.getFloat(KEY_TODAY_DISTANCE, 0f)
+        prefs.edit().putFloat(KEY_TODAY_DISTANCE, current + meters).apply()
+    }
+
+    /**
+     * Обновляет сегодняшние шаги (добавляет к текущим)
+     */
+    fun addTodaySteps(steps: Int) {
+        val current = prefs.getInt(KEY_TODAY_STEPS, 0)
+        prefs.edit().putInt(KEY_TODAY_STEPS, current + steps).apply()
+    }
+
+    /**
+     * Получает достижения
+     */
+    fun getAchievements(): List<String> {
+        val json = prefs.getString(KEY_ACHIEVEMENTS, null) ?: return emptyList()
+        val type = object : TypeToken<List<String>>() {}.type
+        return gson.fromJson(json, type) ?: emptyList()
+    }
+
+    /**
+     * Сохраняет достижения
+     */
+    private fun saveAchievements(achievements: List<String>) {
+        val json = gson.toJson(achievements)
+        prefs.edit().putString(KEY_ACHIEVEMENTS, json).apply()
+    }
+
+    /**
+     * Получает график за неделю
+     */
+    private fun getWeeklyChart(): List<Float> {
+        val json = prefs.getString(KEY_WEEKLY_CHART, null) ?: return List(7) { 0f }
+        val type = object : TypeToken<List<Float>>() {}.type
+        return gson.fromJson(json, type) ?: List(7) { 0f }
+    }
+
+    /**
+     * Сохраняет график за неделю
+     */
+    private fun saveWeeklyChart(chart: List<Float>) {
+        val json = gson.toJson(chart)
+        prefs.edit().putString(KEY_WEEKLY_CHART, json).apply()
+    }
+
+    /**
+     * Получает последние записи из дневника (локально)
+     */
+    fun getLocalJournalEntries(): List<JournalEntry> {
+        val json = prefs.getString(KEY_JOURNAL_ENTRIES, null) ?: return emptyList()
+        val type = object : TypeToken<List<JournalEntry>>() {}.type
+        return gson.fromJson(json, type) ?: emptyList()
+    }
+
+    /**
+     * Сохраняет записи дневника локально
+     */
+    private fun saveJournalEntries(entries: List<JournalEntry>) {
+        val json = gson.toJson(entries)
+        prefs.edit().putString(KEY_JOURNAL_ENTRIES, json).apply()
+    }
+
+    /**
+     * Синхронизирует статистику с API
+     */
+    suspend fun syncWithAPI(): Result<LocalStats> = withContext(Dispatchers.IO) {
+        try {
+            // Загружаем статистику
+            val statsResponse = placesApi.getStats(ACCOUNT_ID)
+            if (statsResponse.isSuccessful && statsResponse.body() != null) {
+                val stats = statsResponse.body()!!
+                saveStats(stats)
+                Log.d(TAG, "✅ Статистика синхронизирована с API")
+            } else {
+                Log.e(TAG, "❌ Ошибка загрузки статистики: ${statsResponse.errorBody()?.string()}")
+            }
+
+            // Загружаем журнал
+            val journalResponse = placesApi.getJournalEntries(ACCOUNT_ID)
+            if (journalResponse.isSuccessful && journalResponse.body() != null) {
+                val entries = journalResponse.body()!!
+                saveJournalEntries(entries.take(5)) // Сохраняем только последние 5
+                Log.d(TAG, "✅ Дневник синхронизирован: ${entries.size} записей")
+            }
+
+            Result.success(getLocalStats())
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Ошибка синхронизации", e)
+            // Возвращаем локальные данные в случае ошибки
+            Result.success(getLocalStats())
+        }
+    }
+
+    /**
+     * Получает последнюю запись из дневника (для отображения)
+     */
+    fun getLastJournalEntry(): JournalEntry? {
+        return getLocalJournalEntries().maxByOrNull { it.date }
+    }
+
+    /**
+     * Сбрасывает ежедневную статистику (вызывается в новый день)
+     */
+    fun resetDailyStats() {
+        prefs.edit().apply {
+            putFloat(KEY_TODAY_DISTANCE, 0f)
+            putInt(KEY_TODAY_STEPS, 0)
+            apply()
+        }
+    }
+
+    /**
+     * Проверяет, нужно ли обновить данные (если прошло больше 5 минут)
+     */
+    fun shouldSync(): Boolean {
+        val lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0L)
+        val fiveMinutesAgo = System.currentTimeMillis() - (5 * 60 * 1000)
+        return lastUpdate < fiveMinutesAgo
+    }
+}

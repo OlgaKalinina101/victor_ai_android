@@ -4,10 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Map
@@ -24,9 +28,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.victor_ai.data.network.dto.GeoLocation
 import com.example.victor_ai.ui.map.MapActivity
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 🗺️ Экран Places с нативной Android картой
@@ -42,6 +52,14 @@ fun PlacesMenu(
     val places by viewModel.places
     val loading by viewModel.loading
     val error by viewModel.error
+    val stats by viewModel.stats
+    val lastJournalEntry by viewModel.lastJournalEntry
+    val statsLoading by viewModel.statsLoading
+
+    // Загружаем статистику при первом открытии
+    LaunchedEffect(Unit) {
+        viewModel.loadStats()
+    }
 
     Box(
         modifier = Modifier
@@ -57,13 +75,13 @@ fun PlacesMenu(
         ) {
             // === Статистика ===
             when {
-                loading -> {
+                loading || statsLoading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.size(64.dp),
                         color = Color(0xFF2B2929)
                     )
                     Text(
-                        text = "Загрузка мест...",
+                        text = "Загрузка...",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color(0xFFE0E0E0),
                         modifier = Modifier.padding(top = 16.dp)
@@ -82,25 +100,34 @@ fun PlacesMenu(
                         imageVector = Icons.Default.Map,
                         contentDescription = "Карта",
                         modifier = Modifier
-                            .size(120.dp)
-                            .padding(bottom = 24.dp),
+                            .size(100.dp)
+                            .padding(bottom = 16.dp),
                         tint = Color(0xFFE0E0E0)
                     )
 
-                    // Статистика
+                    // Название
                     Text(
                         text = "WeWanderMoments",
                         style = MaterialTheme.typography.headlineMedium,
                         color = Color(0xFFE0E0E0),
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        modifier = Modifier.padding(bottom = 24.dp)
                     )
 
-                    Text(
-                        text = "Статистика появится здесь",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFFE0E0E0),
-                        modifier = Modifier.padding(bottom = 32.dp)
-                    )
+                    // Статистика (если есть)
+                    if (stats != null) {
+                        StatsDisplay(
+                            stats = stats!!,
+                            lastEntry = lastJournalEntry,
+                            modifier = Modifier.padding(bottom = 24.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Пока нет прогулок 🚶",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFFE0E0E0).copy(alpha = 0.7f),
+                            modifier = Modifier.padding(bottom = 24.dp)
+                        )
+                    }
 
                     // Кнопка открытия карты
                     Button(
@@ -110,8 +137,8 @@ fun PlacesMenu(
                             .padding(horizontal = 32.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFE0E0E0), // фон кнопки
-                            contentColor = Color.White        // цвет иконки и текста
+                            containerColor = Color(0xFFE0E0E0),
+                            contentColor = Color.White
                         )
                     ) {
                         Icon(
@@ -130,5 +157,145 @@ fun PlacesMenu(
                 }
             }
         }
+    }
+}
+
+/**
+ * Компонент для отображения статистики
+ */
+@Composable
+fun StatsDisplay(
+    stats: com.example.victor_ai.data.repository.StatsRepository.LocalStats,
+    lastEntry: com.example.victor_ai.data.network.dto.JournalEntry?,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Сегодня
+        Text(
+            text = "Пройдено сегодня: ${formatDistance(stats.todayDistance)} / ${stats.todaySteps} шагов",
+            style = MaterialTheme.typography.bodyLarge,
+            fontSize = 16.sp,
+            color = Color(0xFFE0E0E0),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Стрик
+        Text(
+            text = "🔥 Стрик: ${stats.streak} ${getDaysText(stats.streak)} подряд",
+            style = MaterialTheme.typography.bodyMedium,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (stats.streak > 0) Color(0xFFFF9800) else Color(0xFFE0E0E0).copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Достижения
+        if (stats.achievements.isNotEmpty()) {
+            Text(
+                text = "🏆 Достижения: ${stats.achievements.joinToString(", ")}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontSize = 14.sp,
+                color = Color(0xFFE0E0E0),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // График недели
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = "📈 Неделя: ",
+                style = MaterialTheme.typography.bodyMedium,
+                fontSize = 14.sp,
+                color = Color(0xFFE0E0E0)
+            )
+            WeekChart(weeklyData = stats.weeklyChart)
+            Text(
+                text = " (${stats.weeklyChart.count { it > 0 }} из 7)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontSize = 14.sp,
+                color = Color(0xFFE0E0E0)
+            )
+        }
+
+        // Последняя запись из дневника
+        if (lastEntry != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "📔 Последнее: \"${lastEntry.text.take(30)}${if (lastEntry.text.length > 30) "..." else ""}\", ${formatDate(lastEntry.date)}",
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
+                color = Color(0xFFE0E0E0).copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * График активности за неделю
+ */
+@Composable
+fun WeekChart(weeklyData: List<Float>) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        weeklyData.forEach { value ->
+            val symbol = if (value > 0) "▓" else "░"
+            Text(
+                text = symbol,
+                fontSize = 14.sp,
+                color = if (value > 0) Color(0xFF4CAF50) else Color(0xFFE0E0E0).copy(alpha = 0.3f)
+            )
+        }
+    }
+}
+
+/**
+ * Форматирует расстояние
+ */
+fun formatDistance(meters: Float): String {
+    return if (meters >= 1000) {
+        String.format(Locale.US, "%.1f км", meters / 1000)
+    } else {
+        String.format(Locale.US, "%.0f м", meters)
+    }
+}
+
+/**
+ * Склонение слова "день"
+ */
+fun getDaysText(count: Int): String {
+    return when {
+        count % 10 == 1 && count % 100 != 11 -> "день"
+        count % 10 in 2..4 && count % 100 !in 12..14 -> "дня"
+        else -> "дней"
+    }
+}
+
+/**
+ * Форматирует дату
+ */
+fun formatDate(dateString: String): String {
+    return try {
+        // Пытаемся распарсить ISO 8601 формат
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        val outputFormat = SimpleDateFormat("dd.MM.yyyy", Locale.US)
+        val date = inputFormat.parse(dateString)
+        outputFormat.format(date ?: Date())
+    } catch (e: Exception) {
+        // Если не получилось, возвращаем как есть
+        dateString.take(10)
     }
 }

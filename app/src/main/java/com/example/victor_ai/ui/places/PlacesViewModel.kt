@@ -1,11 +1,14 @@
 package com.example.victor_ai.ui.places
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.victor_ai.data.network.PlacesApi
 import com.example.victor_ai.data.network.dto.PlaceDto
+import com.example.victor_ai.data.network.dto.JournalEntry
+import com.example.victor_ai.data.repository.StatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,7 +19,8 @@ import kotlin.math.cos
 
 
 class PlacesViewModel(
-    private val placesApi: PlacesApi = RetrofitInstance.placesApi
+    private val placesApi: PlacesApi = RetrofitInstance.placesApi,
+    private val statsRepository: StatsRepository? = null
 ) : ViewModel() {
 
     private val _places = mutableStateOf<List<PlaceElement>>(emptyList())
@@ -27,6 +31,16 @@ class PlacesViewModel(
 
     private val _error = mutableStateOf<String?>(null)
     val error: State<String?> = _error
+
+    // Статистика
+    private val _stats = mutableStateOf<StatsRepository.LocalStats?>(null)
+    val stats: State<StatsRepository.LocalStats?> = _stats
+
+    private val _lastJournalEntry = mutableStateOf<JournalEntry?>(null)
+    val lastJournalEntry: State<JournalEntry?> = _lastJournalEntry
+
+    private val _statsLoading = mutableStateOf(false)
+    val statsLoading: State<Boolean> = _statsLoading
 
     /**
      * Загружает места вокруг координаты
@@ -120,16 +134,52 @@ class PlacesViewModel(
             maxLon = lon + lonDelta
         )
     }
+
+    /**
+     * Загружает статистику пользователя
+     */
+    fun loadStats() {
+        if (statsRepository == null) {
+            Log.w("PlacesVM", "StatsRepository не инициализирован")
+            return
+        }
+
+        viewModelScope.launch {
+            _statsLoading.value = true
+
+            try {
+                // Сначала загружаем локальные данные
+                val localStats = statsRepository.getLocalStats()
+                _stats.value = localStats
+                _lastJournalEntry.value = statsRepository.getLastJournalEntry()
+
+                // Синхронизируем с API если нужно
+                if (statsRepository.shouldSync()) {
+                    val result = statsRepository.syncWithAPI()
+                    result.onSuccess { updatedStats ->
+                        _stats.value = updatedStats
+                        _lastJournalEntry.value = statsRepository.getLastJournalEntry()
+                        Log.d("PlacesVM", "✅ Статистика синхронизирована")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("PlacesVM", "❌ Ошибка загрузки статистики", e)
+            } finally {
+                _statsLoading.value = false
+            }
+        }
+    }
 }
 
 class PlacesViewModelFactory(
-    private val placesApi: PlacesApi
+    private val placesApi: PlacesApi,
+    private val statsRepository: StatsRepository? = null
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PlacesViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return PlacesViewModel(placesApi) as T
+            return PlacesViewModel(placesApi, statsRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
