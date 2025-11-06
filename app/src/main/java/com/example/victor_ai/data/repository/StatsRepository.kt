@@ -163,26 +163,63 @@ class StatsRepository(
     suspend fun syncWithAPI(): Result<LocalStats> = withContext(Dispatchers.IO) {
         try {
             // Загружаем статистику
+            Log.d(TAG, "🔍 Запрашиваем статистику для account_id: $ACCOUNT_ID")
             val statsResponse = placesApi.getStats(ACCOUNT_ID)
+
+            Log.d(TAG, "🔍 HTTP код ответа: ${statsResponse.code()}")
+            Log.d(TAG, "🔍 Успешный ответ: ${statsResponse.isSuccessful}")
+
             if (statsResponse.isSuccessful && statsResponse.body() != null) {
                 val stats = statsResponse.body()!!
+                Log.d(TAG, "✅ Получена статистика:")
+                Log.d(TAG, "   - today_distance: ${stats.today_distance}")
+                Log.d(TAG, "   - today_steps: ${stats.today_steps}")
+                Log.d(TAG, "   - weekly_chart: ${stats.weekly_chart}")
+                Log.d(TAG, "   - streak: ${stats.streak}")
+                Log.d(TAG, "   - achievements: ${stats.achievements}")
                 saveStats(stats)
                 Log.d(TAG, "✅ Статистика синхронизирована с API")
             } else {
-                Log.e(TAG, "❌ Ошибка загрузки статистики: ${statsResponse.errorBody()?.string()}")
+                val errorBody = statsResponse.errorBody()?.string()
+                Log.e(TAG, "❌ Ошибка загрузки статистики:")
+                Log.e(TAG, "   HTTP код: ${statsResponse.code()}")
+                Log.e(TAG, "   Тело ошибки: $errorBody")
             }
 
             // Загружаем журнал
+            Log.d(TAG, "🔍 Запрашиваем записи дневника для account_id: $ACCOUNT_ID")
             val journalResponse = placesApi.getJournalEntries(ACCOUNT_ID)
+
+            Log.d(TAG, "🔍 Journal HTTP код: ${journalResponse.code()}")
+            Log.d(TAG, "🔍 Journal успешный: ${journalResponse.isSuccessful}")
+
             if (journalResponse.isSuccessful && journalResponse.body() != null) {
                 val entries = journalResponse.body()!!
+                Log.d(TAG, "✅ Получено записей дневника: ${entries.size}")
+                entries.take(3).forEach { entry ->
+                    Log.d(TAG, "   📔 id=${entry.id}, date=${entry.date}, text='${entry.text.take(30)}...', poi_name=${entry.poi_name}")
+                }
                 saveJournalEntries(entries.take(5)) // Сохраняем только последние 5
                 Log.d(TAG, "✅ Дневник синхронизирован: ${entries.size} записей")
+            } else {
+                val errorBody = journalResponse.errorBody()?.string()
+                Log.e(TAG, "❌ Ошибка загрузки дневника:")
+                Log.e(TAG, "   HTTP код: ${journalResponse.code()}")
+                Log.e(TAG, "   Тело ошибки: $errorBody")
             }
 
-            Result.success(getLocalStats())
+            val finalStats = getLocalStats()
+            Log.d(TAG, "📊 Итоговая локальная статистика:")
+            Log.d(TAG, "   - distance: ${finalStats.todayDistance}м")
+            Log.d(TAG, "   - steps: ${finalStats.todaySteps}")
+            Log.d(TAG, "   - streak: ${finalStats.streak}")
+            Log.d(TAG, "   - achievements: ${finalStats.achievements.size}")
+
+            Result.success(finalStats)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Ошибка синхронизации", e)
+            Log.e(TAG, "   Exception: ${e.message}")
+            Log.e(TAG, "   Stack trace: ", e)
             // Возвращаем локальные данные в случае ошибки
             Result.success(getLocalStats())
         }
