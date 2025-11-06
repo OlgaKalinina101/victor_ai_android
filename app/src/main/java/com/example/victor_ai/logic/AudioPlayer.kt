@@ -2,6 +2,11 @@ package com.example.victor_ai.logic
 
 // AudioPlayer.kt - переведён на ExoPlayer для стабильности
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.annotation.OptIn
@@ -24,6 +29,12 @@ class AudioPlayer(private val context: Context? = null) {
     private var currentTempFile: File? = null
     private var onCompletionCallback: (() -> Unit)? = null  // 🔥 Callback для окончания трека
     private var wakeLock: PowerManager.WakeLock? = null  // 🔥 Wake Lock для работы при блокировке экрана
+    private var wifiLock: WifiManager.WifiLock? = null  // 🔥 WiFi Lock для стабильного стриминга
+
+    // 🔥 Audio Focus управление
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var hasAudioFocus = false
 
     fun setOnCompletionListener(callback: () -> Unit) {
         onCompletionCallback = callback
@@ -48,8 +59,14 @@ class AudioPlayer(private val context: Context? = null) {
                 return
             }
 
-            // 🔥 Создаём Wake Lock для работы при блокировке экрана
+            // 🔥 Создаём Wake Lock и WiFi Lock для работы при блокировке экрана
             acquireWakeLock()
+            acquireWifiLock()
+
+            // 🔥 Запрашиваем Audio Focus
+            if (!requestAudioFocus()) {
+                Log.w("AudioPlayer", "⚠️ Failed to acquire audio focus, but will try to play anyway")
+            }
 
             // 🎵 Настройка LoadControl для больших буферов
             val loadControl: LoadControl = DefaultLoadControl.Builder()
@@ -90,6 +107,8 @@ class AudioPlayer(private val context: Context? = null) {
                                 if (hadError) {
                                     Log.e("AudioPlayer", "❌ Retry не помог, воспроизведение остановлено")
                                     releaseWakeLock()
+                                    releaseWifiLock()
+                                    abandonAudioFocus()
                                     hadError = false
                                 }
                             }
@@ -111,6 +130,8 @@ class AudioPlayer(private val context: Context? = null) {
                             Player.STATE_ENDED -> {
                                 Log.d("AudioPlayer", "✅ Playback completed normally")
                                 releaseWakeLock()
+                                releaseWifiLock()
+                                abandonAudioFocus()
                                 hadError = false
                                 onCompletionCallback?.invoke()
                             }
@@ -168,6 +189,8 @@ class AudioPlayer(private val context: Context? = null) {
             Log.e("AudioPlayer", "❌ Exception in playFromUrl: ${e.message}", e)
             Log.e("AudioPlayer", "   URL was: $url")
             releaseWakeLock()
+            releaseWifiLock()
+            abandonAudioFocus()
         }
     }
 
@@ -204,10 +227,151 @@ class AudioPlayer(private val context: Context? = null) {
         }
     }
 
+    /**
+     * 🔥 Захватываем WiFi Lock для стабильного стриминга при блокировке экрана
+     */
+    private fun acquireWifiLock() {
+        if (context == null) {
+            Log.w("AudioPlayer", "⚠️ Context is null, cannot acquire WiFi Lock")
+            return
+        }
+
+        if (wifiLock == null) {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiLock = wifiManager.createWifiLock(
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                "VictorAI:MusicStreaming"
+            )
+        }
+
+        if (wifiLock?.isHeld == false) {
+            wifiLock?.acquire()
+            Log.d("AudioPlayer", "📶 WiFi Lock acquired (high performance mode)")
+        }
+    }
+
+    /**
+     * 🔥 Отпускаем WiFi Lock когда музыка не играет
+     */
+    private fun releaseWifiLock() {
+        if (wifiLock?.isHeld == true) {
+            wifiLock?.release()
+            Log.d("AudioPlayer", "📵 WiFi Lock released")
+        }
+    }
+
+    /**
+     * 🔥 Запрашиваем Audio Focus для воспроизведения музыки
+     */
+    private fun requestAudioFocus(): Boolean {
+        if (context == null) {
+            Log.w("AudioPlayer", "⚠️ Context is null, cannot request audio focus")
+            return false
+        }
+
+        if (audioManager == null) {
+            audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        }
+
+        val audioManager = audioManager ?: return false
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Android 8+ использует AudioFocusRequest
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(audioAttributes)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
+
+            val result = audioManager.requestAudioFocus(audioFocusRequest!!)
+            hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            if (hasAudioFocus) {
+                Log.d("AudioPlayer", "🔊 Audio focus acquired")
+            } else {
+                Log.w("AudioPlayer", "⚠️ Audio focus request denied")
+            }
+            hasAudioFocus
+        } else {
+            // Android 7 и ниже
+            @Suppress("DEPRECATION")
+            val result = audioManager.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+            hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            if (hasAudioFocus) {
+                Log.d("AudioPlayer", "🔊 Audio focus acquired (legacy API)")
+            } else {
+                Log.w("AudioPlayer", "⚠️ Audio focus request denied (legacy API)")
+            }
+            hasAudioFocus
+        }
+    }
+
+    /**
+     * 🔥 Отпускаем Audio Focus когда музыка не играет
+     */
+    private fun abandonAudioFocus() {
+        if (!hasAudioFocus || audioManager == null) {
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let {
+                audioManager?.abandonAudioFocusRequest(it)
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager?.abandonAudioFocus(audioFocusChangeListener)
+        }
+
+        hasAudioFocus = false
+        Log.d("AudioPlayer", "🔇 Audio focus released")
+    }
+
+    /**
+     * 🔥 Обработчик изменения Audio Focus
+     */
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                // Получили фокус обратно - возобновляем воспроизведение
+                Log.d("AudioPlayer", "🔊 Audio focus GAIN - resuming playback")
+                if (exoPlayer?.playWhenReady == false && exoPlayer?.playbackState == Player.STATE_READY) {
+                    exoPlayer?.play()
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                // Потеряли фокус навсегда (звонок, другое приложение) - останавливаемся
+                Log.d("AudioPlayer", "🔇 Audio focus LOSS - pausing playback")
+                exoPlayer?.pause()
+                abandonAudioFocus()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                // Временная потеря фокуса (уведомление) - пауза
+                Log.d("AudioPlayer", "⏸️ Audio focus LOSS_TRANSIENT - pausing temporarily")
+                exoPlayer?.pause()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                // Можно продолжать играть тише (уведомление)
+                Log.d("AudioPlayer", "🔉 Audio focus LOSS_TRANSIENT_CAN_DUCK - lowering volume")
+                // ExoPlayer автоматически снижает громкость, ничего не делаем
+            }
+        }
+    }
+
     fun pause() {
         try {
             exoPlayer?.pause()
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при паузе
+            releaseWifiLock()  // 🔥 Отпускаем WiFi Lock при паузе
+            abandonAudioFocus()  // 🔥 Отпускаем Audio Focus при паузе
             Log.d("AudioPlayer", "⏸️ Paused")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error pausing", e)
@@ -217,11 +381,15 @@ class AudioPlayer(private val context: Context? = null) {
     fun resume() {
         try {
             acquireWakeLock()  // 🔥 Захватываем Wake Lock при возобновлении
+            acquireWifiLock()  // 🔥 Захватываем WiFi Lock при возобновлении
+            requestAudioFocus()  // 🔥 Запрашиваем Audio Focus при возобновлении
             exoPlayer?.play()
             Log.d("AudioPlayer", "▶️ Resumed")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error resuming", e)
             releaseWakeLock()
+            releaseWifiLock()
+            abandonAudioFocus()
         }
     }
 
@@ -238,6 +406,8 @@ class AudioPlayer(private val context: Context? = null) {
             currentTempFile = null
 
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при остановке
+            releaseWifiLock()  // 🔥 Отпускаем WiFi Lock при остановке
+            abandonAudioFocus()  // 🔥 Отпускаем Audio Focus при остановке
 
             Log.d("AudioPlayer", "🛑 Stopped and released")
         } catch (e: Exception) {
