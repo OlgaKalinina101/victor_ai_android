@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.victor_ai.data.network.ApiService
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.logic.AudioPlayer
+import com.example.victor_ai.logic.MusicPlaybackService
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.domain.model.TrackDescriptionUpdate
 import kotlinx.coroutines.delay
@@ -103,6 +104,17 @@ class PlaylistViewModel(
             audioPlayer.stop()
         }
 
+        // 🔥 НОВОЕ: Запускаем Foreground Service чтобы защититься от Doze mode
+        // Примечание: Service показывает уведомление, но AudioPlayer остается в ViewModel
+        // TODO: В будущем переместить AudioPlayer в Service для лучшей архитектуры
+        try {
+            MusicPlaybackService.startPlayback(context, streamUrl)
+            Log.d("PlaylistViewModel", "✅ Foreground service started")
+        } catch (e: Exception) {
+            Log.e("PlaylistViewModel", "⚠️ Failed to start foreground service: ${e.message}")
+            // Продолжаем воспроизведение даже если сервис не запустился
+        }
+
         audioPlayer.playFromUrl(streamUrl)
         _currentPlayingTrackId.value = trackId
         _isPlaying.value = true
@@ -147,6 +159,15 @@ class PlaylistViewModel(
         Log.d("PlaylistViewModel", "🛑 stopTrack() called - RESETTING STATE")
         Log.d("PlaylistViewModel", "🛑 Stack trace:", Exception("Stack trace"))
         audioPlayer.stop()
+
+        // 🔥 НОВОЕ: Останавливаем Foreground Service
+        try {
+            MusicPlaybackService.stopPlayback(context)
+            Log.d("PlaylistViewModel", "✅ Foreground service stopped")
+        } catch (e: Exception) {
+            Log.e("PlaylistViewModel", "⚠️ Failed to stop foreground service: ${e.message}")
+        }
+
         _currentPlayingTrackId.value = null
         _isPlaying.value = false  // ← ДОБАВЛЕНО
     }
@@ -200,6 +221,13 @@ class PlaylistViewModel(
         Log.d("PlaylistViewModel", "💀 ViewModel onCleared() - DESTROYING")
         Log.d("PlaylistViewModel", "💀 Current state: trackId=${_currentPlayingTrackId.value}, isPlaying=${_isPlaying.value}")
         audioPlayer.stop()
+
+        // 🔥 НОВОЕ: Останавливаем Foreground Service при уничтожении ViewModel
+        try {
+            MusicPlaybackService.stopPlayback(context)
+        } catch (e: Exception) {
+            Log.e("PlaylistViewModel", "⚠️ Failed to stop foreground service: ${e.message}")
+        }
     }
 
     fun updateDescription(

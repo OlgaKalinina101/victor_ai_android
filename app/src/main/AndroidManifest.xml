@@ -21,6 +21,10 @@
     <!-- 🆕 ДОБАВЬ ЭТУ СТРОЧКУ ДЛЯ PUSHY -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
+    <!-- 🎵 Permissions для музыкального Foreground Service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
     <application
         android:name=".MyApp"
         android:allowBackup="true"
@@ -71,6 +75,13 @@
                 <action android:name="pushy.me" />
             </intent-filter>
         </receiver>
+
+        <!-- 🎵 Music Playback Service - Foreground Service для воспроизведения музыки -->
+        <service
+            android:name=".logic.MusicPlaybackService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <!-- Reminder Action Receiver -->
         <receiver
