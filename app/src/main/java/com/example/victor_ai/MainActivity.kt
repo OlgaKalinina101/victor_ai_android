@@ -58,6 +58,7 @@ import com.example.victor_ai.ui.navigation.AppNavHost
 import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.places.PlacesViewModelFactory
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
+import com.example.victor_ai.data.repository.StatsRepository
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -104,7 +105,8 @@ class MainActivity : ComponentActivity() {
 
     private val placesViewModel: PlacesViewModel by viewModels {
         PlacesViewModelFactory(
-            placesApi = RetrofitInstance.placesApi
+            placesApi = RetrofitInstance.placesApi,
+            statsRepository = StatsRepository(this, RetrofitInstance.placesApi)
         )
     }
 

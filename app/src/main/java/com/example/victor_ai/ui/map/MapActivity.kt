@@ -24,6 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.victor_ai.data.network.RetrofitInstance.placesApi
 import com.example.victor_ai.data.repository.VisitedPlacesRepository
+import com.example.victor_ai.data.repository.StatsRepository
 import com.example.victor_ai.ui.map.canvas.MapCanvasView
 import com.example.victor_ai.ui.map.renderer.Canvas2DMapRenderer
 import com.example.victor_ai.ui.map.renderer.MapRenderer
@@ -56,6 +57,7 @@ class MapActivity : ComponentActivity() {
     }
 
     private lateinit var repository: VisitedPlacesRepository
+    private lateinit var statsRepository: StatsRepository
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var locationCallback: LocationCallback? = null
 
@@ -77,6 +79,7 @@ class MapActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         repository = VisitedPlacesRepository(this)
+        statsRepository = StatsRepository(this, placesApi)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         setContent {
@@ -100,7 +103,7 @@ class MapActivity : ComponentActivity() {
     fun MapScreen() {
         // ✅ Используем ViewModel для сохранения state при пересоздании Activity
         val viewModel: MapViewModel = viewModel(
-            factory = MapViewModelFactory(placesApi, repository)
+            factory = MapViewModelFactory(placesApi, repository, statsRepository)
         )
 
         // Подписываемся на state из ViewModel
