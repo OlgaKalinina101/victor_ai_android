@@ -3,17 +3,23 @@ package com.example.victor_ai.data.network
 import DiaryEntry
 import DiaryResponse
 import android.util.Log
+import com.example.victor_ai.data.network.dto.Achievement
 import com.example.victor_ai.data.network.dto.AssistantRequest
 import com.example.victor_ai.data.network.dto.AssistantResponse
 import com.example.victor_ai.data.network.dto.DeleteRequest
 import com.example.victor_ai.data.network.dto.DeleteResponse
+import com.example.victor_ai.data.network.dto.JournalEntry
+import com.example.victor_ai.data.network.dto.JournalEntryIn
 import com.example.victor_ai.data.network.dto.MemoryResponse
 import com.example.victor_ai.data.network.dto.PlacesResponse
 import com.example.victor_ai.data.network.dto.ReminderResponse
+import com.example.victor_ai.data.network.dto.StatsResponse
 import com.example.victor_ai.data.network.dto.UpdateHistoryRequest
 import com.example.victor_ai.data.network.dto.UpdateHistoryResponse
 import com.example.victor_ai.data.network.dto.UpdateMemoryRequest
 import com.example.victor_ai.data.network.dto.UpdateMemoryResponse
+import com.example.victor_ai.data.network.dto.WalkSessionCreate
+import com.example.victor_ai.data.network.dto.WalkSessionResponse
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.domain.model.TrackDescriptionUpdate
@@ -111,6 +117,25 @@ interface PlacesApi {
         @Query("offset") offset: Int = 0,
         @Query("bbox") bbox: String? = null // "min_lon,min_lat,max_lon,max_lat"
     ): com.example.victor_ai.ui.places.PlacesResponse
+
+    // 🏃 Прогулки
+    @POST("/api/walk_sessions/")
+    suspend fun createWalkSession(@Body body: WalkSessionCreate): Response<WalkSessionResponse>
+
+    // 📔 Дневник
+    @GET("/api/journal/")
+    suspend fun getJournalEntries(@Query("account_id") accountId: String): Response<List<JournalEntry>>
+
+    @POST("/api/journal/")
+    suspend fun createJournalEntry(@Body entry: JournalEntryIn): Response<Map<String, Any>>
+
+    // 🏆 Достижения
+    @GET("/api/achievements/")
+    suspend fun getAchievements(): Response<List<Achievement>>
+
+    // 📊 Статистика
+    @GET("/api/stats/")
+    suspend fun getStats(@Query("account_id") accountId: String): Response<StatsResponse>
 }
 data class ReminderRequest(val reminder_id: String)
 
