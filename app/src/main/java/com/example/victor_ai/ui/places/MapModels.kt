@@ -1,6 +1,6 @@
 package com.example.victor_ai.ui.places
 
-import com.google.gson.annotations.SerializedName
+import com.example.victor_ai.data.network.dto.GeoLocation
 
 /**
  * 📍 Модели данных для интеграции Unity карты с Android
@@ -76,14 +76,9 @@ data class MapBounds(
 
 /**
  * GPS координаты
+ * Используем GeoLocation из DTO для унификации с Moshi
  */
-data class LatLng(
-    @SerializedName("lat")
-    val lat: Double,
-
-    @SerializedName("lon")
-    val lon: Double
-)
+typealias LatLng = GeoLocation
 
 /**
  * Точка интереса (POI - Point Of Interest)
@@ -277,16 +272,9 @@ data class PlaceItem(
 }
 
 /**
- * Элемент OSM
+ * Элемент OSM - тоже используем GeoLocation
  */
-
-data class GeometryPoint(
-    @SerializedName("lat")
-    val lat: Double,
-
-    @SerializedName("lon")
-    val lon: Double
-)
+typealias GeometryPoint = GeoLocation
 
 // ════════════════════════════════════════════════════════════
 // 🛠️ КОНВЕРТЕРЫ
