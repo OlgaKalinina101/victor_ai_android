@@ -116,7 +116,7 @@ interface PlacesApi {
         @Query("limit") limit: Int = 15000,
         @Query("offset") offset: Int = 0,
         @Query("bbox") bbox: String? = null // "min_lon,min_lat,max_lon,max_lat"
-    ): com.example.victor_ai.ui.places.PlacesResponse
+    ): com.example.victor_ai.ui.map.models.PlacesResponse
 
     // 🏃 Прогулки
     @POST("/api/walk_sessions/")

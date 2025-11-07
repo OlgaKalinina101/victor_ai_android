@@ -9,7 +9,7 @@ import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.data.repository.VisitedPlacesRepository
 import com.example.victor_ai.data.repository.StatsRepository
 import com.example.victor_ai.ui.map.utils.LocationUtils
-import com.example.victor_ai.ui.places.*
+import com.example.victor_ai.ui.map.models.*
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

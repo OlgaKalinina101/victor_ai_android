@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
-import com.example.victor_ai.ui.places.POIType
+import com.example.victor_ai.ui.map.models.POIType
 
 /**
  * 🎨 Маппер для преобразования POI типов в эмодзи
