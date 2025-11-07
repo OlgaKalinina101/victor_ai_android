@@ -15,6 +15,7 @@ import javax.inject.Inject
 import androidx.compose.runtime.State
 import androidx.lifecycle.ViewModelProvider
 import com.example.victor_ai.data.network.RetrofitInstance
+import com.example.victor_ai.ui.map.models.PlaceElement
 import kotlin.math.cos
 
 
