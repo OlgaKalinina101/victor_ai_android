@@ -210,6 +210,7 @@ class MapViewModel(
      * Запускает поиск
      */
     fun startSearch(currentPOI: POI, allPOIs: List<POI>, radiusM: Int = 400, limit: Int = 6) {
+        Log.d(TAG, "🚀 Начинаем поиск для POI: ${currentPOI.name}")
         _searching.value = true
         _searchStart.value = System.currentTimeMillis()
         _elapsedSec.value = 0L
@@ -221,21 +222,32 @@ class MapViewModel(
 
         // Вычисляем nearby POI
         _nearby.value = calcNearby(currentPOI, allPOIs, radiusM, limit)
+        Log.d(TAG, "✅ Поиск запущен. Nearby POI: ${_nearby.value.size}")
     }
 
     /**
      * Останавливает поиск и сохраняет walk session
      */
     fun stopSearch() {
+        Log.d(TAG, "🛑 stopSearch() вызван")
+        Log.d(TAG, "   - searching: ${_searching.value}")
+        Log.d(TAG, "   - walkedMeters: ${_walkedMeters.value}")
+        Log.d(TAG, "   - path.size: ${_path.value.size}")
+        Log.d(TAG, "   - visits.size: ${_currentSessionVisits.size}")
+
         // Сохраняем walk session перед остановкой
         if (_searching.value && _searchStart.value != null) {
+            Log.d(TAG, "💾 Сохраняем walk session...")
             saveWalkSession()
+        } else {
+            Log.w(TAG, "⚠️ Walk session НЕ сохранена (searching=${_searching.value}, searchStart=${_searchStart.value})")
         }
 
         _searching.value = false
         _searchStart.value = null
         lastPoint = null
         _currentSessionVisits.clear()
+        Log.d(TAG, "✅ stopSearch() завершен")
     }
 
     /**
@@ -406,6 +418,12 @@ class MapViewModel(
                 val startTime = _searchStart.value ?: return@launch
                 val endTime = System.currentTimeMillis()
 
+                Log.d(TAG, "📦 Подготовка walk session для отправки...")
+                Log.d(TAG, "   - Дистанция: ${_walkedMeters.value} м")
+                Log.d(TAG, "   - Время: ${(endTime - startTime) / 1000} сек")
+                Log.d(TAG, "   - Путь: ${_path.value.size} точек")
+                Log.d(TAG, "   - Посещения: ${_currentSessionVisits.size}")
+
                 // Конвертируем path в StepPoint
                 val stepPoints = _path.value.mapIndexed { index, latLng ->
                     StepPoint(
@@ -430,22 +448,41 @@ class MapViewModel(
                     step_points = stepPoints
                 )
 
+                Log.d(TAG, "📡 Отправляем walk session на бэкенд:")
+                Log.d(TAG, "   URL: POST /api/walk_sessions/")
+                Log.d(TAG, "   account_id: ${walkSession.account_id}")
+                Log.d(TAG, "   distance_m: ${walkSession.distance_m}")
+                Log.d(TAG, "   steps: ${walkSession.steps}")
+                Log.d(TAG, "   poi_visits: ${walkSession.poi_visits.size}")
+                Log.d(TAG, "   step_points: ${walkSession.step_points.size}")
+
                 val response = placesApi.createWalkSession(walkSession)
+
+                Log.d(TAG, "📥 Ответ от бэкенда:")
+                Log.d(TAG, "   HTTP код: ${response.code()}")
+                Log.d(TAG, "   Успешно: ${response.isSuccessful}")
+
                 if (response.isSuccessful) {
                     currentSessionId = response.body()?.session_id
                     Log.d(TAG, "✅ Walk session сохранена с ID: $currentSessionId")
 
                     // Обновляем локальную статистику
                     statsRepository?.let {
+                        Log.d(TAG, "💾 Обновляем локальную статистику...")
                         it.addTodayDistance(_walkedMeters.value.toFloat())
                         it.addTodaySteps(steps)
-                        Log.d(TAG, "✅ Локальная статистика обновлена")
-                    }
+                        Log.d(TAG, "✅ Локальная статистика обновлена: +${_walkedMeters.value}м, +${steps} шагов")
+                    } ?: Log.w(TAG, "⚠️ statsRepository == null, локальная статистика НЕ обновлена!")
                 } else {
-                    Log.e(TAG, "❌ Ошибка сохранения walk session: ${response.errorBody()?.string()}")
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "❌ Ошибка сохранения walk session:")
+                    Log.e(TAG, "   HTTP код: ${response.code()}")
+                    Log.e(TAG, "   Тело ошибки: $errorBody")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Исключение при сохранении walk session", e)
+                Log.e(TAG, "   Exception: ${e.message}")
+                Log.e(TAG, "   Тип: ${e.javaClass.simpleName}")
             }
         }
     }

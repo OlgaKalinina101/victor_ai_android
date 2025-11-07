@@ -38,6 +38,9 @@ class StatsRepository(
         private const val KEY_JOURNAL_ENTRIES = "journal_entries"
         private const val KEY_LAST_UPDATE = "last_update"
         private const val ACCOUNT_ID = "test_user" // TODO: Получать из настроек
+
+        // 🔥 TEMPORARY: Mock данные для тестирования пока бэкенд не возвращает реальные данные
+        private const val USE_MOCK_DATA = false  // Убрали моки - ищем реальную проблему!
     }
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -177,8 +180,17 @@ class StatsRepository(
                 Log.d(TAG, "   - weekly_chart: ${stats.weekly_chart}")
                 Log.d(TAG, "   - streak: ${stats.streak}")
                 Log.d(TAG, "   - achievements: ${stats.achievements}")
-                saveStats(stats)
-                Log.d(TAG, "✅ Статистика синхронизирована с API")
+
+                // 🔥 TEMPORARY: Если бэкенд вернул пустые данные, используем mock
+                if (USE_MOCK_DATA && stats.today_distance == 0f && stats.today_steps == 0) {
+                    Log.w(TAG, "⚠️ Бэкенд вернул нулевые данные! Используем MOCK данные для тестирования...")
+                    val mockStats = createMockStats()
+                    saveStats(mockStats)
+                    Log.d(TAG, "✅ Mock статистика сохранена")
+                } else {
+                    saveStats(stats)
+                    Log.d(TAG, "✅ Статистика синхронизирована с API")
+                }
             } else {
                 val errorBody = statsResponse.errorBody()?.string()
                 Log.e(TAG, "❌ Ошибка загрузки статистики:")
@@ -199,8 +211,17 @@ class StatsRepository(
                 entries.take(3).forEach { entry ->
                     Log.d(TAG, "   📔 id=${entry.id}, date=${entry.date}, text='${entry.text.take(30)}...', poi_name=${entry.poi_name}")
                 }
-                saveJournalEntries(entries.take(5)) // Сохраняем только последние 5
-                Log.d(TAG, "✅ Дневник синхронизирован: ${entries.size} записей")
+
+                // 🔥 TEMPORARY: Если дневник пустой, добавляем mock данные
+                if (USE_MOCK_DATA && entries.isEmpty()) {
+                    Log.w(TAG, "⚠️ Дневник пустой! Используем MOCK данные для тестирования...")
+                    val mockEntries = createMockJournalEntries()
+                    saveJournalEntries(mockEntries)
+                    Log.d(TAG, "✅ Mock записи дневника сохранены: ${mockEntries.size} записей")
+                } else {
+                    saveJournalEntries(entries.take(5)) // Сохраняем только последние 5
+                    Log.d(TAG, "✅ Дневник синхронизирован: ${entries.size} записей")
+                }
             } else {
                 val errorBody = journalResponse.errorBody()?.string()
                 Log.e(TAG, "❌ Ошибка загрузки дневника:")
@@ -250,5 +271,52 @@ class StatsRepository(
         val lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0L)
         val fiveMinutesAgo = System.currentTimeMillis() - (5 * 60 * 1000)
         return lastUpdate < fiveMinutesAgo
+    }
+
+    /**
+     * 🔥 TEMPORARY: Создает mock статистику для тестирования
+     * Удали это когда бэкенд заработает!
+     */
+    private fun createMockStats(): StatsResponse {
+        return StatsResponse(
+            today_distance = 2350f,  // 2.35 км
+            today_steps = 3200,
+            weekly_chart = listOf(1800f, 2100f, 0f, 1500f, 2350f, 0f, 0f),  // последние 7 дней
+            streak = 4,  // 4 дня подряд
+            achievements = listOf("Первые 10 км", "Стрик 3 дня", "Открыл 5 мест")
+        )
+    }
+
+    /**
+     * 🔥 TEMPORARY: Создает mock записи дневника для тестирования
+     * Удали это когда бэкенд заработает!
+     */
+    private fun createMockJournalEntries(): List<JournalEntry> {
+        return listOf(
+            JournalEntry(
+                id = 1,
+                date = "2025-11-06T12:59:12",
+                text = "Посетил Тануки. Впечатление: Неплохо 🙂",
+                photo_path = null,
+                poi_name = "Тануки",
+                session_id = 1
+            ),
+            JournalEntry(
+                id = 2,
+                date = "2025-11-05T14:30:00",
+                text = "Прогулка в парке. Отлично провел время! 😊",
+                photo_path = null,
+                poi_name = "Парк Горького",
+                session_id = 2
+            ),
+            JournalEntry(
+                id = 3,
+                date = "2025-11-04T10:15:00",
+                text = "Утренняя пробежка. Заряд бодрости на весь день ⚡",
+                photo_path = null,
+                poi_name = null,
+                session_id = 3
+            )
+        )
     }
 }
