@@ -20,19 +20,14 @@ import com.example.victor_ai.data.network.dto.GeoLocation
  * Отправляется из Android в Unity при загрузке/обновлении карты
  */
 data class MapData(
-    @SerializedName("bounds")
     val bounds: MapBounds,
 
-    @SerializedName("pois")
     val pois: List<POI>,
 
-    @SerializedName("roads")
     val roads: List<Road> = emptyList(), // Опционально
 
-    @SerializedName("userLocation")
     val userLocation: LatLng? = null,
 
-    @SerializedName("visitedPlaces")
     val visitedPlaces: Set<String> = emptySet() // ID посещенных мест
 )
 
@@ -40,16 +35,12 @@ data class MapData(
  * Границы карты (GPS координаты)
  */
 data class MapBounds(
-    @SerializedName("minLat")
     val minLat: Double,
 
-    @SerializedName("maxLat")
     val maxLat: Double,
 
-    @SerializedName("minLon")
     val minLon: Double,
 
-    @SerializedName("maxLon")
     val maxLon: Double
 ) {
     companion object {
@@ -84,25 +75,18 @@ typealias LatLng = GeoLocation
  * Точка интереса (POI - Point Of Interest)
  */
 data class POI(
-    @SerializedName("id")
     val id: String,
 
-    @SerializedName("name")
     val name: String,
 
-    @SerializedName("type")
     val type: POIType,
 
-    @SerializedName("location")
     val location: LatLng,
 
-    @SerializedName("isVisited")
     var isVisited: Boolean = false,
 
-    @SerializedName("impression")
     var impression: String? = null,
 
-    @SerializedName("visitDate")
     var visitDate: Long? = null // Timestamp
 )
 
@@ -157,10 +141,8 @@ enum class POIType(val osmTag: String, val emoji: String) {
  * Дорога (опционально, если хочешь отображать)
  */
 data class Road(
-    @SerializedName("points")
     val points: List<LatLng>,
 
-    @SerializedName("type")
     val type: RoadType = RoadType.STREET
 )
 
@@ -178,13 +160,10 @@ enum class RoadType {
  * Событие: Пользователь кликнул на POI
  */
 data class POIClickedEvent(
-    @SerializedName("poiId")
     val poiId: String,
 
-    @SerializedName("poiName")
     val poiName: String,
 
-    @SerializedName("poiType")
     val poiType: String
 )
 
@@ -192,13 +171,10 @@ data class POIClickedEvent(
  * Событие: Пользователь отметил место как посещенное
  */
 data class PlaceVisitedEvent(
-    @SerializedName("poiId")
     val poiId: String,
 
-    @SerializedName("impression")
     val impression: String,
 
-    @SerializedName("timestamp")
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -206,10 +182,8 @@ data class PlaceVisitedEvent(
  * Событие: Пользователь обновил впечатление
  */
 data class ImpressionUpdatedEvent(
-    @SerializedName("poiId")
     val poiId: String,
 
-    @SerializedName("impression")
     val impression: String
 )
 
@@ -224,39 +198,29 @@ data class ImpressionUpdatedEvent(
  */
 
 data class PlaceItem(
-    @SerializedName("id")
     val id: Long,
 
-    @SerializedName("type")
     val type: String, // "node", "way", "relation"
 
     // Точка (для type = "node")
-    @SerializedName("point")
     val point: List<Double>?, // [lon, lat]
 
     // Линия (для type = "way")
-    @SerializedName("points")
     val points: List<List<Double>>?, // [[lon, lat], ...]
 
     // Полигон (для type = "relation")
-    @SerializedName("rings")
     val rings: List<List<List<Double>>>?, // [[[lon, lat], ...]]
 
     // OSM теги (amenity, name, shop и т.д.)
     // Они уже распакованы в корень объекта
-    @SerializedName("amenity")
     val amenity: String? = null,
 
-    @SerializedName("name")
     val name: String? = null,
 
-    @SerializedName("shop")
     val shop: String? = null,
 
-    @SerializedName("leisure")
     val leisure: String? = null,
 
-    @SerializedName("tourism")
     val tourism: String? = null
 ) {
     /**
