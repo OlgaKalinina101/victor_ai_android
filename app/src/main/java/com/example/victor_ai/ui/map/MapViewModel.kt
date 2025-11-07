@@ -153,9 +153,25 @@ class MapViewModel(
                     val entries = response.body() ?: emptyList()
                     Log.d(TAG, "✅ Загружено ${entries.size} записей из дневника")
 
-                    // Пока не можем восстановить эмоции из journal (нужно расширить API)
-                    // Просто пометим как посещенные без эмоций
-                    // Это задел на будущее
+                    // Парсим эмоции из текста
+                    val visitedMap = mutableMapOf<String, VisitEmotion>()
+
+                    entries.forEach { entry ->
+                        entry.poi_name?.let { poiName ->
+                            // Парсим эмодзи из текста типа "Посетил Тануки. Впечатление: Неплохо 🙂"
+                            val emotion = parseEmotionFromText(entry.text)
+                            if (emotion != null) {
+                                visitedMap[poiName] = emotion
+                                Log.d(TAG, "📍 Восстановлено посещение: $poiName -> ${emotion.name} ${emotion.emoji}")
+                            }
+                        }
+                    }
+
+                    // Обновляем состояние (переключаемся на Main thread)
+                    withContext(Dispatchers.Main) {
+                        _visitedPOIs.value = visitedMap
+                        Log.d(TAG, "✅ Восстановлено ${visitedMap.size} посещенных мест")
+                    }
                 } else {
                     Log.e(TAG, "❌ Ошибка загрузки journal: ${response.errorBody()?.string()}")
                 }
@@ -163,6 +179,24 @@ class MapViewModel(
                 Log.e(TAG, "❌ Исключение при загрузке journal", e)
             }
         }
+    }
+
+    /**
+     * Парсит эмоцию из текста журнала
+     * Формат: "Посетил {poi}. Впечатление: {name} {emoji}"
+     */
+    private fun parseEmotionFromText(text: String): VisitEmotion? {
+        // Ищем эмодзи в конце текста
+        val emojiRegex = "[\\p{So}\\p{Sk}]".toRegex()
+        val matches = emojiRegex.findAll(text).toList()
+
+        if (matches.isEmpty()) return null
+
+        // Берем последний эмодзи
+        val emoji = matches.last().value
+
+        // Ищем соответствующую эмоцию в списке
+        return VISIT_EMOTIONS.find { it.emoji == emoji }
     }
 
     /**
