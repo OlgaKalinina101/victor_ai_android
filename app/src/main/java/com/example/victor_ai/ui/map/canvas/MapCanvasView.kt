@@ -348,6 +348,7 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
 
         val footprintPaint = Paint(trailPaint).apply {
             textSize = 48f
+            color = Color.GRAY // Серые пяточки 👣
             alpha = 180 // полупрозрачные, как тень
             textAlign = Paint.Align.CENTER
         }
@@ -383,9 +384,8 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
                     val angle = kotlin.math.atan2(dy, dx) * 180 / kotlin.math.PI.toFloat()
                     canvas.rotate(angle)
 
-                    // Чередуем левый/правый след (для реализма!)
-                    val emoji = if (step % 2 == 0) "👞" else "👟" // или просто "👣"
-                    canvas.drawText(emoji, 0f, 0f, footprintPaint)
+                    // Рисуем серые пяточки 👣
+                    canvas.drawText("👣", 0f, 0f, footprintPaint)
 
                     canvas.restore()
                 }

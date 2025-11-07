@@ -218,6 +218,18 @@ class MapViewModel(
 
         Log.d(TAG, "📍 GPS получена: $qualityEmoji accuracy=${accuracy ?: "неизвестно"} м, координаты=${location.lat}, ${location.lon}")
 
+        // 🔥 ЗАЩИТА ОТ РЕЗКИХ ПРЫЖКОВ В РЕЖИМЕ ПОИСКА
+        if (_searching.value) {
+            val currentLocation = _userLocation.value
+            if (currentLocation != null) {
+                val distance = LocationUtils.calculateDistance(currentLocation, location)
+                if (distance > 1000) { // Больше 1 км = плохой GPS
+                    Log.w(TAG, "⚠️ ИГНОРИРУЕМ плохой GPS в режиме поиска: прыжок на ${distance.toInt()}м!")
+                    return false // НЕ обновляем координаты
+                }
+            }
+        }
+
         // Принимаем все координаты как есть
         _userLocation.value = location
 

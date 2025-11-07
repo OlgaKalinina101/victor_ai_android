@@ -251,9 +251,9 @@ fun POIOverlay(
     var showEmotionSelector by remember { mutableStateOf(false) }
     var showAutoVisitPrompt by remember { mutableStateOf(false) }
 
-    // Автоматическое предложение посещения при расстоянии < 10м
-    LaunchedEffect(distance) {
-        if (distance != null && distance < 10.0 && !isVisited && !searching) {
+    // Автоматическое предложение посещения при расстоянии < 10м (ТОЛЬКО в режиме поиска!)
+    LaunchedEffect(distance, searching) {
+        if (distance != null && distance < 10.0 && !isVisited && searching) {
             showAutoVisitPrompt = true
         }
     }
