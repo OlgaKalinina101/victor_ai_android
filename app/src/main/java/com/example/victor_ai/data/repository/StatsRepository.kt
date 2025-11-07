@@ -250,9 +250,10 @@ class StatsRepository(
 
     /**
      * Получает последнюю запись из дневника (для отображения)
+     * Используем id вместо date, потому что записи могут иметь одинаковую дату
      */
     fun getLastJournalEntry(): JournalEntry? {
-        return getLocalJournalEntries().maxByOrNull { it.date }
+        return getLocalJournalEntries().maxByOrNull { it.id }
     }
 
     /**
