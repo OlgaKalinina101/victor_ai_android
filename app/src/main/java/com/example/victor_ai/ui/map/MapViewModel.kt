@@ -38,16 +38,16 @@ class MapViewModel(
 
     companion object {
         private const val TAG = "MapViewModel"
-        private const val GPS_ACCURACY_THRESHOLD = 50f // Метры - игнорируем координаты хуже 50м
 
-        // 🔥 Параметры для сглаживания GPS
-        private const val GPS_EXCELLENT = 10f  // < 10м - отличная точность
-        private const val GPS_GOOD = 30f       // < 30м - хорошая точность
-        private const val GPS_POOR = 50f       // < 50м - плохая точность (порог)
+        // 🔥 Реалистичные пороги GPS для города
+        private const val GPS_ACCURACY_THRESHOLD = 300f // Метры - игнорируем координаты хуже 300м
 
-        // 🔥 Прогрев GPS - первые координаты всегда плохие
-        private const val GPS_WARMUP_DURATION_MS = 30000L // 30 секунд на прогрев
-        private const val GPS_WARMUP_THRESHOLD = 500f // Во время прогрева принимаем до 500м
+        // Параметры для сглаживания GPS
+        private const val GPS_EXCELLENT = 10f   // < 10м - отличная точность
+        private const val GPS_GOOD = 30f        // < 30м - хорошая точность
+        private const val GPS_FAIR = 100f       // < 100м - приемлемая точность
+        private const val GPS_POOR = 200f       // < 200м - плохая точность
+        // > 200м - очень плохая, сильное сглаживание
     }
 
     // Основные данные карты
@@ -102,7 +102,6 @@ class MapViewModel(
 
     // 🔥 Для сглаживания GPS координат (Exponential Moving Average)
     private var smoothedLocation: LatLng? = null
-    private var gpsStartTime: Long = System.currentTimeMillis() // Время начала получения GPS
 
     /**
      * Загружает данные карты вокруг указанной точки
@@ -169,10 +168,6 @@ class MapViewModel(
      * @return true если локация принята, false если отфильтрована
      */
     fun updateUserLocation(location: LatLng, accuracy: Float? = null): Boolean {
-        // 🔥 Проверяем, идет ли прогрев GPS (первые 30 секунд)
-        val isWarmingUp = (System.currentTimeMillis() - gpsStartTime) < GPS_WARMUP_DURATION_MS
-        val currentThreshold = if (isWarmingUp) GPS_WARMUP_THRESHOLD else GPS_ACCURACY_THRESHOLD
-
         // Первую координату принимаем ВСЕГДА (чтобы хоть что-то показать)
         val isFirstLocation = smoothedLocation == null
 
@@ -183,10 +178,9 @@ class MapViewModel(
             return true
         }
 
-        // Фильтруем плохие координаты с учетом прогрева
-        if (accuracy != null && accuracy > currentThreshold) {
-            val warmupStatus = if (isWarmingUp) "прогрев, порог $currentThreshold м" else "норма, порог $currentThreshold м"
-            Log.w(TAG, "❌ GPS отфильтрована: accuracy=$accuracy м ($warmupStatus)")
+        // Отбрасываем только ОЧЕНЬ плохие координаты (> 300м)
+        if (accuracy != null && accuracy > GPS_ACCURACY_THRESHOLD) {
+            Log.w(TAG, "❌ GPS отфильтрована: accuracy=$accuracy м (порог $GPS_ACCURACY_THRESHOLD м)")
             // Используем последнюю сглаженную координату вместо скачков
             _userLocation.value = smoothedLocation
             return false
@@ -195,18 +189,28 @@ class MapViewModel(
         // 🔥 Сглаживание с Exponential Moving Average
         // Вычисляем вес (alpha) в зависимости от точности
         val alpha = when {
-            accuracy == null -> 0.5f  // Неизвестная точность - средний вес
-            accuracy < GPS_EXCELLENT -> 0.7f  // Отличная - большой вес новой точке
-            accuracy < GPS_GOOD -> 0.4f       // Хорошая - средний вес
-            else -> 0.15f                     // Плохая - малый вес (больше сглаживаем)
+            accuracy == null -> 0.3f  // Неизвестная точность - сильное сглаживание
+            accuracy < GPS_EXCELLENT -> 0.7f  // < 10м: отличная - большой вес новой точке
+            accuracy < GPS_GOOD -> 0.5f       // < 30м: хорошая - средний вес
+            accuracy < GPS_FAIR -> 0.3f       // < 100м: приемлемая - больше сглаживаем
+            accuracy < GPS_POOR -> 0.15f      // < 200м: плохая - сильное сглаживание
+            else -> 0.05f                     // 200-300м: очень плохая - максимальное сглаживание
         }
 
         val smoothedLat = alpha * location.lat + (1 - alpha) * smoothedLocation!!.lat
         val smoothedLon = alpha * location.lon + (1 - alpha) * smoothedLocation!!.lon
         val smoothed = LatLng(smoothedLat, smoothedLon)
 
-        val warmupIndicator = if (isWarmingUp) "🔥 прогрев" else "✅ норма"
-        Log.d(TAG, "📍 GPS сглажена: $warmupIndicator, accuracy=$accuracy м, alpha=$alpha, смещение=${
+        val qualityEmoji = when {
+            accuracy == null -> "❓"
+            accuracy < GPS_EXCELLENT -> "🎯"
+            accuracy < GPS_GOOD -> "✅"
+            accuracy < GPS_FAIR -> "🟡"
+            accuracy < GPS_POOR -> "🟠"
+            else -> "🔴"
+        }
+
+        Log.d(TAG, "📍 GPS сглажена: $qualityEmoji accuracy=$accuracy м, alpha=$alpha, смещение=${
             LocationUtils.calculateDistance(location, smoothed).toInt()
         }м")
 
