@@ -40,7 +40,7 @@ class StatsRepository(
         private const val ACCOUNT_ID = "test_user" // TODO: Получать из настроек
 
         // 🔥 TEMPORARY: Mock данные для тестирования пока бэкенд не возвращает реальные данные
-        private const val USE_MOCK_DATA = true  // Установи false когда бэкенд заработает!
+        private const val USE_MOCK_DATA = false  // Убрали моки - ищем реальную проблему!
     }
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
