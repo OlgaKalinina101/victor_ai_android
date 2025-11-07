@@ -359,12 +359,15 @@ class MapActivity : ComponentActivity() {
             return
         }
 
+        // 🔥 Улучшенный LocationRequest для стабильного GPS
         val locationRequest = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
-            5000 // Обновление каждые 5 секунд
+            3000 // Обновление каждые 3 секунды (чаще для лучшего отклика)
         ).apply {
-            setMinUpdateIntervalMillis(2000) // Минимальный интервал 2 секунды
-            setWaitForAccurateLocation(false)
+            setMinUpdateIntervalMillis(1000) // Минимальный интервал 1 секунда
+            setWaitForAccurateLocation(true) // ✅ ЖДЕМ точных координат!
+            setMaxUpdateDelayMillis(5000) // Максимальная задержка batch обновлений
+            setMinUpdateDistanceMeters(2f) // Минимальное смещение 2 метра
         }.build()
 
         locationCallback = object : LocationCallback() {
