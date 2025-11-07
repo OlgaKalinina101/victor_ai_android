@@ -413,9 +413,20 @@ class MapViewModel(
      * Сохраняет walk session на бэкенд
      */
     private fun saveWalkSession() {
+        Log.d(TAG, "🔥 saveWalkSession() ВЫЗВАН (вне корутины)")
+
         viewModelScope.launch(Dispatchers.IO) {
+            Log.d(TAG, "🔥 saveWalkSession() корутина ЗАПУЩЕНА")
+
             try {
-                val startTime = _searchStart.value ?: return@launch
+                val startTime = _searchStart.value
+                Log.d(TAG, "🔥 startTime = $startTime")
+
+                if (startTime == null) {
+                    Log.w(TAG, "⚠️ startTime == null, выходим из saveWalkSession")
+                    return@launch
+                }
+
                 val endTime = System.currentTimeMillis()
 
                 Log.d(TAG, "📦 Подготовка walk session для отправки...")
