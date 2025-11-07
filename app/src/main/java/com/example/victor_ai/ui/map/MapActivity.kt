@@ -181,9 +181,9 @@ class MapActivity : ComponentActivity() {
                         elapsedSec = elapsedSec,
                         walkedMeters = walkedMeters,
                         nearby = nearby,
-                        // 🆕 Проверяем статус посещения из ViewModel
-                        isVisited = viewModel.isPOIVisited(poi.name),
-                        visitEmotion = viewModel.getVisitEmotion(poi.name),
+                        // 🆕 Проверяем статус посещения из StateFlow (автоматическая реактивность!)
+                        isVisited = visitedPOIs.containsKey(poi.name),
+                        visitEmotion = visitedPOIs[poi.name],
                         onToggleSearch = {
                             if (!searching) {
                                 // старт

@@ -405,8 +405,17 @@ class MapViewModel(
     private fun saveJournalEntry(poi: POI, emotion: VisitEmotion) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // Бэкенд требует только дату без времени: "2025-11-07"
+                val dateOnly = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    java.time.LocalDate.now().toString()
+                } else {
+                    // Fallback для старых версий Android
+                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                        .format(java.util.Date())
+                }
+
                 val entry = JournalEntryIn(
-                    date = Instant.now().toString(),
+                    date = dateOnly,  // Только дата: "2025-11-07"
                     text = "Посетил ${poi.name}. Впечатление: ${emotion.name} ${emotion.emoji}",
                     photo_path = null,
                     poi_name = poi.name,
