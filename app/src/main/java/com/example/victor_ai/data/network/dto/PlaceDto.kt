@@ -27,6 +27,7 @@ data class StepPoint(
 )
 
 data class POIVisit(
+    val account_id: String,  // ← добавили
     val poi_id: String,
     val poi_name: String,
     val distance_from_start: Float,

@@ -441,6 +441,7 @@ class MapViewModel(
             // Если идет walk session, добавляем в список посещений
             if (_searching.value) {
                 val visit = POIVisit(
+                    account_id = "test_user",
                     poi_id = poi.id,
                     poi_name = poi.name,
                     distance_from_start = _walkedMeters.value.toFloat(),
