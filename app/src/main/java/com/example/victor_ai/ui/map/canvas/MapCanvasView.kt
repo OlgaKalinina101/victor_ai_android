@@ -40,7 +40,7 @@ companion object {
     private const val GRID_CELL_SIZE = 200f // Размер ячейки сетки в пикселях
     private const val ARROW_SIZE = 40f // Размер стрелки пользователя
 
-    private const val MAX_ZOOM = 12f // Зум на старте
+    private const val MAX_ZOOM = 60f // 🔥 Увеличено с 12f до 60f для детальной работы с POI
 }
 
 /**
