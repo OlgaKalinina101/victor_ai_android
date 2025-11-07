@@ -235,16 +235,19 @@ class MapViewModel(
         Log.d(TAG, "   - path.size: ${_path.value.size}")
         Log.d(TAG, "   - visits.size: ${_currentSessionVisits.size}")
 
+        // 🔥 ВАЖНО: Сохраняем startTime ПЕРЕД обнулением!
+        val startTime = _searchStart.value
+
         // Сохраняем walk session перед остановкой
-        if (_searching.value && _searchStart.value != null) {
-            Log.d(TAG, "💾 Сохраняем walk session...")
-            saveWalkSession()
+        if (_searching.value && startTime != null) {
+            Log.d(TAG, "💾 Сохраняем walk session с startTime=$startTime...")
+            saveWalkSession(startTime)  // Передаем явно, чтобы избежать race condition
         } else {
-            Log.w(TAG, "⚠️ Walk session НЕ сохранена (searching=${_searching.value}, searchStart=${_searchStart.value})")
+            Log.w(TAG, "⚠️ Walk session НЕ сохранена (searching=${_searching.value}, searchStart=$startTime)")
         }
 
         _searching.value = false
-        _searchStart.value = null
+        _searchStart.value = null  // Теперь можем безопасно обнулить
         lastPoint = null
         _currentSessionVisits.clear()
         Log.d(TAG, "✅ stopSearch() завершен")
@@ -411,22 +414,16 @@ class MapViewModel(
 
     /**
      * Сохраняет walk session на бэкенд
+     *
+     * @param startTime Время начала поиска (передается явно, чтобы избежать race condition)
      */
-    private fun saveWalkSession() {
-        Log.d(TAG, "🔥 saveWalkSession() ВЫЗВАН (вне корутины)")
+    private fun saveWalkSession(startTime: Long) {
+        Log.d(TAG, "🔥 saveWalkSession() ВЫЗВАН с startTime=$startTime")
 
         viewModelScope.launch(Dispatchers.IO) {
             Log.d(TAG, "🔥 saveWalkSession() корутина ЗАПУЩЕНА")
 
             try {
-                val startTime = _searchStart.value
-                Log.d(TAG, "🔥 startTime = $startTime")
-
-                if (startTime == null) {
-                    Log.w(TAG, "⚠️ startTime == null, выходим из saveWalkSession")
-                    return@launch
-                }
-
                 val endTime = System.currentTimeMillis()
 
                 Log.d(TAG, "📦 Подготовка walk session для отправки...")
