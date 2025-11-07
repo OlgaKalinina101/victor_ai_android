@@ -345,9 +345,18 @@ class MapViewModel(
      * Отмечает POI как посещенное с эмоцией
      */
     fun markPOIAsVisited(poi: POI, emotion: VisitEmotion?) {
+        Log.d(TAG, "🏷️ markPOIAsVisited вызван")
+        Log.d(TAG, "   - POI: ${poi.name} (id=${poi.id})")
+        Log.d(TAG, "   - Эмоция: ${emotion?.name} ${emotion?.emoji}")
+
         if (emotion != null) {
             // Добавляем в карту посещенных
-            _visitedPOIs.value = _visitedPOIs.value + (poi.name to emotion)
+            val newMap = _visitedPOIs.value + (poi.name to emotion)
+            _visitedPOIs.value = newMap
+
+            Log.d(TAG, "✅ POI добавлен в посещенные")
+            Log.d(TAG, "   - Текущая карта посещений: ${_visitedPOIs.value.keys}")
+            Log.d(TAG, "   - Размер карты: ${_visitedPOIs.value.size}")
 
             // Если идет walk session, добавляем в список посещений
             if (_searching.value) {
@@ -361,6 +370,7 @@ class MapViewModel(
                     emotion_color = String.format("#%06X", (0xFFFFFF and emotion.color.value.toInt()))
                 )
                 _currentSessionVisits.add(visit)
+                Log.d(TAG, "   - Добавлен в session visits (всего: ${_currentSessionVisits.size})")
             }
 
             // Сохраняем в journal
@@ -368,6 +378,7 @@ class MapViewModel(
         } else {
             // Убираем из посещенных (если эмоция null)
             _visitedPOIs.value = _visitedPOIs.value - poi.name
+            Log.d(TAG, "❌ POI удален из посещенных: ${poi.name}")
         }
     }
 
@@ -375,7 +386,10 @@ class MapViewModel(
      * Проверяет, посещен ли POI
      */
     fun isPOIVisited(poiName: String): Boolean {
-        return _visitedPOIs.value.containsKey(poiName)
+        val isVisited = _visitedPOIs.value.containsKey(poiName)
+        Log.d(TAG, "🔍 isPOIVisited('$poiName') = $isVisited")
+        Log.d(TAG, "   - Ключи в карте: ${_visitedPOIs.value.keys}")
+        return isVisited
     }
 
     /**
