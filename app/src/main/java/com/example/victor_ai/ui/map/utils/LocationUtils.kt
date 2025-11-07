@@ -1,6 +1,6 @@
 package com.example.victor_ai.ui.map.utils
 
-import com.example.victor_ai.ui.places.LatLng
+import com.example.victor_ai.ui.map.models.LatLng
 import kotlin.math.*
 
 /**

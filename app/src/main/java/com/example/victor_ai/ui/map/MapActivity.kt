@@ -28,7 +28,7 @@ import com.example.victor_ai.data.repository.StatsRepository
 import com.example.victor_ai.ui.map.canvas.MapCanvasView
 import com.example.victor_ai.ui.map.renderer.Canvas2DMapRenderer
 import com.example.victor_ai.ui.map.renderer.MapRenderer
-import com.example.victor_ai.ui.places.*
+import com.example.victor_ai.ui.map.models.*
 import com.google.android.gms.location.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

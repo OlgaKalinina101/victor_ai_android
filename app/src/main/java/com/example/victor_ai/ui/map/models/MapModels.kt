@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.places
+package com.example.victor_ai.ui.map.models
 
 import com.example.victor_ai.data.network.dto.GeoLocation
 

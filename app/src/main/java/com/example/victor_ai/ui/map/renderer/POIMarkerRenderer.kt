@@ -7,7 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import com.example.victor_ai.ui.map.utils.CoordinateConverter
 import com.example.victor_ai.ui.map.utils.EmojiMapper
-import com.example.victor_ai.ui.places.POI
+import com.example.victor_ai.ui.map.models.POI
 
 /**
  * 🎨 Рендерер для отрисовки POI маркеров на карте

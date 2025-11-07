@@ -14,10 +14,10 @@ import android.view.View
 import com.example.victor_ai.ui.map.renderer.POIMarkerRenderer
 import com.example.victor_ai.ui.map.utils.CoordinateConverter
 import com.example.victor_ai.ui.map.utils.LocationUtils
-import com.example.victor_ai.ui.places.LatLng
-import com.example.victor_ai.ui.places.MapBounds
-import com.example.victor_ai.ui.places.POI
-import com.example.victor_ai.ui.places.POIType
+import com.example.victor_ai.ui.map.models.LatLng
+import com.example.victor_ai.ui.map.models.MapBounds
+import com.example.victor_ai.ui.map.models.POI
+import com.example.victor_ai.ui.map.models.POIType
 import kotlin.math.sin
 import androidx.core.graphics.toColorInt
 

@@ -1,7 +1,7 @@
 package com.example.victor_ai.ui.map.renderer
 
-import com.example.victor_ai.ui.places.LatLng
-import com.example.victor_ai.ui.places.POI
+import com.example.victor_ai.ui.map.models.LatLng
+import com.example.victor_ai.ui.map.models.POI
 
 /**
  * 🏗️ Интерфейс для рендеринга карты

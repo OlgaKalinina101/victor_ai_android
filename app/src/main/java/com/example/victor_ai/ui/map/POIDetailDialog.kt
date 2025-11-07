@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.victor_ai.ui.places.LatLng
-import com.example.victor_ai.ui.places.POI
+import com.example.victor_ai.ui.map.models.LatLng
+import com.example.victor_ai.ui.map.models.POI
 import com.example.victor_ai.ui.map.utils.LocationUtils
 
 /**
