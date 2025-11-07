@@ -232,7 +232,7 @@ fun StatsDisplay(
         if (lastEntry != null) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "📔 Последнее: \"${lastEntry.text.take(30)}${if (lastEntry.text.length > 30) "..." else ""}\", ${formatDate(lastEntry.date)}",
+                text = "📔: \"${lastEntry.text.take(40)}${if (lastEntry.text.length > 40) "..." else ""}\"",
                 style = MaterialTheme.typography.bodySmall,
                 fontSize = 12.sp,
                 color = Color(0xFFE0E0E0).copy(alpha = 0.8f),

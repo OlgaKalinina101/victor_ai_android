@@ -497,7 +497,7 @@ class MapViewModel(
 
                 val entry = JournalEntryIn(
                     date = dateOnly,  // Только дата: "2025-11-07"
-                    text = "Посетил ${poi.name}. Впечатление: ${emotion.name} ${emotion.emoji}",
+                    text = "Сидели в ${poi.name}. Впечатление: ${emotion.name} ${emotion.emoji}",
                     photo_path = null,
                     poi_name = poi.name,
                     session_id = currentSessionId,

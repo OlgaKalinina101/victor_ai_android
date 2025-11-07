@@ -102,30 +102,10 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     // Callback для кликов на POI
     var onPOIClicked: ((POI) -> Unit)? = null
 
-    // Paint объекты
-    private val backgroundPaint = Paint().apply {
-        color = Color.WHITE
-        style = Paint.Style.FILL
-    }
-
     private val gridPaint = Paint().apply {
         color = Color.LTGRAY
         style = Paint.Style.STROKE
         strokeWidth = 1f
-        isAntiAlias = true
-    }
-
-    private val arrowPaint = Paint().apply {
-        color = Color.BLUE
-        alpha = 200
-        style = Paint.Style.FILL
-        isAntiAlias = true
-    }
-
-    private val arrowStrokePaint = Paint().apply {
-        color = Color.WHITE
-        style = Paint.Style.STROKE
-        strokeWidth = 4f
         isAntiAlias = true
     }
 
@@ -366,16 +346,55 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         val converter = coordinateConverter ?: return
         if (trailPoints.size < 2) return
 
-        val path = Path()
-        val (sx, sy) = converter.gpsToScreen(trailPoints.first())
-        path.moveTo(sx, sy)
-        for (p in trailPoints.drop(1)) {
-            val (x, y) = converter.gpsToScreen(p)
-            path.lineTo(x, y)
+        val footprintPaint = Paint(trailPaint).apply {
+            textSize = 48f
+            alpha = 180 // полупрозрачные, как тень
+            textAlign = Paint.Align.CENTER
         }
-        canvas.drawPath(path, trailPaint)
-    }
 
+        var prevX = 0f
+        var prevY = 0f
+        var isFirst = true
+
+        for ((i, point) in trailPoints.withIndex()) {
+            val (screenX, screenY) = converter.gpsToScreen(point)
+
+            if (isFirst) {
+                isFirst = false
+            } else {
+                // Считаем направление от предыдущей точки
+                val dx = screenX - prevX
+                val dy = screenY - prevY
+                val distance = kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
+
+                // Шаг ~30–40 пикселей (настраивай под масштаб!)
+                val stepDistance = 35f
+                val steps = (distance / stepDistance).toInt()
+
+                // Рисуем следы вдоль пути
+                for (step in 0..steps) {
+                    val ratio = step.toFloat() / steps.coerceAtLeast(1)
+                    val x = prevX + dx * ratio
+                    val y = prevY + dy * ratio
+
+                    // Поворачиваем след по направлению движения
+                    canvas.save()
+                    canvas.translate(x, y)
+                    val angle = kotlin.math.atan2(dy, dx) * 180 / kotlin.math.PI.toFloat()
+                    canvas.rotate(angle)
+
+                    // Чередуем левый/правый след (для реализма!)
+                    val emoji = if (step % 2 == 0) "👞" else "👟" // или просто "👣"
+                    canvas.drawText(emoji, 0f, 0f, footprintPaint)
+
+                    canvas.restore()
+                }
+            }
+
+            prevX = screenX
+            prevY = screenY
+        }
+    }
     /**
      * Рисует пунктирную линию от пользователя до целевого POI
      */
