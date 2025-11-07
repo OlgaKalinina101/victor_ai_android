@@ -191,9 +191,9 @@ class MapActivity : ComponentActivity() {
                                 viewModel.startSearch(poi, pois, radiusM = 400, limit = 6)
                                 mapView?.updatePOIs(listOf(poi) + nearby)
                                 mapView?.startSearchMode()
-                                // Увеличиваем зум и центрируем на пользователе
+                                // 🔥 Увеличиваем зум в 4 раза и центрируем на пользователе (как в Google Maps)
                                 userLocation?.let { loc ->
-                                    mapView?.zoomTo(10f) // Большой зум для детализации
+                                    mapView?.zoomTo(40f) // 🔥 Было 10f → теперь 40f для детального навигационного вида
                                     mapView?.panTo(loc)
                                 }
                                 // trail обновится автоматически через LaunchedEffect(path)
