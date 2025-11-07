@@ -40,14 +40,8 @@ class MapViewModel(
         private const val TAG = "MapViewModel"
 
         // 🔥 Реалистичные пороги GPS для города
-        private const val GPS_ACCURACY_THRESHOLD = 300f // Метры - игнорируем координаты хуже 300м
-
-        // Параметры для сглаживания GPS
-        private const val GPS_EXCELLENT = 10f   // < 10м - отличная точность
-        private const val GPS_GOOD = 30f        // < 30м - хорошая точность
-        private const val GPS_FAIR = 100f       // < 100м - приемлемая точность
-        private const val GPS_POOR = 200f       // < 200м - плохая точность
-        // > 200м - очень плохая, сильное сглаживание
+        private const val RETRY_RESET_DISTANCE = 500f // Уменьшим до 500м
+        private const val MIN_RETRY_INTERVAL_MS = 10000L // Минимум 10 сек между попытками
     }
 
     // Основные данные карты
@@ -100,8 +94,11 @@ class MapViewModel(
     private var lastAccurateLocation: LatLng? = null // Последняя точная локация
     private var currentSessionId: Int? = null // ID текущей walk session
 
-    // 🔥 Для сглаживания GPS координат (Exponential Moving Average)
-    private var smoothedLocation: LatLng? = null
+    private var mapDataLoaded = false
+    private var loadRetryCount = 0
+    private var lastRetryLocation: LatLng? = null
+
+    private var lastRetryTime = 0L
 
     /**
      * Загружает данные карты вокруг указанной точки
@@ -122,6 +119,13 @@ class MapViewModel(
 
                 Log.d(TAG, "✅ Карта загружена: ${mapData.pois.size} POI")
 
+                // ДОБАВЬ ЭТО:
+                if (mapData.pois.isNotEmpty()) {
+                    mapDataLoaded = true
+                    loadRetryCount = 0 // Сбрасываем счетчик при успехе
+                    Log.d(TAG, "✅ Карта успешно загружена, больше не будем retry")
+                }
+
                 if (mapData.pois.isEmpty()) {
                     Log.w(TAG, "⚠️ Бэкенд вернул 0 POI! Проверь данные на сервере или bbox параметры")
                 }
@@ -129,8 +133,9 @@ class MapViewModel(
                 // Загружаем посещенные места из journal
                 loadVisitedPlacesFromJournal()
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Ошибка загрузки карты", e)
+                Log.e(TAG, "❌ Ошибка загрузки карты (попытка #$loadRetryCount)", e)
                 _error.value = e.message ?: "Неизвестная ошибка"
+                // НЕ устанавливаем mapDataLoaded = true при ошибке!
             } finally {
                 _isLoading.value = false
             }
@@ -161,75 +166,59 @@ class MapViewModel(
     }
 
     /**
-     * Обновляет позицию пользователя с фильтрацией по точности и сглаживанием
+     * Обновляет позицию пользователя - принимает все координаты и выводит логи
      *
      * @param location Новая локация
-     * @param accuracy Точность GPS в метрах (null = не фильтровать)
-     * @return true если локация принята, false если отфильтрована
+     * @param accuracy Точность GPS в метрах (только для логов)
+     * @return всегда true
      */
     fun updateUserLocation(location: LatLng, accuracy: Float? = null): Boolean {
-        // Первую координату принимаем ВСЕГДА (чтобы хоть что-то показать)
-        val isFirstLocation = smoothedLocation == null
-
-        if (isFirstLocation) {
-            Log.d(TAG, "📍 Первая GPS координата: accuracy=$accuracy м (принимаем всегда)")
-            smoothedLocation = location
-            _userLocation.value = location
-            return true
-        }
-
-        // Отбрасываем только ОЧЕНЬ плохие координаты (> 300м)
-        if (accuracy != null && accuracy > GPS_ACCURACY_THRESHOLD) {
-            Log.w(TAG, "❌ GPS отфильтрована: accuracy=$accuracy м (порог $GPS_ACCURACY_THRESHOLD м)")
-            // Используем последнюю сглаженную координату вместо скачков
-            _userLocation.value = smoothedLocation
-            return false
-        }
-
-        // 🔥 Сглаживание с Exponential Moving Average
-        // Вычисляем вес (alpha) в зависимости от точности
-        val alpha = when {
-            accuracy == null -> 0.3f  // Неизвестная точность - сильное сглаживание
-            accuracy < GPS_EXCELLENT -> 0.7f  // < 10м: отличная - большой вес новой точке
-            accuracy < GPS_GOOD -> 0.5f       // < 30м: хорошая - средний вес
-            accuracy < GPS_FAIR -> 0.3f       // < 100м: приемлемая - больше сглаживаем
-            accuracy < GPS_POOR -> 0.15f      // < 200м: плохая - сильное сглаживание
-            else -> 0.05f                     // 200-300м: очень плохая - максимальное сглаживание
-        }
-
-        val smoothedLat = alpha * location.lat + (1 - alpha) * smoothedLocation!!.lat
-        val smoothedLon = alpha * location.lon + (1 - alpha) * smoothedLocation!!.lon
-        val smoothed = LatLng(smoothedLat, smoothedLon)
-
         val qualityEmoji = when {
             accuracy == null -> "❓"
-            accuracy < GPS_EXCELLENT -> "🎯"
-            accuracy < GPS_GOOD -> "✅"
-            accuracy < GPS_FAIR -> "🟡"
-            accuracy < GPS_POOR -> "🟠"
+            accuracy < 10f -> "🎯"
+            accuracy < 30f -> "✅"
+            accuracy < 100f -> "🟡"
+            accuracy < 200f -> "🟠"
             else -> "🔴"
         }
 
-        Log.d(TAG, "📍 GPS сглажена: $qualityEmoji accuracy=$accuracy м, alpha=$alpha, смещение=${
-            LocationUtils.calculateDistance(location, smoothed).toInt()
-        }м")
+        Log.d(TAG, "📍 GPS получена: $qualityEmoji accuracy=${accuracy ?: "неизвестно"} м, координаты=${location.lat}, ${location.lon}")
 
-        smoothedLocation = smoothed
-        _userLocation.value = smoothed
+        // Принимаем все координаты как есть
+        _userLocation.value = location
 
-        // Сохраняем точные координаты отдельно
-        if (accuracy != null && accuracy < GPS_GOOD) {
-            lastAccurateLocation = smoothed
+        // Проверяем, далеко ли ушли от места последних попыток
+        lastRetryLocation?.let { lastLoc ->
+            val distance = LocationUtils.calculateDistance(location, lastLoc)
+            if (distance > RETRY_RESET_DISTANCE) {
+                Log.d(TAG, "🔄 Пользователь ушел на ${distance.toInt()}м - сбрасываем retry счетчик")
+                loadRetryCount = 0
+                lastRetryTime = 0 // Сбрасываем таймер
+            }
+        }
+
+        val currentTime = System.currentTimeMillis()
+
+        // УБИРАЕМ ВСЕ ЛИМИТЫ! Пытаемся до победного с интервалами
+        if (!mapDataLoaded && (currentTime - lastRetryTime) > MIN_RETRY_INTERVAL_MS) {
+            loadRetryCount++
+            lastRetryLocation = location
+            lastRetryTime = currentTime
+
+            Log.d(TAG, "🔄 Попытка загрузки карты #$loadRetryCount (БЕЗ ЛИМИТОВ, до победного!)")
+            loadMapData(location, 1000)
+        } else if (!mapDataLoaded && (currentTime - lastRetryTime) <= MIN_RETRY_INTERVAL_MS) {
+            val remainingMs = MIN_RETRY_INTERVAL_MS - (currentTime - lastRetryTime)
+            Log.d(TAG, "⏳ Следующая попытка через ${remainingMs/1000} сек (retry #${loadRetryCount + 1})")
         }
 
         // Если идёт поиск - обновляем путь
         if (_searching.value) {
-            updateSearchPath(smoothed)
+            updateSearchPath(location)
         }
 
         return true
     }
-
     /**
      * Обновляет путь во время поиска
      */

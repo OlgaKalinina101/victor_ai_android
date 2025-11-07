@@ -283,7 +283,7 @@ class MapActivity : ComponentActivity() {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(
                             this@MapActivity,
-                            "⚠️ Не найдены места рядом. Проверьте подключение к серверу",
+                            "⚠️ Проблемы с геолокацией. Пытаемся загрузить до победного.",
                             Toast.LENGTH_LONG
                         ).show()
                     }
