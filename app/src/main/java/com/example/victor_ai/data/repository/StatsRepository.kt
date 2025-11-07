@@ -219,8 +219,10 @@ class StatsRepository(
                     saveJournalEntries(mockEntries)
                     Log.d(TAG, "✅ Mock записи дневника сохранены: ${mockEntries.size} записей")
                 } else {
-                    saveJournalEntries(entries.take(5)) // Сохраняем только последние 5
-                    Log.d(TAG, "✅ Дневник синхронизирован: ${entries.size} записей")
+                    // ✅ Сортируем по дате в убывающем порядке (новые -> старые) и берем топ-5
+                    val sortedEntries = entries.sortedByDescending { it.date }
+                    saveJournalEntries(sortedEntries.take(5))
+                    Log.d(TAG, "✅ Дневник синхронизирован: ${entries.size} записей, сохранено топ-5")
                 }
             } else {
                 val errorBody = journalResponse.errorBody()?.string()
