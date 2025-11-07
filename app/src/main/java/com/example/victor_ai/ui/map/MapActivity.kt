@@ -125,6 +125,7 @@ class MapActivity : ComponentActivity() {
         var mapRenderer: MapRenderer? by remember { mutableStateOf(null) }
         var isLocationUpdatesStarted by remember { mutableStateOf(false) }
         var hasInitialCentered by remember { mutableStateOf(false) }
+        var lastLoadedCenter by remember { mutableStateOf<LatLng?>(null) } // Центр последней загрузки мест
 
         LaunchedEffect(searching, searchStart) {
             while (searching) {
@@ -242,6 +243,32 @@ class MapActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             val location = getCurrentLocation()
             viewModel.loadMapData(location, radiusMeters = 10000)
+            lastLoadedCenter = location
+        }
+
+        // 🔥 Автоматическая перезагрузка мест при значительном смещении GPS
+        LaunchedEffect(userLocation) {
+            userLocation?.let { currentLoc ->
+                val lastCenter = lastLoadedCenter
+
+                // Пропускаем если:
+                // - Нет предыдущей загрузки
+                // - Идёт поиск (не мешаем процессу)
+                // - Места уже загружены (не перезагружаем без необходимости)
+                if (lastCenter == null || searching || pois.isNotEmpty()) {
+                    return@LaunchedEffect
+                }
+
+                // Проверяем расстояние от последней загрузки
+                val distance = LocationUtils.calculateDistance(lastCenter, currentLoc)
+
+                // Если сместились больше чем на 500м и места пустые - перезагружаем
+                if (distance > 500) {
+                    android.util.Log.d("MapActivity", "🔄 GPS улучшился, перезагружаем места (смещение ${distance.toInt()}м)")
+                    viewModel.loadMapData(currentLoc, radiusMeters = 10000)
+                    lastLoadedCenter = currentLoc
+                }
+            }
         }
 
         // Обновление карты при изменении данных из ViewModel (БЕЗ userLocation!)
