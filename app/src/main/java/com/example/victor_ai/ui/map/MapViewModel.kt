@@ -39,6 +39,11 @@ class MapViewModel(
     companion object {
         private const val TAG = "MapViewModel"
         private const val GPS_ACCURACY_THRESHOLD = 50f // Метры - игнорируем координаты хуже 50м
+
+        // 🔥 Параметры для сглаживания GPS
+        private const val GPS_EXCELLENT = 10f  // < 10м - отличная точность
+        private const val GPS_GOOD = 30f       // < 30м - хорошая точность
+        private const val GPS_POOR = 50f       // < 50м - плохая точность (порог)
     }
 
     // Основные данные карты
@@ -90,6 +95,9 @@ class MapViewModel(
     private var lastPoint: LatLng? = null
     private var lastAccurateLocation: LatLng? = null // Последняя точная локация
     private var currentSessionId: Int? = null // ID текущей walk session
+
+    // 🔥 Для сглаживания GPS координат (Exponential Moving Average)
+    private var smoothedLocation: LatLng? = null
 
     /**
      * Загружает данные карты вокруг указанной точки
@@ -149,25 +157,58 @@ class MapViewModel(
     }
 
     /**
-     * Обновляет позицию пользователя с фильтрацией по точности
+     * Обновляет позицию пользователя с фильтрацией по точности и сглаживанием
      *
      * @param location Новая локация
      * @param accuracy Точность GPS в метрах (null = не фильтровать)
      * @return true если локация принята, false если отфильтрована
      */
     fun updateUserLocation(location: LatLng, accuracy: Float? = null): Boolean {
-        // Фильтруем плохие координаты
+        // Полностью отбрасываем очень плохие координаты
         if (accuracy != null && accuracy > GPS_ACCURACY_THRESHOLD) {
-            Log.w(TAG, "GPS координата отфильтрована: accuracy=$accuracy м (требуется <$GPS_ACCURACY_THRESHOLD м)")
+            Log.w(TAG, "❌ GPS координата отфильтрована: accuracy=$accuracy м (требуется <$GPS_ACCURACY_THRESHOLD м)")
+            // Используем последнюю сглаженную координату вместо скачков
+            if (smoothedLocation != null) {
+                _userLocation.value = smoothedLocation
+            }
             return false
         }
 
-        _userLocation.value = location
-        lastAccurateLocation = location
+        // 🔥 Сглаживание с Exponential Moving Average
+        val smoothed = if (smoothedLocation == null) {
+            // Первая координата - используем как есть
+            Log.d(TAG, "📍 Первая GPS координата: accuracy=$accuracy м")
+            location
+        } else {
+            // Вычисляем вес (alpha) в зависимости от точности
+            val alpha = when {
+                accuracy == null -> 0.5f  // Неизвестная точность - средний вес
+                accuracy < GPS_EXCELLENT -> 0.7f  // Отличная - большой вес новой точке
+                accuracy < GPS_GOOD -> 0.4f       // Хорошая - средний вес
+                else -> 0.15f                     // Плохая - малый вес (больше сглаживаем)
+            }
+
+            val smoothedLat = alpha * location.lat + (1 - alpha) * smoothedLocation!!.lat
+            val smoothedLon = alpha * location.lon + (1 - alpha) * smoothedLocation!!.lon
+
+            Log.d(TAG, "📍 GPS сглажена: accuracy=$accuracy м, alpha=$alpha, смещение=${
+                LocationUtils.calculateDistance(location, LatLng(smoothedLat, smoothedLon)).toInt()
+            }м")
+
+            LatLng(smoothedLat, smoothedLon)
+        }
+
+        smoothedLocation = smoothed
+        _userLocation.value = smoothed
+
+        // Сохраняем точные координаты отдельно
+        if (accuracy != null && accuracy < GPS_GOOD) {
+            lastAccurateLocation = smoothed
+        }
 
         // Если идёт поиск - обновляем путь
         if (_searching.value) {
-            updateSearchPath(location)
+            updateSearchPath(smoothed)
         }
 
         return true
