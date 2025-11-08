@@ -283,7 +283,7 @@ class MapActivity : ComponentActivity() {
             Log.d("MapActivity", "🔄 LaunchedEffect(searching, selectedPOI, nearby) сработал. searching=$searching, selectedPOI=${selectedPOI?.name}, nearby.size=${nearby.size}")
             if (searching && selectedPOI != null) {
                 Log.d("MapActivity", "  ➡️ Режим поиска: обновляем POI -> selectedPOI + nearby = ${(listOf(selectedPOI) + nearby).size}")
-                mapView?.updatePOIs(listOf(selectedPOI) + nearby)
+                mapView?.updatePOIs((listOf(selectedPOI) + nearby) as List<POI>)
             } else if (!searching) {
                 Log.d("MapActivity", "  ➡️ Обычный режим: обновляем POI -> все pois = ${pois.size}")
                 mapView?.updatePOIs(pois)
