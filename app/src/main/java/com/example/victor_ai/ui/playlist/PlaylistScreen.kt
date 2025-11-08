@@ -110,6 +110,13 @@ fun PlaylistScreen(
     val stats by viewModel.stats.collectAsState()
     var showAmbientStream by rememberSaveable { mutableStateOf(false) }
 
+    // Состояние для анимации печати
+    var typedText by remember { mutableStateOf("") }
+    val fullText = "👀 > думаю о музыке..."
+
+    // Запоминаем предыдущий ID трека для отслеживания запуска
+    var previousTrackId by remember { mutableStateOf<Int?>(null) }
+
     // 🔥 Синхронизируем состояние плеера при открытии плейлиста
     LaunchedEffect(showPlaylistSheet) {
         if (showPlaylistSheet) {
@@ -117,6 +124,27 @@ fun PlaylistScreen(
             println("🔄 PlaylistScreen: currentPlayingTrackId=$currentPlayingTrackId, isPlaying=$isPlaying")
             viewModel.syncPlayerState()
         }
+    }
+
+    // Анимация печати текста
+    LaunchedEffect(showAmbientStream) {
+        if (showAmbientStream) {
+            typedText = ""
+            fullText.forEachIndexed { index, _ ->
+                kotlinx.coroutines.delay(50) // 50мс между символами
+                typedText = fullText.take(index + 1)
+            }
+        }
+    }
+
+    // Отслеживание запуска трека для скрытия анимации
+    LaunchedEffect(currentPlayingTrackId) {
+        if (previousTrackId != currentPlayingTrackId && currentPlayingTrackId != null) {
+            // Трек изменился - скрываем анимацию
+            showAmbientStream = false
+            typedText = ""
+        }
+        previousTrackId = currentPlayingTrackId
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -257,7 +285,7 @@ fun PlaylistScreen(
                     )
                 }
 
-                // Индикатор процесса (вместо анимации печати)
+                // Индикатор процесса с анимацией печати
                 AnimatedVisibility(
                     visible = showAmbientStream,
                     enter = fadeIn() + expandVertically(),
@@ -270,7 +298,7 @@ fun PlaylistScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "\uD83D\uDC40 > думаю о музыке...",
+                            text = typedText,
                             color = Color(0xFF555555),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Light,
