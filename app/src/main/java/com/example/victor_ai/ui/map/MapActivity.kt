@@ -190,21 +190,19 @@ class MapActivity : ComponentActivity() {
                                 // старт
                                 viewModel.startSearch(poi, pois, radiusM = 400, limit = 6)
                                 mapView?.setSelectedPOI(poi) // 🔥 Синхронная установка POI перед startSearchMode
-                                mapView?.updatePOIs(listOf(poi) + nearby)
                                 mapView?.startSearchMode()
                                 // 🔥 Увеличиваем зум в 4 раза и центрируем на пользователе (как в Google Maps)
                                 userLocation?.let { loc ->
                                     mapView?.zoomTo(40f) // 🔥 Было 10f → теперь 40f для детального навигационного вида
                                     mapView?.panTo(loc)
                                 }
-                                // trail обновится автоматически через LaunchedEffect(path)
+                                // POI и trail обновятся автоматически через LaunchedEffect
                             } else {
                                 // стоп
                                 viewModel.stopSearch()
-                                // Сначала обновляем данные, ПОТОМ останавливаем режим поиска
-                                mapView?.updatePOIs(pois)
                                 mapView?.setTrail(emptyList())
                                 mapView?.stopSearchMode()
+                                // POI обновятся автоматически через LaunchedEffect(searching)
                             }
                         },
                         onDismiss = {
@@ -213,10 +211,9 @@ class MapActivity : ComponentActivity() {
                             // при закрытии — можно тоже вернуть обычный режим
                             if (searching) {
                                 viewModel.stopSearch()
-                                // Сначала обновляем данные, ПОТОМ останавливаем режим поиска
-                                mapView?.updatePOIs(pois)
                                 mapView?.setTrail(emptyList())
                                 mapView?.stopSearchMode()
+                                // POI обновятся автоматически через LaunchedEffect(searching)
                             }
                         },
                         onSelectNearby = { n ->
@@ -270,6 +267,15 @@ class MapActivity : ComponentActivity() {
                     viewModel.loadMapData(currentLoc, radiusMeters = 10000)
                     lastLoadedCenter = currentLoc
                 }
+            }
+        }
+
+        // 🔥 Обновление POI в режиме поиска - показываем только выбранный POI + nearby
+        LaunchedEffect(searching, selectedPOI, nearby) {
+            if (searching && selectedPOI != null) {
+                mapView?.updatePOIs(listOf(selectedPOI) + nearby)
+            } else if (!searching) {
+                mapView?.updatePOIs(pois)
             }
         }
 
