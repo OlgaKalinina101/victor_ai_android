@@ -115,7 +115,7 @@ interface ChatApi {
         @Query("account_id") accountId: String = "test_user"
     ): List<ChatMessage>
 
-    @PUT("chat/update_history") // 👈 если на бэке endpoint именно такой
+    @PUT("chat/update_history")
     @Headers("Content-Type: application/json")
     suspend fun updateChatHistory(
         @Body request: UpdateHistoryRequest,
