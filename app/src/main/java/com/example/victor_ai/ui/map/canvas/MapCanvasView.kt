@@ -632,9 +632,9 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         val requiredLonRange = lonDiff * (1 + paddingFactor)
 
         // Вычисляем зум под этот диапазон (берем меньший зум, чтобы обе точки точно влезли)
-        val zoomForLat = initialLatRange / requiredLatRange
-        val zoomForLon = initialLonRange / requiredLonRange
-        val optimalZoom = kotlin.math.min(zoomForLat, zoomForLon).coerceIn(1f, MAX_ZOOM)
+        val zoomForLat = (initialLatRange / requiredLatRange).toFloat()
+        val zoomForLon = (initialLonRange / requiredLonRange).toFloat()
+        val optimalZoom = minOf(zoomForLat, zoomForLon).coerceIn(1f, MAX_ZOOM)
 
         Log.d(TAG, "  📐 Вычисленный зум: $optimalZoom (latDiff=$latDiff, lonDiff=$lonDiff)")
 
