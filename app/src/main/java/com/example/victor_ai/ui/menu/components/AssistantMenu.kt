@@ -67,7 +67,7 @@ fun AssistantMenu(
             viewModel = placesViewModel
         )
         MenuState.CALENDAR -> CalendarScreenWithReminders {
-            RetrofitInstance.reminderApi.getReminders(accountId = "test_user")
+            com.example.victor_ai.logic.getRemindersFromRepository("test_user")
         }
 
         MenuState.PLAYLIST -> PlaylistScreen(

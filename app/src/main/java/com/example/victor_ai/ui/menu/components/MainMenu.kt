@@ -89,7 +89,7 @@ fun MainMenu(
         // ✅ Вставляем календарь ниже всех кнопок, если надо
         if (showCalendar) {
             CalendarScreenWithReminders {
-                RetrofitInstance.reminderApi.getReminders(accountId = "test_user")
+                com.example.victor_ai.logic.getRemindersFromRepository("test_user")
             }
         }
     }
