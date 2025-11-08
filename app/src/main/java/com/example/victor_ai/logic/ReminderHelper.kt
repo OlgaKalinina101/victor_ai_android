@@ -46,7 +46,8 @@ private fun groupRemindersByDate(entities: List<ReminderEntity>): Map<String, Li
 
     entities.forEach { entity ->
         val dto = entity.toDto()
-        val dateKey = entity.date ?: "no_date"
+        // Извлекаем только дату из timestamp (например, "2025-09-18T01:15:00" -> "2025-09-18")
+        val dateKey = entity.date?.substringBefore("T") ?: "no_date"
         result.getOrPut(dateKey) { mutableListOf() }.add(dto)
     }
 
