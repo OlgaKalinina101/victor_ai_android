@@ -7,6 +7,7 @@ import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.GestureDetector
 import android.view.ScaleGestureDetector
@@ -37,6 +38,7 @@ class MapCanvasView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
 companion object {
+    private const val TAG = "MapCanvasView"
     private const val GRID_CELL_SIZE = 200f // Размер ячейки сетки в пикселях
     private const val ARROW_SIZE = 40f // Размер стрелки пользователя
 
@@ -148,10 +150,12 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
      * Включает режим поиска с анимацией
      */
     fun startSearchMode() {
+        Log.d(TAG, "🚀 startSearchMode() вызван. selectedPOI=${selectedPOI?.name}, isSearching=$isSearching")
         isSearching = true
         animationTime = System.currentTimeMillis()
         removeCallbacks(animationRunnable)
         post(animationRunnable)
+        Log.d(TAG, "✅ startSearchMode() завершен. isSearching=$isSearching")
         // invalidate() не нужен - zoomTo() и panTo() уже вызовут его после обновления координат
     }
 
@@ -159,9 +163,11 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
      * Выключает режим поиска
      */
     fun stopSearchMode() {
+        Log.d(TAG, "🛑 stopSearchMode() вызван. isSearching=$isSearching")
         isSearching = false
         removeCallbacks(animationRunnable)
         invalidate()
+        Log.d(TAG, "✅ stopSearchMode() завершен. isSearching=$isSearching")
     }
 
 
@@ -173,6 +179,7 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         pois: List<POI>,
         userLocation: LatLng? = null
     ) {
+        Log.d(TAG, "📍 setMapData() вызван. pois.size=${pois.size}, isSearching=$isSearching, selectedPOI=${selectedPOI?.name}")
         this.mapBounds = bounds
         this.pois = pois.filter { isAllowedPOIType(it.type) }
         this.userLocation = userLocation
@@ -189,18 +196,21 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
 
             // 🔥 В режиме поиска не трогаем зум/панорамирование - они управляются вручную
             if (!isSearching) {
+                Log.d(TAG, "  ➡️ Не в режиме поиска - применяем автозум")
                 // ВАЖНО: СНАЧАЛА ЦЕНТРИРУЕМ НА ПОЛЬЗОВАТЕЛЕ
                 userLocation?.let { panTo(it) }
 
                 // ТОЛЬКО ПОТОМ — ЗУМИМ ДО МАКСИМУМА
                 zoomTo(MAX_ZOOM)
             } else {
+                Log.d(TAG, "  ⚠️ В режиме поиска - пропускаем автозум, только updateConverter()")
                 // В режиме поиска просто обновляем конвертер без изменения зума
                 updateConverter()
             }
         }
 
         invalidate()
+        Log.d(TAG, "✅ setMapData() завершен")
     }
     /**
      * Обновляет позицию пользователя
@@ -214,16 +224,20 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
      * Обновляет список POI
      */
     fun updatePOIs(newPOIs: List<POI>) {
+        Log.d(TAG, "🔄 updatePOIs() вызван. newPOIs.size=${newPOIs.size}, isSearching=$isSearching")
         this.pois = newPOIs.filter { isAllowedPOIType(it.type) }
         invalidate()
+        Log.d(TAG, "✅ updatePOIs() завершен. this.pois.size=${this.pois.size}")
     }
 
     /**
      * Устанавливает выбранный POI для направления стрелки
      */
     fun setSelectedPOI(poi: POI?) {
+        Log.d(TAG, "🎯 setSelectedPOI() вызван. poi=${poi?.name}, isSearching=$isSearching")
         this.selectedPOI = poi
         invalidate()
+        Log.d(TAG, "✅ setSelectedPOI() завершен. selectedPOI=${this.selectedPOI?.name}")
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -241,6 +255,10 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
+        if (isSearching) {
+            Log.d(TAG, "🎨 onDraw() вызван. isSearching=$isSearching, selectedPOI=${selectedPOI?.name}, converter=${if(coordinateConverter!=null) "OK" else "NULL"}, pois.size=${pois.size}")
+        }
 
         // 1. Рисуем белый фон
         canvas.drawColor(Color.WHITE)
@@ -264,6 +282,9 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
                 listOf(selectedPOI!!)
             } else {
                 pois
+            }
+            if (isSearching) {
+                Log.d(TAG, "  📍 Рисуем POI. poisToShow.size=${poisToShow.size}")
             }
             markerRenderer.drawMarkers(canvas, poisToShow, converter)
         }
@@ -412,15 +433,40 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
      * Рисует пунктирную линию от пользователя до целевого POI
      */
     private fun drawDashedLineToTarget(canvas: Canvas) {
-        val converter = coordinateConverter ?: return
-        val target = selectedPOI ?: return
-        val userLoc = userLocation ?: return
+        Log.d(TAG, "  ➡️ drawDashedLineToTarget() вызван")
 
-        if (!converter.isInBounds(userLoc) || !converter.isInBounds(target.location)) return
+        val converter = coordinateConverter
+        if (converter == null) {
+            Log.w(TAG, "  ❌ drawDashedLineToTarget(): converter == null!")
+            return
+        }
+
+        val target = selectedPOI
+        if (target == null) {
+            Log.w(TAG, "  ❌ drawDashedLineToTarget(): selectedPOI == null!")
+            return
+        }
+
+        val userLoc = userLocation
+        if (userLoc == null) {
+            Log.w(TAG, "  ❌ drawDashedLineToTarget(): userLocation == null!")
+            return
+        }
+
+        if (!converter.isInBounds(userLoc)) {
+            Log.w(TAG, "  ❌ drawDashedLineToTarget(): userLoc не в bounds! $userLoc")
+            return
+        }
+
+        if (!converter.isInBounds(target.location)) {
+            Log.w(TAG, "  ❌ drawDashedLineToTarget(): target.location не в bounds! ${target.location}")
+            return
+        }
 
         val (userX, userY) = converter.gpsToScreen(userLoc)
         val (targetX, targetY) = converter.gpsToScreen(target.location)
 
+        Log.d(TAG, "  ✅ drawDashedLineToTarget(): Рисуем линию от ($userX, $userY) до ($targetX, $targetY)")
         canvas.drawLine(userX, userY, targetX, targetY, dashedLinePaint)
     }
 
@@ -510,12 +556,16 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     }
 
     private fun updateConverter() {
+        Log.d(TAG, "🔧 updateConverter() вызван. isSearching=$isSearching")
         if (width > 0 && height > 0 && mapBounds != null) {
             coordinateConverter = CoordinateConverter(
                 mapBounds!!,
                 width.toFloat(),
                 height.toFloat()
             )
+            Log.d(TAG, "✅ updateConverter() завершен. Converter обновлен")
+        } else {
+            Log.w(TAG, "⚠️ updateConverter() пропущен. width=$width, height=$height, mapBounds=$mapBounds")
         }
     }
 
@@ -528,6 +578,7 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     }
 
     fun panTo(location: LatLng) {
+        Log.d(TAG, "🧭 panTo() вызван. location=$location, isSearching=$isSearching")
         val currentLatRange = mapBounds?.let { it.maxLat - it.minLat } ?: return
         val currentLonRange = mapBounds?.let { it.maxLon - it.minLon } ?: return
 
@@ -540,9 +591,11 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
 
         updateConverter()
         invalidate()
+        Log.d(TAG, "✅ panTo() завершен")
     }
 
     fun zoomTo(zoom: Float) {
+        Log.d(TAG, "🔍 zoomTo() вызван. zoom=$zoom, currentZoom=$currentZoom, isSearching=$isSearching")
         currentZoom = zoom.coerceIn(1f, MAX_ZOOM)  // ОК
 
         val center = getCurrentCenter()
@@ -558,6 +611,7 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
 
         updateConverter()
         invalidate()
+        Log.d(TAG, "✅ zoomTo() завершен. currentZoom=$currentZoom")
     }
 
     /**
