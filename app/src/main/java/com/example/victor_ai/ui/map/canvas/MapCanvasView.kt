@@ -615,6 +615,47 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     }
 
     /**
+     * Зумирует и центрирует карту так, чтобы обе точки были видны
+     */
+    fun zoomToIncludeBoth(loc1: LatLng, loc2: LatLng, paddingFactor: Float = 0.3f) {
+        Log.d(TAG, "🎯 zoomToIncludeBoth() вызван. loc1=$loc1, loc2=$loc2")
+
+        // Вычисляем центр между двумя точками
+        val centerLat = (loc1.lat + loc2.lat) / 2
+        val centerLon = (loc1.lon + loc2.lon) / 2
+
+        // Вычисляем необходимый диапазон (с отступами)
+        val latDiff = kotlin.math.abs(loc1.lat - loc2.lat)
+        val lonDiff = kotlin.math.abs(loc1.lon - loc2.lon)
+
+        val requiredLatRange = latDiff * (1 + paddingFactor)
+        val requiredLonRange = lonDiff * (1 + paddingFactor)
+
+        // Вычисляем зум под этот диапазон (берем меньший зум, чтобы обе точки точно влезли)
+        val zoomForLat = initialLatRange / requiredLatRange
+        val zoomForLon = initialLonRange / requiredLonRange
+        val optimalZoom = kotlin.math.min(zoomForLat, zoomForLon).coerceIn(1f, MAX_ZOOM)
+
+        Log.d(TAG, "  📐 Вычисленный зум: $optimalZoom (latDiff=$latDiff, lonDiff=$lonDiff)")
+
+        // Применяем зум
+        currentZoom = optimalZoom
+        val newLatRange = initialLatRange / currentZoom
+        val newLonRange = initialLonRange / currentZoom
+
+        mapBounds = MapBounds(
+            minLat = centerLat - newLatRange / 2,
+            maxLat = centerLat + newLatRange / 2,
+            minLon = centerLon - newLonRange / 2,
+            maxLon = centerLon + newLonRange / 2
+        )
+
+        updateConverter()
+        invalidate()
+        Log.d(TAG, "✅ zoomToIncludeBoth() завершен. currentZoom=$currentZoom")
+    }
+
+    /**
      * Очистка ресурсов
      */
     override fun onDetachedFromWindow() {
