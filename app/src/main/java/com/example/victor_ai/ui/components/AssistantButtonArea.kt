@@ -37,11 +37,10 @@ fun AssistantButtonArea(
  {
     var showAssistantMenu by remember { mutableStateOf(false) }
 
+     // 🔥 Убрали fillMaxSize() чтобы Box не перекрывал весь экран
      Box(
          modifier = modifier
-             .fillMaxSize()  // ← важно: сначала идёт внешний переданный модификатор
-             .padding(24.dp),
-         contentAlignment = Alignment.BottomEnd
+             .padding(24.dp)
      ) {
          FloatingActionButton(
              onClick = { showAssistantMenu = !showAssistantMenu },
