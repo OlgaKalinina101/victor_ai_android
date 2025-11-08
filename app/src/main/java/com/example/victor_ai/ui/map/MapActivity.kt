@@ -39,6 +39,7 @@ import kotlin.coroutines.suspendCoroutine
 import kotlin.math.cos
 import android.os.Looper
 import com.example.victor_ai.ui.map.utils.LocationUtils
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * 🗺️ MapActivity - Activity для отображения карты с POI
@@ -49,6 +50,7 @@ import com.example.victor_ai.ui.map.utils.LocationUtils
  * - Обработка кликов на маркеры
  * - Сохранение посещенных мест
  */
+@AndroidEntryPoint
 class MapActivity : ComponentActivity() {
 
     companion object {

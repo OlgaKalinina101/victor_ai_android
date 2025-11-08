@@ -65,8 +65,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import me.pushy.sdk.Pushy
 import kotlin.getValue
+import dagger.hilt.android.AndroidEntryPoint
 
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private lateinit var requestAudioPermission: ActivityResultLauncher<String>
