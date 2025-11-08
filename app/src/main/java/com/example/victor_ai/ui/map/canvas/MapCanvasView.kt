@@ -152,6 +152,7 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         animationTime = System.currentTimeMillis()
         removeCallbacks(animationRunnable)
         post(animationRunnable)
+        invalidate() // 🔥 Немедленная перерисовка
     }
 
     /**
@@ -252,7 +253,13 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         // 4. Рисуем POI маркеры
         val converter = coordinateConverter
         if (converter != null && pois.isNotEmpty()) {
-            markerRenderer.drawMarkers(canvas, pois, converter)
+            // В режиме поиска показываем только выбранный POI
+            val poisToShow = if (isSearching && selectedPOI != null) {
+                listOf(selectedPOI!!)
+            } else {
+                pois
+            }
+            markerRenderer.drawMarkers(canvas, poisToShow, converter)
         }
 
         // 5. Пульсирующая анимация на цели (если режим поиска)
