@@ -110,6 +110,11 @@ fun PlaylistScreen(
     val stats by viewModel.stats.collectAsState()
     var showAmbientStream by rememberSaveable { mutableStateOf(false) }
 
+    // 🔥 Обновляем статистику при открытии экрана
+    LaunchedEffect(Unit) {
+        viewModel.loadStats()
+    }
+
     // Состояние для анимации печати
     var typedText by remember { mutableStateOf("") }
     val fullText = "👀 > думаю о музыке..."
@@ -162,7 +167,7 @@ fun PlaylistScreen(
                 Text(
                     text = "Загружается статистика...",
                     color = Color(0xFFE0E0E0),
-                    fontSize = 28.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Light
                 )
             } else {
@@ -170,7 +175,7 @@ fun PlaylistScreen(
                 Text(
                     text = "СТАТИСТИКА НЕДЕЛИ",
                     color = Color(0xFF888888),
-                    fontSize = 22.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Normal,
                     letterSpacing = 1.5.sp
                 )
@@ -182,14 +187,14 @@ fun PlaylistScreen(
                     Text(
                         text = "Трек недели",
                         color = Color(0xFF999999),
-                        fontSize = 24.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Normal
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = t.title,
                         color = Color(0xFFE0E0E0),
-                        fontSize = 32.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Normal,
                         textAlign = TextAlign.Center
                     )
@@ -197,7 +202,7 @@ fun PlaylistScreen(
                     Text(
                         text = "${t.plays} прослушиваний",
                         color = Color(0xFF777777),
-                        fontSize = 24.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Light
                     )
                 }
@@ -214,28 +219,28 @@ fun PlaylistScreen(
                 Text(
                     text = "Характеристики",
                     color = Color(0xFF999999),
-                    fontSize = 24.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Normal
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = "Энергия: ${stats?.top_energy ?: "—"}",
                     color = Color(0xFFB0B0B0),
-                    fontSize = 26.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Light
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = "Температура: ${stats?.top_temperature ?: "—"}",
                     color = Color(0xFFB0B0B0),
-                    fontSize = 26.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Light
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = "Средняя длина: ${stats?.average_duration ?: 0} сек",
                     color = Color(0xFFB0B0B0),
-                    fontSize = 26.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Light
                 )
 
@@ -258,7 +263,7 @@ fun PlaylistScreen(
                     Text(
                         text = "Запустить волну",
                         color = Color(0xFFCCCCCC),
-                        fontSize = 28.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
                         textAlign = TextAlign.Center
                     )
@@ -279,7 +284,7 @@ fun PlaylistScreen(
                     Text(
                         text = "Выбери сам...",
                         color = Color(0xFFCCCCCC),
-                        fontSize = 28.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
                         textAlign = TextAlign.Center
                     )
@@ -300,7 +305,7 @@ fun PlaylistScreen(
                         Text(
                             text = typedText,
                             color = Color(0xFF555555),
-                            fontSize = 22.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Light,
                             fontFamily = FontFamily.Monospace
                         )
@@ -483,7 +488,7 @@ fun PlaylistSheet(
     ) {
         Text(
             text = "Плейлист",
-            fontSize = 40.sp,
+            fontSize = 20.sp,
             color = grayText,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -529,11 +534,11 @@ fun PlaylistSheet(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(60.dp)
+                            .height(40.dp)
                     ) {
                         Text(
                             text = energyFilter ?: "Энергия",
-                            fontSize = 28.sp,
+                            fontSize = 14.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -543,7 +548,7 @@ fun PlaylistSheet(
                         onDismissRequest = { showEnergyDropdown = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Все", fontSize = 28.sp) },
+                            text = { Text("Все", fontSize = 14.sp) },
                             onClick = {
                                 energyFilter = null
                                 showEnergyDropdown = false
@@ -551,7 +556,7 @@ fun PlaylistSheet(
                         )
                         energyOptions.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option, fontSize = 28.sp) },
+                                text = { Text(option, fontSize = 14.sp) },
                                 onClick = {
                                     energyFilter = option
                                     showEnergyDropdown = false
@@ -572,11 +577,11 @@ fun PlaylistSheet(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(60.dp)
+                            .height(40.dp)
                     ) {
                         Text(
                             text = temperatureFilter ?: "Температура",
-                            fontSize = 28.sp,
+                            fontSize = 14.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -586,7 +591,7 @@ fun PlaylistSheet(
                         onDismissRequest = { showTempDropdown = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Все", fontSize = 28.sp) },
+                            text = { Text("Все", fontSize = 14.sp) },
                             onClick = {
                                 temperatureFilter = null
                                 showTempDropdown = false
@@ -594,7 +599,7 @@ fun PlaylistSheet(
                         )
                         tempOptions.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option, fontSize = 28.sp) },
+                                text = { Text(option, fontSize = 14.sp) },
                                 onClick = {
                                     temperatureFilter = option
                                     showTempDropdown = false
@@ -616,7 +621,7 @@ fun PlaylistSheet(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp)
+                        .height(40.dp)
                 ) {
                     Text(
                         text = when (sortBy) {
@@ -625,7 +630,7 @@ fun PlaylistSheet(
                             "duration" -> "Сортировка: По длине"
                             else -> "Сортировка: Недавние"
                         },
-                        fontSize = 28.sp
+                        fontSize = 14.sp
                     )
                 }
                 DropdownMenu(
@@ -633,19 +638,19 @@ fun PlaylistSheet(
                     onDismissRequest = { showSortDropdown = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Недавние", fontSize = 28.sp) },
+                        text = { Text("Недавние", fontSize = 14.sp) },
                         onClick = { sortBy = "recent"; showSortDropdown = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("По названию", fontSize = 28.sp) },
+                        text = { Text("По названию", fontSize = 14.sp) },
                         onClick = { sortBy = "title"; showSortDropdown = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("По исполнителю", fontSize = 28.sp) },
+                        text = { Text("По исполнителю", fontSize = 14.sp) },
                         onClick = { sortBy = "artist"; showSortDropdown = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("По длине", fontSize = 28.sp) },
+                        text = { Text("По длине", fontSize = 14.sp) },
                         onClick = { sortBy = "duration"; showSortDropdown = false }
                     )
                 }
@@ -664,7 +669,7 @@ fun PlaylistSheet(
         } else if (filteredTracks.isEmpty()) {
             Text(
                 text = "Нет треков",
-                fontSize = 36.sp,
+                fontSize = 18.sp,
                 color = barEmpty,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
