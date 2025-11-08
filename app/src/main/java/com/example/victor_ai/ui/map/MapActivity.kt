@@ -196,11 +196,10 @@ class MapActivity : ComponentActivity() {
                                 Log.d("MapActivity", "  2️⃣ mapView.setSelectedPOI() вызван")
                                 mapView?.startSearchMode()
                                 Log.d("MapActivity", "  3️⃣ mapView.startSearchMode() вызван")
-                                // 🔥 Увеличиваем зум в 4 раза и центрируем на пользователе (как в Google Maps)
+                                // 🔥 Зумим так, чтобы были видны И пользователь И целевой POI
                                 userLocation?.let { loc ->
-                                    Log.d("MapActivity", "  4️⃣ Зумим до 40f и панорамируем на $loc")
-                                    mapView?.zoomTo(40f) // 🔥 Было 10f → теперь 40f для детального навигационного вида
-                                    mapView?.panTo(loc)
+                                    Log.d("MapActivity", "  4️⃣ Зумим чтобы включить пользователя ($loc) и POI (${poi.location})")
+                                    mapView?.zoomToIncludeBoth(loc, poi.location, paddingFactor = 0.4f)
                                 }
                                 Log.d("MapActivity", "✅ onToggleSearch: СТАРТ завершен")
                                 // POI и trail обновятся автоматически через LaunchedEffect
