@@ -628,13 +628,18 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         val latDiff = kotlin.math.abs(loc1.lat - loc2.lat)
         val lonDiff = kotlin.math.abs(loc1.lon - loc2.lon)
 
-        val requiredLatRange = latDiff * (1 + paddingFactor)
-        val requiredLonRange = lonDiff * (1 + paddingFactor)
+        // 🔥 Минимальное расстояние чтобы избежать слишком большого зума
+        val minDistance = 0.002 // ~200 метров
+        val effectiveLatDiff = kotlin.math.max(latDiff, minDistance)
+        val effectiveLonDiff = kotlin.math.max(lonDiff, minDistance)
+
+        val requiredLatRange = effectiveLatDiff * (1 + paddingFactor)
+        val requiredLonRange = effectiveLonDiff * (1 + paddingFactor)
 
         // Вычисляем зум под этот диапазон (берем меньший зум, чтобы обе точки точно влезли)
         val zoomForLat = (initialLatRange / requiredLatRange).toFloat()
         val zoomForLon = (initialLonRange / requiredLonRange).toFloat()
-        val optimalZoom = minOf(zoomForLat, zoomForLon).coerceIn(1f, MAX_ZOOM)
+        val optimalZoom = minOf(zoomForLat, zoomForLon).coerceIn(1f, 15f) // 🔥 Ограничиваем зум до 15
 
         Log.d(TAG, "  📐 Вычисленный зум: $optimalZoom (latDiff=$latDiff, lonDiff=$lonDiff)")
 
