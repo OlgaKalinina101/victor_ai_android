@@ -189,6 +189,7 @@ class MapActivity : ComponentActivity() {
                             if (!searching) {
                                 // старт
                                 viewModel.startSearch(poi, pois, radiusM = 400, limit = 6)
+                                mapView?.setSelectedPOI(poi) // 🔥 Синхронная установка POI перед startSearchMode
                                 mapView?.updatePOIs(listOf(poi) + nearby)
                                 mapView?.startSearchMode()
                                 // 🔥 Увеличиваем зум в 4 раза и центрируем на пользователе (как в Google Maps)
