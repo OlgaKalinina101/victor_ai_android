@@ -42,7 +42,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.TextStyle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.victor_ai.ui.memories.MemoriesViewModel
 import com.example.victor_ai.data.network.dto.MemoryResponse
 import com.example.victor_ai.data.network.AssistantMind
@@ -155,7 +155,7 @@ fun SystemStatusCard(
     var showMemoriesSheet by remember { mutableStateOf(false) }
 
     // ViewModel для воспоминаний
-    val viewModel: MemoriesViewModel = viewModel()
+    val viewModel: MemoriesViewModel = hiltViewModel()
     val memories by viewModel.memories.observeAsState(initial = emptyList())
     val error by viewModel.error.observeAsState(initial = null)
     val loading by viewModel.loading.observeAsState(initial = false)
