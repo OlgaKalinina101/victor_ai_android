@@ -1,10 +1,10 @@
 package com.example.victor_ai.domain.model
 
-import com.google.gson.annotations.SerializedName
+import com.squareup.moshi.Json
 
 
 data class ChatMessage(
-    @SerializedName("text") val text: String,
-    @SerializedName("is_user") val isUser: Boolean,
-    @SerializedName("timestamp") val timestamp: Long
+    @Json(name = "text") val text: String,
+    @Json(name = "is_user") val isUser: Boolean,
+    @Json(name = "timestamp") val timestamp: Long
 )
