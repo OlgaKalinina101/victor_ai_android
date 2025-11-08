@@ -152,7 +152,7 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         animationTime = System.currentTimeMillis()
         removeCallbacks(animationRunnable)
         post(animationRunnable)
-        post { invalidate() } // 🔥 Отложенная перерисовка после обновления координат
+        // invalidate() не нужен - zoomTo() и panTo() уже вызовут его после обновления координат
     }
 
     /**

@@ -201,10 +201,10 @@ class MapActivity : ComponentActivity() {
                             } else {
                                 // стоп
                                 viewModel.stopSearch()
-                                mapView?.stopSearchMode()
-                                // вернуть все POI:
+                                // Сначала обновляем данные, ПОТОМ останавливаем режим поиска
                                 mapView?.updatePOIs(pois)
                                 mapView?.setTrail(emptyList())
+                                mapView?.stopSearchMode()
                             }
                         },
                         onDismiss = {
@@ -213,9 +213,10 @@ class MapActivity : ComponentActivity() {
                             // при закрытии — можно тоже вернуть обычный режим
                             if (searching) {
                                 viewModel.stopSearch()
-                                mapView?.stopSearchMode()
+                                // Сначала обновляем данные, ПОТОМ останавливаем режим поиска
                                 mapView?.updatePOIs(pois)
                                 mapView?.setTrail(emptyList())
+                                mapView?.stopSearchMode()
                             }
                         },
                         onSelectNearby = { n ->
