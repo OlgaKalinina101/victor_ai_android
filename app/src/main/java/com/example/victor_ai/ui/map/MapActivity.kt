@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -188,20 +189,28 @@ class MapActivity : ComponentActivity() {
                         onToggleSearch = {
                             if (!searching) {
                                 // старт
+                                Log.d("MapActivity", "🚀 onToggleSearch: СТАРТ поиска для ${poi.name}")
                                 viewModel.startSearch(poi, pois, radiusM = 400, limit = 6)
+                                Log.d("MapActivity", "  1️⃣ viewModel.startSearch() вызван")
                                 mapView?.setSelectedPOI(poi) // 🔥 Синхронная установка POI перед startSearchMode
+                                Log.d("MapActivity", "  2️⃣ mapView.setSelectedPOI() вызван")
                                 mapView?.startSearchMode()
+                                Log.d("MapActivity", "  3️⃣ mapView.startSearchMode() вызван")
                                 // 🔥 Увеличиваем зум в 4 раза и центрируем на пользователе (как в Google Maps)
                                 userLocation?.let { loc ->
+                                    Log.d("MapActivity", "  4️⃣ Зумим до 40f и панорамируем на $loc")
                                     mapView?.zoomTo(40f) // 🔥 Было 10f → теперь 40f для детального навигационного вида
                                     mapView?.panTo(loc)
                                 }
+                                Log.d("MapActivity", "✅ onToggleSearch: СТАРТ завершен")
                                 // POI и trail обновятся автоматически через LaunchedEffect
                             } else {
                                 // стоп
+                                Log.d("MapActivity", "🛑 onToggleSearch: СТОП поиска")
                                 viewModel.stopSearch()
                                 mapView?.setTrail(emptyList())
                                 mapView?.stopSearchMode()
+                                Log.d("MapActivity", "✅ onToggleSearch: СТОП завершен")
                                 // POI обновятся автоматически через LaunchedEffect(searching)
                             }
                         },
@@ -272,9 +281,12 @@ class MapActivity : ComponentActivity() {
 
         // 🔥 Обновление POI в режиме поиска - показываем только выбранный POI + nearby
         LaunchedEffect(searching, selectedPOI, nearby) {
+            Log.d("MapActivity", "🔄 LaunchedEffect(searching, selectedPOI, nearby) сработал. searching=$searching, selectedPOI=${selectedPOI?.name}, nearby.size=${nearby.size}")
             if (searching && selectedPOI != null) {
+                Log.d("MapActivity", "  ➡️ Режим поиска: обновляем POI -> selectedPOI + nearby = ${(listOf(selectedPOI) + nearby).size}")
                 mapView?.updatePOIs(listOf(selectedPOI) + nearby)
             } else if (!searching) {
+                Log.d("MapActivity", "  ➡️ Обычный режим: обновляем POI -> все pois = ${pois.size}")
                 mapView?.updatePOIs(pois)
             }
         }
