@@ -183,7 +183,7 @@ class MapViewModel(
 
     /**
      * Парсит эмоцию из текста журнала
-     * Формат: "Посетил {poi}. Впечатление: {name} {emoji}"
+     * Формат: "Посетил {poi}. {name} {emoji}"
      */
     private fun parseEmotionFromText(text: String): VisitEmotion? {
         // Ищем эмодзи в конце текста
@@ -509,7 +509,7 @@ class MapViewModel(
 
                 val entry = JournalEntryIn(
                     date = dateOnly,  // Только дата: "2025-11-07"
-                    text = "Сидели в ${poi.name}. Впечатление: ${emotion.name} ${emotion.emoji}",
+                    text = "Сидели в ${poi.name}. ${emotion.name} ${emotion.emoji}",
                     photo_path = null,
                     poi_name = poi.name,
                     session_id = currentSessionId,

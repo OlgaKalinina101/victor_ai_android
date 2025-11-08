@@ -25,3 +25,20 @@ data class TrackDescriptionUpdate(
     val energy_description: String?,
     val temperature_description: String?
 )
+
+data class TrackStats(
+    val period: String,
+    val from: String,
+    val to: String,
+    val total_plays: Int,
+    val top_tracks: List<TopTrack>,
+    val top_energy: String?,
+    val top_temperature: String?,
+    val average_duration: Float
+)
+
+data class TopTrack(
+    val title: String,
+    val artist: String,
+    val plays: Int
+)

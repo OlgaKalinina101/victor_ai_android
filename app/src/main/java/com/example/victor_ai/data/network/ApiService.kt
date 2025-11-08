@@ -23,6 +23,7 @@ import com.example.victor_ai.data.network.dto.WalkSessionResponse
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.domain.model.TrackDescriptionUpdate
+import com.example.victor_ai.domain.model.TrackStats
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Response
@@ -89,6 +90,19 @@ interface ApiService {
     suspend fun updateTrackDescription(
         @Body update: TrackDescriptionUpdate
     ): Map<String, String>
+
+    @GET("tracks/stats")
+    suspend fun getTrackStats(
+        @Query("account_id") accountId: String,
+        @Query("period") period: String = "week"
+    ): TrackStats
+
+
+    @POST("assistant/playlist/run")
+    suspend fun runPlaylistChain(
+        @Query("account_id") accountId: String,
+        @Query("extra_context") extraContext: String? = null
+    ): Map<String, Any>
 
     @GET("/")
     suspend fun checkConnection(): Response<Unit>

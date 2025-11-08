@@ -6,10 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.victor_ai.data.network.ApiService
 import com.example.victor_ai.data.network.RetrofitInstance
+import com.example.victor_ai.data.network.RetrofitInstance.api
 import com.example.victor_ai.logic.AudioPlayer
 import com.example.victor_ai.logic.MusicPlaybackService
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.domain.model.TrackDescriptionUpdate
+import com.example.victor_ai.domain.model.TrackStats
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,11 +49,15 @@ class PlaylistViewModel(
     private val _sortBy = MutableStateFlow("recent")
 
     private val audioPlayer = AudioPlayer(context)  // 🔥 Передаём context для Wake Lock
+    private val _stats = MutableStateFlow<TrackStats?>(null)
+    val stats: StateFlow<TrackStats?> = _stats.asStateFlow()
 
     init {
         Log.d("PlaylistViewModel", "🏗️ ViewModel created (init block)")
         loadTracks()
         startPositionUpdater()
+        loadTracks()
+        loadStats()
         // 🔥 Устанавливаем callback для автовоспроизведения следующего трека
         audioPlayer.setOnCompletionListener {
             playNextTrack()
@@ -146,32 +152,6 @@ class PlaylistViewModel(
         }
     }
 
-    // ← ДОБАВЛЕНО: удобная функция для UI
-    fun togglePlayPause() {
-        if (_isPlaying.value) {
-            pauseTrack()
-        } else {
-            resumeTrack()
-        }
-    }
-
-    fun stopTrack() {
-        Log.d("PlaylistViewModel", "🛑 stopTrack() called - RESETTING STATE")
-        Log.d("PlaylistViewModel", "🛑 Stack trace:", Exception("Stack trace"))
-        audioPlayer.stop()
-
-        // 🔥 НОВОЕ: Останавливаем Foreground Service
-        try {
-            MusicPlaybackService.stopPlayback(context)
-            Log.d("PlaylistViewModel", "✅ Foreground service stopped")
-        } catch (e: Exception) {
-            Log.e("PlaylistViewModel", "⚠️ Failed to stop foreground service: ${e.message}")
-        }
-
-        _currentPlayingTrackId.value = null
-        _isPlaying.value = false  // ← ДОБАВЛЕНО
-    }
-
     // 🔥 НОВОЕ: Установка фильтров
     fun setFilters(energy: String?, temperature: String?, sortBy: String) {
         _energyFilter.value = energy
@@ -248,6 +228,47 @@ class PlaylistViewModel(
                 loadTracks()
             } catch (e: Exception) {
                 Log.e("PlaylistViewModel", "Error updating description", e)
+            }
+        }
+    }
+
+
+    fun loadStats() {
+        viewModelScope.launch {
+            try {
+                val result = apiService.getTrackStats(accountId = accountId)
+                _stats.value = result
+            } catch (e: Exception) {
+                Log.e("PlaylistViewModel", "Error loading stats", e)
+            }
+        }
+    }
+
+    fun runPlaylistWave(manual: Boolean = false) {
+        viewModelScope.launch {
+            try {
+                val response = api.runPlaylistChain(
+                    accountId = accountId,
+                    extraContext = if (manual) "manual" else "auto"
+                )
+
+                Log.d("Playlist", "Wave result: $response")
+
+                val trackMap = response["track"] as? Map<*, *>
+                val trackId = (trackMap?.get("track_id") as? Double)?.toInt()
+                val trackName = trackMap?.get("track") as? String
+                val contextText = response["context"] as? String
+
+                if (trackId != null) {
+                    Log.d("Playlist", "🎧 Playing track $trackName ($trackId)")
+                    // ✅ Запускаем через собственный плеер
+                    playTrack(trackId)
+                }
+
+                Log.d("Playlist", "🪶 Context: $contextText")
+
+            } catch (e: Exception) {
+                Log.e("Playlist", "Ошибка запуска волны", e)
             }
         }
     }

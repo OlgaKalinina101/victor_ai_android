@@ -1,8 +1,14 @@
 package com.example.victor_ai.ui.playlist
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import com.example.victor_ai.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,9 +62,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +80,7 @@ import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 import com.example.victor_ai.ui.playlist.components.EditTrackMetadataSheet
 import com.example.victor_ai.ui.playlist.components.TrackItemCompact
+import kotlinx.coroutines.delay
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,8 +108,26 @@ fun PlaylistScreen(
     val playlistSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
+    val stats by viewModel.stats.collectAsState()
+    var showAmbientStream by rememberSaveable { mutableStateOf(false) }
+// 🔹 Текст, который "печатается"
+    var animatedText by remember { mutableStateOf("") }
 
-    // 🔥 Синхронизируем состояние плеера при открытии плейлиста
+// 🔹 Эффект печати — активируется при открытии "думаю о музыке"
+    LaunchedEffect(showAmbientStream) {
+        if (showAmbientStream) {
+            animatedText = ""
+            val phrase = "> думаю о музыке..."
+            for (i in phrase.indices) {
+                animatedText = phrase.substring(0, i + 1)
+                delay(80) // скорость печати
+            }
+        } else {
+            animatedText = ""
+        }
+    }
+
+        // 🔥 Синхронизируем состояние плеера при открытии плейлиста
     LaunchedEffect(showPlaylistSheet) {
         if (showPlaylistSheet) {
             println("🔄 PlaylistScreen: showPlaylistSheet=true, calling syncPlayerState()")
@@ -104,7 +137,8 @@ fun PlaylistScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // TopBar как обычный Row
+
+        // 🔹 Верхний бар (кнопка "Плейлист")
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -118,22 +152,123 @@ fun PlaylistScreen(
             }) {
                 Icon(
                     Icons.Default.List,
-                    "Плейлист",
+                    contentDescription = "Плейлист",
                     tint = Color(0xFFE0E0E0)
                 )
             }
         }
 
-        // Основной контент
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        // 🔹 Основной контент — колонка по центру
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "Статистика появится здесь",
-                color = Color(0xFFE0E0E0),
-                fontSize = 16.sp
-            )
+            if (stats == null) {
+                Text(
+                    text = "Загружается статистика...",
+                    color = Color(0xFFE0E0E0),
+                    fontSize = 16.sp
+                )
+            } else {
+                Text(
+                    text = "🎧 Трек недели",
+                    color = Color(0xFFB0B0B0),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal
+                )
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "────────────────────",
+                    color = Color(0xFF555555),
+                    fontSize = 14.sp
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                stats?.top_tracks?.firstOrNull()?.let { t ->
+                    Text(
+                        text = "${t.title} (${t.plays})",
+                        color = Color(0xFFE0E0E0),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Text("💫 ${stats?.top_energy ?: "—"}", color = Color(0xFFB0B0B0), fontSize = 15.sp)
+                Text("🌡 ${stats?.top_temperature ?: "—"}", color = Color(0xFFB0B0B0), fontSize = 15.sp)
+                Text("⏱ ${stats?.average_duration ?: 0} сек", color = Color(0xFFB0B0B0), fontSize = 15.sp)
+
+                Spacer(Modifier.height(32.dp))
+
+                // 🌊 Запуск волны
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { /* TODO: запуск волны по треку недели */ }
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🌊 Запустить волну по треку недели",
+                        color = Color(0xFFE0E0E0),
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Divider(color = Color(0xFF404040), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 32.dp))
+
+                // 🎵 Выбери сам
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showAmbientStream = !showAmbientStream
+                            if (showAmbientStream) viewModel.runPlaylistWave(manual = true)
+                        }
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🎵 Выбери сам",
+                        color = Color(0xFFE0E0E0),
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // 👀 Анимированная “мысленная” строка
+                AnimatedVisibility(
+                    visible = showAmbientStream,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("👀", fontSize = 24.sp, modifier = Modifier.alpha(0.7f))
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = animatedText,
+                            color = Color(0xFF666666),
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.alpha(0.8f)
+                        )
+                    }
+                }
+            }
         }
     }
 
