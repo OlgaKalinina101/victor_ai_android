@@ -80,7 +80,6 @@ import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 import com.example.victor_ai.ui.playlist.components.EditTrackMetadataSheet
 import com.example.victor_ai.ui.playlist.components.TrackItemCompact
-import kotlinx.coroutines.delay
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,24 +109,8 @@ fun PlaylistScreen(
     val screenHeight = configuration.screenHeightDp.dp
     val stats by viewModel.stats.collectAsState()
     var showAmbientStream by rememberSaveable { mutableStateOf(false) }
-// 🔹 Текст, который "печатается"
-    var animatedText by remember { mutableStateOf("") }
 
-// 🔹 Эффект печати — активируется при открытии "думаю о музыке"
-    LaunchedEffect(showAmbientStream) {
-        if (showAmbientStream) {
-            animatedText = ""
-            val phrase = "> думаю о музыке..."
-            for (i in phrase.indices) {
-                animatedText = phrase.substring(0, i + 1)
-                delay(80) // скорость печати
-            }
-        } else {
-            animatedText = ""
-        }
-    }
-
-        // 🔥 Синхронизируем состояние плеера при открытии плейлиста
+    // 🔥 Синхронизируем состояние плеера при открытии плейлиста
     LaunchedEffect(showPlaylistSheet) {
         if (showPlaylistSheet) {
             println("🔄 PlaylistScreen: showPlaylistSheet=true, calling syncPlayerState()")
@@ -138,7 +121,167 @@ fun PlaylistScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 🔹 Верхний бар (кнопка "Плейлист")
+        // 🔹 Основной контент — колонка по центру
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (stats == null) {
+                Text(
+                    text = "Загружается статистика...",
+                    color = Color(0xFFE0E0E0),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Light
+                )
+            } else {
+                // Заголовок
+                Text(
+                    text = "СТАТИСТИКА НЕДЕЛИ",
+                    color = Color(0xFF888888),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 1.5.sp
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                // Трек недели
+                stats?.top_tracks?.firstOrNull()?.let { t ->
+                    Text(
+                        text = "Трек недели",
+                        color = Color(0xFF999999),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = t.title,
+                        color = Color(0xFFE0E0E0),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "${t.plays} прослушиваний",
+                        color = Color(0xFF777777),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Light
+                    )
+                }
+
+                Spacer(Modifier.height(32.dp))
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = Color(0xFF404040),
+                    modifier = Modifier.padding(horizontal = 48.dp)
+                )
+                Spacer(Modifier.height(32.dp))
+
+                // Характеристики
+                Text(
+                    text = "Характеристики",
+                    color = Color(0xFF999999),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Энергия: ${stats?.top_energy ?: "—"}",
+                    color = Color(0xFFB0B0B0),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Light
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Температура: ${stats?.top_temperature ?: "—"}",
+                    color = Color(0xFFB0B0B0),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Light
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Средняя длина: ${stats?.average_duration ?: 0} сек",
+                    color = Color(0xFFB0B0B0),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Light
+                )
+
+                Spacer(Modifier.height(40.dp))
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = Color(0xFF404040),
+                    modifier = Modifier.padding(horizontal = 48.dp)
+                )
+                Spacer(Modifier.height(40.dp))
+
+                // Действия
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { /* TODO: запуск волны по треку недели */ }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Запустить волну",
+                        color = Color(0xFFCCCCCC),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showAmbientStream = !showAmbientStream
+                            if (showAmbientStream) viewModel.runPlaylistWave(manual = true)
+                        }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Выбрать вручную",
+                        color = Color(0xFFCCCCCC),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Индикатор процесса (вместо анимации печати)
+                AnimatedVisibility(
+                    visible = showAmbientStream,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "идёт подбор...",
+                            color = Color(0xFF555555),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Light,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+        }
+
+        // 🔹 Верхний бар (кнопка "Плейлист") - размещаем ПОСЛЕ Column чтобы был поверх
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -155,119 +298,6 @@ fun PlaylistScreen(
                     contentDescription = "Плейлист",
                     tint = Color(0xFFE0E0E0)
                 )
-            }
-        }
-
-        // 🔹 Основной контент — колонка по центру
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (stats == null) {
-                Text(
-                    text = "Загружается статистика...",
-                    color = Color(0xFFE0E0E0),
-                    fontSize = 16.sp
-                )
-            } else {
-                Text(
-                    text = "🎧 Трек недели",
-                    color = Color(0xFFB0B0B0),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal
-                )
-
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "────────────────────",
-                    color = Color(0xFF555555),
-                    fontSize = 14.sp
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                stats?.top_tracks?.firstOrNull()?.let { t ->
-                    Text(
-                        text = "${t.title} (${t.plays})",
-                        color = Color(0xFFE0E0E0),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                Spacer(Modifier.height(20.dp))
-
-                Text("💫 ${stats?.top_energy ?: "—"}", color = Color(0xFFB0B0B0), fontSize = 15.sp)
-                Text("🌡 ${stats?.top_temperature ?: "—"}", color = Color(0xFFB0B0B0), fontSize = 15.sp)
-                Text("⏱ ${stats?.average_duration ?: 0} сек", color = Color(0xFFB0B0B0), fontSize = 15.sp)
-
-                Spacer(Modifier.height(32.dp))
-
-                // 🌊 Запуск волны
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { /* TODO: запуск волны по треку недели */ }
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "🌊 Запустить волну по треку недели",
-                        color = Color(0xFFE0E0E0),
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                Divider(color = Color(0xFF404040), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 32.dp))
-
-                // 🎵 Выбери сам
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            showAmbientStream = !showAmbientStream
-                            if (showAmbientStream) viewModel.runPlaylistWave(manual = true)
-                        }
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "🎵 Выбери сам",
-                        color = Color(0xFFE0E0E0),
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                // 👀 Анимированная “мысленная” строка
-                AnimatedVisibility(
-                    visible = showAmbientStream,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("👀", fontSize = 24.sp, modifier = Modifier.alpha(0.7f))
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = animatedText,
-                            color = Color(0xFF666666),
-                            fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.alpha(0.8f)
-                        )
-                    }
-                }
             }
         }
     }
