@@ -327,15 +327,13 @@ class MapActivity : ComponentActivity() {
             userLocation?.let { loc ->
                 mapRenderer?.updateUserLocation(loc)
 
-                // Центрируем при первой загрузке ИЛИ во время поиска
-                if (searching) {
-                    // Во время поиска постоянно следуем за пользователем
-                    mapView?.panTo(loc)
-                } else if (mapRenderer != null && mapBounds != null && !hasInitialCentered) {
+                // Центрируем только при первой загрузке (не в режиме поиска!)
+                if (!searching && mapRenderer != null && mapBounds != null && !hasInitialCentered) {
                     // Центрируем только один раз при первой загрузке
                     mapRenderer?.centerOnPoint(loc, 5f)
                     hasInitialCentered = true
                 }
+                // 🔥 В режиме поиска НЕ вызываем panTo() - зум управляется через zoomToIncludeBoth()
             }
         }
 
