@@ -249,7 +249,7 @@ fun PlaylistScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Выбрать вручную",
+                        text = "Выбери сам...",
                         color = Color(0xFFCCCCCC),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
@@ -270,7 +270,7 @@ fun PlaylistScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "идёт подбор...",
+                            text = "\uD83D\uDC40 > думаю о музыке...",
                             color = Color(0xFF555555),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Light,
