@@ -81,6 +81,10 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
     private var selectedPOI: POI? = null // Выбранный POI для направления стрелки
     private var isSearching: Boolean = false // Режим поиска/навигации
 
+    // Сохранение состояния карты перед поиском
+    private var savedZoom: Float? = null
+    private var savedMapBounds: MapBounds? = null
+
     // Утилиты
     private var coordinateConverter: CoordinateConverter? = null
     private val markerRenderer = POIMarkerRenderer(context)
@@ -151,6 +155,12 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
      */
     fun startSearchMode() {
         Log.d(TAG, "🚀 startSearchMode() вызван. selectedPOI=${selectedPOI?.name}, isSearching=$isSearching")
+
+        // 💾 Сохраняем текущее состояние карты перед поиском
+        savedZoom = currentZoom
+        savedMapBounds = mapBounds
+        Log.d(TAG, "  💾 Сохранено состояние: zoom=$savedZoom, bounds=$savedMapBounds")
+
         isSearching = true
         animationTime = System.currentTimeMillis()
         removeCallbacks(animationRunnable)
@@ -166,6 +176,19 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         Log.d(TAG, "🛑 stopSearchMode() вызван. isSearching=$isSearching")
         isSearching = false
         removeCallbacks(animationRunnable)
+
+        // 🔄 Восстанавливаем сохраненное состояние карты
+        if (savedZoom != null && savedMapBounds != null) {
+            Log.d(TAG, "  🔄 Восстанавливаем состояние: zoom=$savedZoom, bounds=$savedMapBounds")
+            currentZoom = savedZoom!!
+            mapBounds = savedMapBounds
+            updateConverter()
+            savedZoom = null
+            savedMapBounds = null
+        } else {
+            Log.w(TAG, "  ⚠️ Нет сохраненного состояния для восстановления")
+        }
+
         invalidate()
         Log.d(TAG, "✅ stopSearchMode() завершен. isSearching=$isSearching")
     }
