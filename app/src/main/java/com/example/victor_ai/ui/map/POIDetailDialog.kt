@@ -251,10 +251,14 @@ fun POIOverlay(
     var showEmotionSelector by remember { mutableStateOf(false) }
     var showAutoVisitPrompt by remember { mutableStateOf(false) }
 
+    // 🔥 Флаг для отслеживания, был ли показан автоматический промпт
+    var autoPromptShown by remember(poi.id) { mutableStateOf(false) }
+
     // Автоматическое предложение посещения при расстоянии < 10м (ТОЛЬКО в режиме поиска!)
-    LaunchedEffect(distance, searching) {
-        if (distance != null && distance < 10.0 && !isVisited && searching) {
+    LaunchedEffect(distance, searching, isVisited) {
+        if (distance != null && distance < 10.0 && !isVisited && searching && !autoPromptShown) {
             showAutoVisitPrompt = true
+            autoPromptShown = true // 🔥 Запоминаем, что показали промпт
         }
     }
 
