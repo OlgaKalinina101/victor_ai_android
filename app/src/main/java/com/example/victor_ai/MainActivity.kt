@@ -159,7 +159,8 @@ class MainActivity : ComponentActivity() {
             activity = this,
             api = RetrofitInstance.api,
             onSnackbar = { msg -> _snackbarMessage.value = msg },
-            onReminder = { popup -> _popup.value = popup }
+            onReminder = { popup -> _popup.value = popup },
+            coroutineScope = lifecycleScope  // ✅ Передаём lifecycleScope - корутины отменятся при onDestroy
         )
 
         // 🔹 4. Permission Manager

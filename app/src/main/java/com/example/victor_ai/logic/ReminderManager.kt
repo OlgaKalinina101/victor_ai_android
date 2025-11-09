@@ -21,7 +21,8 @@ class ReminderManager(
     activity: ComponentActivity,  // ✅ Не хранится напрямую
     private val api: ApiService,
     private val onSnackbar: (String) -> Unit,
-    private val onReminder: (ReminderPopup) -> Unit
+    private val onReminder: (ReminderPopup) -> Unit,
+    private val coroutineScope: CoroutineScope  // ✅ Принимаем scope извне (lifecycleScope)
 ) {
     // ✅ Используем WeakReference чтобы не удерживать Activity при rotation
     private val activityRef = WeakReference(activity)
@@ -103,7 +104,7 @@ class ReminderManager(
     }
 
     fun sendReminderActionCoroutine(action: String, reminderId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+        coroutineScope.launch(Dispatchers.IO) {  // ✅ Используем переданный scope - привязан к lifecycle
             try {
                 val response = when (action) {
                     "done" -> api.markReminderAsDone(ReminderRequest(reminderId))
