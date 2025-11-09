@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.ui.menu.components.AssistantMenu
 import com.example.victor_ai.ui.places.PlacesViewModel
@@ -38,6 +40,14 @@ fun AssistantButtonArea(
 )
  {
     var showAssistantMenu by remember { mutableStateOf(false) }
+
+    // 🔥 Закрываем меню при переходе на другие экраны
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != "main" && currentRoute != null) {
+            showAssistantMenu = false
+        }
+    }
 
      // 🔥 Убрали fillMaxSize() чтобы Box не перекрывал весь экран
      Box(
