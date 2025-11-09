@@ -23,6 +23,9 @@ class ReminderActionReceiver : BroadcastReceiver() {
             else -> return
         }
 
+        // ✅ Используем goAsync() для BroadcastReceiver - продлеваем его жизнь до завершения корутины
+        val pendingResult = goAsync()
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val url = URL("${RetrofitInstance.BASE_URL}assistant/$endpoint")
@@ -37,6 +40,9 @@ class ReminderActionReceiver : BroadcastReceiver() {
                 Log.d("FCM", "Action sent to backend: $endpoint")
             } catch (e: Exception) {
                 Log.e("FCM", "Failed to send action: ${e.message}")
+            } finally {
+                // ✅ Обязательно вызываем finish() чтобы система знала что работа завершена
+                pendingResult.finish()
             }
         }
     }
