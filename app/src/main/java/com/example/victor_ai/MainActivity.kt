@@ -77,7 +77,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private lateinit var requestAudioPermission: ActivityResultLauncher<String>
     private lateinit var voiceRecognizer: VoiceRecognizer
     private val isListeningState = mutableStateOf(false)
 
@@ -263,7 +262,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onStartVoiceRecognition = { startVoiceRecognition() },
                             onRequestMicrophone = {
-                                requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                permissionManager.requestMicrophonePermission()
                             },
                             isListeningState = isListeningState,
                             isTypingState = isTyping.collectAsState(),
@@ -294,7 +293,7 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 onStartVoiceRecognition = { startVoiceRecognition() },
                                 onRequestMicrophone = {
-                                    requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                    permissionManager.requestMicrophonePermission()
                                 },
                                 onOpenChat = { navController.navigate("chat") }
                             )
@@ -368,7 +367,7 @@ class MainActivity : ComponentActivity() {
         ) {
             voiceRecognizer.start()
         } else {
-            requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
+            permissionManager.requestMicrophonePermission()
         }
     }
 
@@ -453,10 +452,8 @@ class MainActivity : ComponentActivity() {
                     val result = processStreamingMessage(
                         request = request,
                         onChunkReceived = { chunk ->
-                            runBlocking {
-                                for (char in chunk) {
-                                    charQueue.send(char)
-                                }
+                            for (char in chunk) {
+                                charQueue.send(char)
                             }
                         },
                         onMetadataReceived = { metadata ->

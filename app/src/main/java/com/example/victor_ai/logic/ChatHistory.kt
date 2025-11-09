@@ -10,10 +10,12 @@ import com.example.victor_ai.data.repository.ChatRepository
  * Инициализируется в Application
  */
 object ChatHistoryHelper {
-    lateinit var repository: ChatRepository
+    private var _repository: ChatRepository? = null
+    val repository: ChatRepository
+        get() = _repository ?: throw IllegalStateException("ChatHistoryHelper не инициализирован! Вызовите initialize() в Application")
 
     fun initialize(chatRepository: ChatRepository) {
-        repository = chatRepository
+        _repository = chatRepository
     }
 }
 
