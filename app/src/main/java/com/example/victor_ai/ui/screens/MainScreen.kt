@@ -40,6 +40,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.permissions.PermissionManager
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlin.random.Random

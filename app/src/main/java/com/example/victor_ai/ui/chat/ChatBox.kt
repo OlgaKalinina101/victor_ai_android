@@ -40,6 +40,7 @@ import com.example.victor_ai.domain.model.ChatMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.victor_ai.ui.common.LongClickableText
+import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

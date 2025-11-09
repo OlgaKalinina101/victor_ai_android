@@ -186,7 +186,7 @@ fun AutoVisitPrompt(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "Вы на месте!",
+                        text = "Кажется, нашли!",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

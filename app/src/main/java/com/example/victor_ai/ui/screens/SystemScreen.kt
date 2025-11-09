@@ -51,6 +51,7 @@ import com.example.victor_ai.data.network.ModelUsage
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.data.network.RetrofitInstance.assistantApi
 import com.example.victor_ai.logic.UsageRepository
+import kotlinx.coroutines.isActive
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
