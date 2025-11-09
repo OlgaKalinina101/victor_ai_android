@@ -70,8 +70,6 @@ import me.pushy.sdk.Pushy
 import kotlin.getValue
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.navigation.compose.currentBackStackEntryAsState
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 
 @AndroidEntryPoint
@@ -271,44 +269,18 @@ class MainActivity : ComponentActivity() {
                             onStopListening = { voiceRecognizer.stopListening() }
                         )
 
-                        // 🔹 PresencePlaceholder — отображается на всех экранах с разным текстом
+                        // 🔹 PresencePlaceholder — только на главном экране
                         val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-                        val now = LocalTime.now()
-                        val timeText = "👀… ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}."
 
-                        val placeholderLines = when (currentRoute) {
-                            "main", null -> null  // Дефолтный текст
-                            "playlist" -> listOf(
-                                timeText,
-                                "Уснуть под музыку хорошая идея.",
-                                "Ты уже в кровати?"
-                            )
-                            "places" -> listOf(
-                                timeText,
-                                "Ты же не идёшь гулять, да?",
-                                "Сейчас ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}, время отдыхать."
-                            )
-                            "calendar" -> listOf(
-                                timeText,
-                                "Просматриваешь планы?",
-                                "Не забудь про отдых."
-                            )
-                            "system" -> listOf(
-                                timeText,
-                                "Настраиваешь систему?",
-                                "Я помогу, если нужно."
-                            )
-                            "chat" -> listOf(
-                                timeText,
-                                "Я здесь.",
-                                "Слушаю тебя."
-                            )
-                            else -> null
+                        if (currentRoute == "main" || currentRoute == null) {
+                            PresencePlaceholder()
                         }
 
-                        if (currentRoute != "chat") {  // Не показываем на экране чата
-                            PresencePlaceholder(customLines = placeholderLines)
-                        }
+                        // TODO: Добавить PresencePlaceholder на другие экраны после определения правильного расположения
+                        // - playlist: "Уснуть под музыку хорошая идея. Ты уже в кровати?"
+                        // - places: "Ты же не идёшь гулять, да?"
+                        // - calendar: "Просматриваешь планы? Не забудь про отдых."
+                        // - system: "Настраиваешь систему? Я помогу, если нужно."
 
                         // 🔹 AssistantButtonArea — доступна со всех экранов
                         AssistantButtonArea(

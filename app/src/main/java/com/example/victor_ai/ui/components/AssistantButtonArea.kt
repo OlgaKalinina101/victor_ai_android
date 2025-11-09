@@ -45,7 +45,14 @@ fun AssistantButtonArea(
              .padding(24.dp)
      ) {
          FloatingActionButton(
-             onClick = { showAssistantMenu = !showAssistantMenu },
+             onClick = {
+                 // 🔥 При открытии меню сначала переходим на главный экран
+                 navController.navigate("main") {
+                     popUpTo("main") { inclusive = false }
+                     launchSingleTop = true
+                 }
+                 showAssistantMenu = !showAssistantMenu
+             },
              containerColor = Color.Transparent,
              contentColor = Color.White,
              modifier = Modifier.size(48.dp)
