@@ -396,7 +396,7 @@ fun TypingDot(delay: Int) {
 
     // Анимация прозрачности
     LaunchedEffect(Unit) {
-        while (true) {
+        while (isActive) {  // ✅ Проверка isActive - останавливаем при выходе из composition
             animate(
                 initialValue = 0.3f,
                 targetValue = 1f,
@@ -416,7 +416,7 @@ fun TypingDot(delay: Int) {
 
     // Анимация масштаба
     LaunchedEffect(Unit) {
-        while (true) {
+        while (isActive) {  // ✅ Проверка isActive - останавливаем при выходе из composition
             animate(
                 initialValue = 0.8f,
                 targetValue = 1.2f,

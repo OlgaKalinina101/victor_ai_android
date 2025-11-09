@@ -15,13 +15,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.lang.ref.WeakReference
 
 class ReminderManager(
-    private val activity: ComponentActivity,
+    activity: ComponentActivity,  // ✅ Не хранится напрямую
     private val api: ApiService,
     private val onSnackbar: (String) -> Unit,
-    private val onReminder: (ReminderPopup) -> Unit // ← теперь сохраняем в поле
+    private val onReminder: (ReminderPopup) -> Unit
 ) {
+    // ✅ Используем WeakReference чтобы не удерживать Activity при rotation
+    private val activityRef = WeakReference(activity)
     private val _reminderPopup = MutableStateFlow<ReminderPopup?>(null)
     val reminderPopup: StateFlow<ReminderPopup?> = _reminderPopup
 
@@ -33,6 +36,11 @@ class ReminderManager(
 
     @SuppressLint("ObsoleteSdkInt")
     fun registerReceiver() {
+        val activity = activityRef.get() ?: run {
+            Log.w("ReminderManager", "⚠️ Activity is null, cannot register receiver")
+            return
+        }
+
         val filter = IntentFilter().apply {
             addAction("com.example.victor_ai.OPEN_REMINDER")
             addAction("com.example.victor_ai.SHOW_REMINDER")
@@ -58,7 +66,17 @@ class ReminderManager(
 
 
     fun unregisterReceiver() {
-        activity.unregisterReceiver(reminderReceiver)
+        val activity = activityRef.get()
+        if (activity == null) {
+            Log.w("ReminderManager", "⚠️ Activity is null, cannot unregister receiver")
+            return
+        }
+        try {
+            activity.unregisterReceiver(reminderReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver already unregistered - это нормально
+            Log.d("ReminderManager", "Receiver already unregistered")
+        }
     }
 
     fun handleReminderIntent(intent: Intent?) {
@@ -102,7 +120,9 @@ class ReminderManager(
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(activity, "Ошибка сети: ${e.message}", Toast.LENGTH_SHORT).show()
+                    activityRef.get()?.let { activity ->
+                        Toast.makeText(activity, "Ошибка сети: ${e.message}", Toast.LENGTH_SHORT).show()
+                    } ?: Log.e("ReminderManager", "Cannot show error toast - activity is null")
                 }
             }
         }
