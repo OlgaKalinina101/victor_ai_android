@@ -237,7 +237,7 @@ fun StatsDisplay(
                 fontSize = 14.sp,
                 color = Color(0xFFE0E0E0)
             )
-            WeekChart(weeklyData = stats.weeklyChart.reversed()) // ← От прошлого к настоящему
+            WeekChart(weeklyData = stats.weeklyChart)
             Text(
                 text = " (${stats.weeklyChart.count { it > 0 }} из 7)",
                 style = MaterialTheme.typography.bodyMedium,
@@ -262,14 +262,23 @@ fun StatsDisplay(
 
 /**
  * График активности за неделю
+ * Показывает активные дни подряд с начала (без пропусков)
  */
 @Composable
 fun WeekChart(weeklyData: List<Float>) {
+    // 🔥 Подсчитываем количество активных дней
+    val activeDaysCount = weeklyData.count { it > 0 }
+
+    // 🔥 Создаем новый массив: первые N дней заполнены, остальные пусты
+    val displayData = List(7) { index ->
+        if (index < activeDaysCount) 1f else 0f
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.Bottom
     ) {
-        weeklyData.forEach { value ->
+        displayData.forEach { value ->
             val symbol = if (value > 0) "▓" else "░"
             Text(
                 text = symbol,
