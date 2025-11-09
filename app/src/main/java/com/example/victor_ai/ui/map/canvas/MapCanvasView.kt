@@ -414,6 +414,11 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
         var prevY = 0f
         var isFirst = true
 
+        // 🔥 Отслеживаем последнюю позицию нарисованного следа
+        var lastFootprintX = Float.MIN_VALUE
+        var lastFootprintY = Float.MIN_VALUE
+        val minFootprintDistance = 70f // 🔥 Минимальное расстояние между следами в пикселях
+
         for ((i, point) in trailPoints.withIndex()) {
             val (screenX, screenY) = converter.gpsToScreen(point)
 
@@ -425,8 +430,8 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
                 val dy = screenY - prevY
                 val distance = kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
 
-                // Шаг ~30–40 пикселей (настраивай под масштаб!)
-                val stepDistance = 35f
+                // Шаг для следов
+                val stepDistance = minFootprintDistance
                 val steps = (distance / stepDistance).toInt()
 
                 // Рисуем следы вдоль пути
@@ -435,16 +440,33 @@ private fun isAllowedPOIType(poiType: POIType): Boolean {
                     val x = prevX + dx * ratio
                     val y = prevY + dy * ratio
 
-                    // Поворачиваем след по направлению движения
-                    canvas.save()
-                    canvas.translate(x, y)
-                    val angle = kotlin.math.atan2(dy, dx) * 180 / kotlin.math.PI.toFloat()
-                    canvas.rotate(angle)
+                    // 🔥 Проверяем расстояние до последнего нарисованного следа
+                    val distanceFromLast = if (lastFootprintX == Float.MIN_VALUE) {
+                        Float.MAX_VALUE // Первый след - всегда рисуем
+                    } else {
+                        kotlin.math.hypot(
+                            (x - lastFootprintX).toDouble(),
+                            (y - lastFootprintY).toDouble()
+                        ).toFloat()
+                    }
 
-                    // Рисуем серые пяточки 👣
-                    canvas.drawText("👣", 0f, 0f, footprintPaint)
+                    // 🔥 Рисуем только если расстояние достаточное
+                    if (distanceFromLast >= minFootprintDistance) {
+                        // Поворачиваем след по направлению движения
+                        canvas.save()
+                        canvas.translate(x, y)
+                        val angle = kotlin.math.atan2(dy, dx) * 180 / kotlin.math.PI.toFloat()
+                        canvas.rotate(angle)
 
-                    canvas.restore()
+                        // Рисуем серые пяточки 👣
+                        canvas.drawText("👣", 0f, 0f, footprintPaint)
+
+                        canvas.restore()
+
+                        // 🔥 Запоминаем позицию этого следа
+                        lastFootprintX = x
+                        lastFootprintY = y
+                    }
                 }
             }
 
