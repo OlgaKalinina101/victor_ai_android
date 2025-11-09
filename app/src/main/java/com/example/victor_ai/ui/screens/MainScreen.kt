@@ -116,7 +116,7 @@ fun PresencePlaceholder(
 
     val didactStyle = TextStyle(
         fontFamily = FontFamily(Font(R.font.didact_gothic)),
-        color = Color(0xFFE0E0E0),
+        color = Color(0xFFA6A6A6),
         fontSize = 26.sp,
         textAlign = TextAlign.Start
     )

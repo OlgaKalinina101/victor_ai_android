@@ -32,7 +32,7 @@ fun ChatScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF2C2C2E))  // 🔹 Непрозрачный чёрный фон
+            .background(Color(0xFF2C2C2E))  // 🔹 Непрозрачный фон
     ) {
         // 🔹 Чат
         ChatBox(
