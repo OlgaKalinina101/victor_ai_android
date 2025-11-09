@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.ui.menu.components.AssistantMenu
 import com.example.victor_ai.ui.places.PlacesViewModel
@@ -30,6 +31,7 @@ fun AssistantButtonArea(
     playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
     placesViewModel: PlacesViewModel,
     reminderManager: ReminderManager,
+    navController: NavController,  // 🔥 Передаём navController вместо callbacks
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
     onOpenChat: () -> Unit
@@ -79,10 +81,12 @@ fun AssistantButtonArea(
         ) {
             AssistantMenu(
                 modifier = Modifier.padding(top = 48.dp),
-                playlistViewModel = playlistViewModel,  // 🔥 Передаём
+                navController = navController,  // 🔥 Передаём navController
+                playlistViewModel = playlistViewModel,
                 placesViewModel = placesViewModel,
                 onRequestVoice = onStartVoiceRecognition,
-                onRequestPermission = onRequestMicrophone
+                onRequestPermission = onRequestMicrophone,
+                onClose = { showAssistantMenu = false }  // 🔥 Закрываем меню после навигации
             )
         }
     }
