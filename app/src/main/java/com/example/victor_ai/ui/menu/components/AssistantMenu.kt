@@ -11,23 +11,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.example.victor_ai.data.network.RetrofitInstance
-import com.example.victor_ai.logic.UsageRepository
+import androidx.navigation.NavController
 import com.example.victor_ai.ui.menu.MenuState
-import com.example.victor_ai.ui.places.PlacesMenu
 import com.example.victor_ai.ui.places.PlacesViewModel
-import com.example.victor_ai.ui.playlist.PlaylistScreen
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
-import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
-import com.example.victor_ai.ui.screens.SystemMenuScreen
 
 @Composable
 fun AssistantMenu(
     modifier: Modifier = Modifier,
-    playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
-    placesViewModel: PlacesViewModel,  // ← добавляем!
+    navController: NavController,  // 🔥 Используем navController для навигации
+    playlistViewModel: PlaylistViewModel,
+    placesViewModel: PlacesViewModel,
     onRequestVoice: () -> Unit,
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
+    onClose: () -> Unit  // 🔥 Callback для закрытия меню
 ) {
     var text by remember { mutableStateOf("") }
     var currentMenu: MenuState by remember { mutableStateOf(MenuState.ROOT) }
@@ -38,42 +35,53 @@ fun AssistantMenu(
     }
 
     when (currentMenu) {
-        MenuState.ROOT -> RootMenu(onClick = { currentMenu = it })
+        MenuState.ROOT -> RootMenu(
+            onClick = { menuState ->
+                when (menuState) {
+                    MenuState.MAIN -> currentMenu = MenuState.MAIN
+                    MenuState.PLACES -> {
+                        navController.navigate("places")
+                        onClose()
+                    }
+                    MenuState.SYSTEM -> {
+                        navController.navigate("system")
+                        onClose()
+                    }
+                    else -> currentMenu = menuState
+                }
+            }
+        )
 
         MenuState.MAIN -> MainMenu(
             menuState = currentMenu,
-            onChangeMenu = { newMenu -> currentMenu = newMenu },
+            onChangeMenu = { newMenu ->
+                when (newMenu) {
+                    MenuState.CALENDAR -> {
+                        navController.navigate("calendar")
+                        onClose()
+                    }
+                    else -> currentMenu = newMenu
+                }
+            },
             onBack = { currentMenu = MenuState.ROOT },
             onItemClick = { item ->
                 text = item
-                // Если кликнули на "Плейлист", переходим
                 when (item) {
-                    "Плейлист" -> currentMenu = MenuState.PLAYLIST
-                    "Места" -> currentMenu = MenuState.PLACES  // ← ДОБАВЬ ЭТО!
+                    "Плейлист" -> {
+                        navController.navigate("playlist")
+                        onClose()
+                    }
                     else -> Unit
                 }
             }
         )
 
-        MenuState.CHAT -> ChatMenu(onBack = { currentMenu = MenuState.ROOT })
-
-        MenuState.SYSTEM -> SystemMenuScreen(
-            usageRepository = UsageRepository(RetrofitInstance.apiService),
-            modifier = Modifier.fillMaxSize()
+        MenuState.CHAT -> ChatMenu(
+            onBack = { currentMenu = MenuState.ROOT }
         )
 
-        MenuState.PLACES -> PlacesMenu(
-            onBack = { currentMenu = MenuState.ROOT },
-            viewModel = placesViewModel
-        )
-        MenuState.CALENDAR -> CalendarScreenWithReminders {
-            com.example.victor_ai.logic.getRemindersFromRepository("test_user")
-        }
-
-        MenuState.PLAYLIST -> PlaylistScreen(
-            viewModel = playlistViewModel,
-            onBackClick = { currentMenu = MenuState.MAIN }  // ← возврат в главное меню
-        )
+        // Остальные экраны теперь рендерятся через NavHost
+        else -> Unit
     }
 
     Text(

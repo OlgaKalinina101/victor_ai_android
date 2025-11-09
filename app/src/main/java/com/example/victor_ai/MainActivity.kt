@@ -53,11 +53,13 @@ import com.example.victor_ai.ui.main.MainViewModel
 import com.example.victor_ai.ui.main.PlaylistViewModelFactory
 import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.common.AnimatedBackgroundBox
+import com.example.victor_ai.ui.components.AssistantButtonArea
 import com.example.victor_ai.ui.components.ReminderOverlay
 import com.example.victor_ai.ui.navigation.AppNavHost
 import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.places.PlacesViewModelFactory
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
+import com.example.victor_ai.ui.screens.PresencePlaceholder
 import com.example.victor_ai.data.repository.StatsRepository
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.channels.Channel
@@ -66,6 +68,9 @@ import kotlinx.coroutines.runBlocking
 import me.pushy.sdk.Pushy
 import kotlin.getValue
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.navigation.compose.currentBackStackEntryAsState
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 
 @AndroidEntryPoint
@@ -263,6 +268,59 @@ class MainActivity : ComponentActivity() {
                             isTypingState = isTyping.collectAsState(),
                             permissionManager = permissionManager,
                             onStopListening = { voiceRecognizer.stopListening() }
+                        )
+
+                        // 🔹 PresencePlaceholder — отображается на всех экранах с разным текстом
+                        val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+                        val now = LocalTime.now()
+                        val timeText = "👀… ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}."
+
+                        val placeholderLines = when (currentRoute) {
+                            "main", null -> null  // Дефолтный текст
+                            "playlist" -> listOf(
+                                timeText,
+                                "Уснуть под музыку хорошая идея.",
+                                "Ты уже в кровати?"
+                            )
+                            "places" -> listOf(
+                                timeText,
+                                "Ты же не идёшь гулять, да?",
+                                "Сейчас ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}, время отдыхать."
+                            )
+                            "calendar" -> listOf(
+                                timeText,
+                                "Просматриваешь планы?",
+                                "Не забудь про отдых."
+                            )
+                            "system" -> listOf(
+                                timeText,
+                                "Настраиваешь систему?",
+                                "Я помогу, если нужно."
+                            )
+                            "chat" -> listOf(
+                                timeText,
+                                "Я здесь.",
+                                "Слушаю тебя."
+                            )
+                            else -> null
+                        }
+
+                        if (currentRoute != "chat") {  // Не показываем на экране чата
+                            PresencePlaceholder(customLines = placeholderLines)
+                        }
+
+                        // 🔹 AssistantButtonArea — доступна со всех экранов
+                        AssistantButtonArea(
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                            playlistViewModel = playlistViewModel,
+                            placesViewModel = placesViewModel,
+                            reminderManager = reminderManager,
+                            navController = navController,
+                            onStartVoiceRecognition = { startVoiceRecognition() },
+                            onRequestMicrophone = {
+                                requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                            },
+                            onOpenChat = { navController.navigate("chat") }
                         )
 
                         popup?.let {

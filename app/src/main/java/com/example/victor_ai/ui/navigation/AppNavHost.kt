@@ -1,17 +1,24 @@
 package com.example.victor_ai.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.runtime.State
+import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.logic.ReminderManager
+import com.example.victor_ai.logic.UsageRepository
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.permissions.PermissionManager
+import com.example.victor_ai.ui.places.PlacesMenu
 import com.example.victor_ai.ui.places.PlacesViewModel
+import com.example.victor_ai.ui.playlist.PlaylistScreen
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
+import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
 import com.example.victor_ai.ui.screens.ChatScreen
 import com.example.victor_ai.ui.screens.MainScreen
+import com.example.victor_ai.ui.screens.SystemMenuScreen
 
 @Composable
 fun AppNavHost(
@@ -37,8 +44,6 @@ fun AppNavHost(
         composable("main") {
             MainScreen(
                 navController = navController,
-                playlistViewModel = playlistViewModel,  // 🔥 Передаём
-                placesViewModel = placesViewModel,
                 reminderManager = reminderManager,
                 onStartVoiceRecognition = onStartVoiceRecognition,
                 onRequestMicrophone = onRequestMicrophone,
@@ -62,6 +67,31 @@ fun AppNavHost(
             )
         }
 
-        // reminder убрали — он теперь в MainActivity
+        composable("playlist") {
+            PlaylistScreen(
+                viewModel = playlistViewModel,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("places") {
+            PlacesMenu(
+                onBack = { navController.popBackStack() },
+                viewModel = placesViewModel
+            )
+        }
+
+        composable("calendar") {
+            CalendarScreenWithReminders {
+                com.example.victor_ai.logic.getRemindersFromRepository("test_user")
+            }
+        }
+
+        composable("system") {
+            SystemMenuScreen(
+                usageRepository = UsageRepository(RetrofitInstance.apiService),
+                modifier = Modifier
+            )
+        }
     }
 }
