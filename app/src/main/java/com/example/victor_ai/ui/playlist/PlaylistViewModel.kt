@@ -24,7 +24,7 @@ class PlaylistViewModel(
     private val apiService: ApiService,
     private val accountId: String,
     private val cacheDir: File,
-    private val context: Context  // 🔥 Добавлен context для Wake Lock
+    private val applicationContext: Context  // ✅ Application Context (не Activity!) - безопасно для ViewModel
 ) : ViewModel() {
 
     private val _tracks = MutableStateFlow<List<Track>>(emptyList())
@@ -48,7 +48,7 @@ class PlaylistViewModel(
     private val _temperatureFilter = MutableStateFlow<String?>(null)
     private val _sortBy = MutableStateFlow("recent")
 
-    private val audioPlayer = AudioPlayer(context)  // 🔥 Передаём context для Wake Lock
+    private val audioPlayer = AudioPlayer(applicationContext)  // ✅ Передаём Application Context
     private val _stats = MutableStateFlow<TrackStats?>(null)
     val stats: StateFlow<TrackStats?> = _stats.asStateFlow()
 
@@ -79,7 +79,7 @@ class PlaylistViewModel(
 
     private fun startPositionUpdater() {
         viewModelScope.launch {
-            while (true) {
+            while (isActive) {  // ✅ Проверка isActive - останавливаем при onCleared()
                 delay(100) // обновление каждые 100мс
                 if (_isPlaying.value) {
                     val position = audioPlayer.getCurrentPosition()
@@ -114,7 +114,7 @@ class PlaylistViewModel(
         // Примечание: Service показывает уведомление, но AudioPlayer остается в ViewModel
         // TODO: В будущем переместить AudioPlayer в Service для лучшей архитектуры
         try {
-            MusicPlaybackService.startPlayback(context, streamUrl)
+            MusicPlaybackService.startPlayback(applicationContext, streamUrl)
             Log.d("PlaylistViewModel", "✅ Foreground service started")
         } catch (e: Exception) {
             Log.e("PlaylistViewModel", "⚠️ Failed to start foreground service: ${e.message}")
@@ -204,7 +204,7 @@ class PlaylistViewModel(
 
         // 🔥 НОВОЕ: Останавливаем Foreground Service при уничтожении ViewModel
         try {
-            MusicPlaybackService.stopPlayback(context)
+            MusicPlaybackService.stopPlayback(applicationContext)
         } catch (e: Exception) {
             Log.e("PlaylistViewModel", "⚠️ Failed to stop foreground service: ${e.message}")
         }

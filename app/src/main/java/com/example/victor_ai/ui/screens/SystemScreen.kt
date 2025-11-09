@@ -896,7 +896,7 @@ fun InfiniteMarqueeText(
     val scrollState = rememberScrollState()
 
     LaunchedEffect(repeatedText) {
-        while (true) {
+        while (isActive) {  // ✅ Проверка isActive - останавливаем при выходе из composition
             val fullWidth = scrollState.maxValue.toFloat()
             scrollState.scrollTo(0)
 

@@ -123,7 +123,7 @@ fun PresencePlaceholder(
 
     // обновление времени и последовательная анимация появления
     LaunchedEffect(customLines) {
-        while (true) {
+        while (isActive) {  // ✅ Проверка isActive - останавливаем при выходе из composition
             val now = LocalTime.now()
             timeText = "👀… ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}."
             greetingText = when (now.hour) {
