@@ -48,6 +48,8 @@ import com.example.victor_ai.logic.SoundPlayer
 import com.example.victor_ai.logic.VoiceRecognizer
 import com.example.victor_ai.logic.processStreamingMessage
 import com.example.victor_ai.logic.updateChatHistory
+import com.example.victor_ai.logic.ChatHistoryHelper
+import com.example.victor_ai.data.local.entity.ChatMessageEntity
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.domain.model.ReminderPopup
 import com.example.victor_ai.ui.main.MainViewModel
@@ -409,6 +411,10 @@ class MainActivity : ComponentActivity() {
                     geo = latestGeo
                 )
 
+                // 🔥 Сохраняем user сообщение в локальную БД
+                val userMessage = _chatMessages.value.last() // последнее сообщение - это user message
+                ChatHistoryHelper.repository.addMessage(userMessage.toEntity())
+
                 val assistantMessage = ChatMessage(
                     text = "",
                     isUser = false,
@@ -476,6 +482,11 @@ class MainActivity : ComponentActivity() {
 
                 _isTyping.value = false // 🔥 Выключаем анимацию
 
+                // 🔥 Сохраняем assistant сообщение в локальную БД
+                val finalAssistantMessage = _chatMessages.value[messageIndex]
+                ChatHistoryHelper.repository.addMessage(finalAssistantMessage.toEntity())
+                Log.d("Assistant", "✅ Сообщения сохранены в локальную БД")
+
             } catch (e: Exception) {
                 Log.e("Assistant", "❌ Ошибка отправки: ${e.message}")
                 _isTyping.value = false // 🔥 Выключаем анимацию при ошибке
@@ -490,6 +501,13 @@ class MainActivity : ComponentActivity() {
         voiceRecognizer.destroy()
     }
 }
+
+// Маппер ChatMessage -> ChatMessageEntity
+private fun ChatMessage.toEntity() = ChatMessageEntity(
+    text = text,
+    isUser = isUser,
+    timestamp = timestamp
+)
 
 
 @Preview(showBackground = true)
