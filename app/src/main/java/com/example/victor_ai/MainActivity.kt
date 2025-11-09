@@ -282,19 +282,21 @@ class MainActivity : ComponentActivity() {
                         // - calendar: "Просматриваешь планы? Не забудь про отдых."
                         // - system: "Настраиваешь систему? Я помогу, если нужно."
 
-                        // 🔹 AssistantButtonArea — доступна со всех экранов
-                        AssistantButtonArea(
-                            modifier = Modifier.align(Alignment.BottomEnd),
-                            playlistViewModel = playlistViewModel,
-                            placesViewModel = placesViewModel,
-                            reminderManager = reminderManager,
-                            navController = navController,
-                            onStartVoiceRecognition = { startVoiceRecognition() },
-                            onRequestMicrophone = {
-                                requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
-                            },
-                            onOpenChat = { navController.navigate("chat") }
-                        )
+                        // 🔹 AssistantButtonArea — доступна со всех экранов кроме чата
+                        if (currentRoute != "chat") {
+                            AssistantButtonArea(
+                                modifier = Modifier.align(Alignment.BottomEnd),
+                                playlistViewModel = playlistViewModel,
+                                placesViewModel = placesViewModel,
+                                reminderManager = reminderManager,
+                                navController = navController,
+                                onStartVoiceRecognition = { startVoiceRecognition() },
+                                onRequestMicrophone = {
+                                    requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                },
+                                onOpenChat = { navController.navigate("chat") }
+                            )
+                        }
 
                         popup?.let {
                             ReminderOverlay(
