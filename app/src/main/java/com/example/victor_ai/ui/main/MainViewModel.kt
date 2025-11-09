@@ -13,9 +13,9 @@ import java.io.File
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    private lateinit var playlistViewModel: PlaylistViewModel  // ← добавь
+    private var playlistViewModel: PlaylistViewModel? = null
 
-    fun setPlaylistViewModel(vm: PlaylistViewModel) {  // ← добавь этот метод
+    fun setPlaylistViewModel(vm: PlaylistViewModel) {
         playlistViewModel = vm
     }
 
@@ -23,7 +23,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun playTrack(trackId: Int) {
         withContext(Dispatchers.Main) {
             Log.d("Music", "🎵 Делегирую воспроизведение трека: $trackId")
-            playlistViewModel.playTrack(trackId)
+            playlistViewModel?.playTrack(trackId)
+                ?: Log.w("MainViewModel", "⚠️ PlaylistViewModel не установлен, невозможно воспроизвести трек $trackId")
         }
     }
 }

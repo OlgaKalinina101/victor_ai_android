@@ -9,8 +9,8 @@ import org.json.JSONObject
 
 suspend fun processStreamingMessage(
     request: AssistantRequest,
-    onChunkReceived: (String) -> Unit,
-    onMetadataReceived: (Map<String, Any>) -> Unit = {}  // ← новый callback
+    onChunkReceived: suspend (String) -> Unit,
+    onMetadataReceived: suspend (Map<String, Any>) -> Unit = {}  // ← новый callback
 ): Result<String> = withContext(Dispatchers.IO) {
     try {
         val call = RetrofitInstance.api.sendAssistantRequestStream(request)

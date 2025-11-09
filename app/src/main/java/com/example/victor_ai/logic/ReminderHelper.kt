@@ -11,10 +11,12 @@ import kotlinx.coroutines.flow.first
  * Инициализируется в Application
  */
 object ReminderHelper {
-    lateinit var repository: ReminderRepository
+    private var _repository: ReminderRepository? = null
+    val repository: ReminderRepository
+        get() = _repository ?: throw IllegalStateException("ReminderHelper не инициализирован! Вызовите initialize() в Application")
 
     fun initialize(reminderRepository: ReminderRepository) {
-        repository = reminderRepository
+        _repository = reminderRepository
     }
 }
 
