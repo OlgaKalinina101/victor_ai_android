@@ -110,12 +110,12 @@ interface ApiService {
 }
 
 interface ChatApi {
-    @GET("chat/history")
+    @GET("assistant/chat/history")
     suspend fun getChatHistory(
         @Query("account_id") accountId: String = "test_user"
     ): List<ChatMessage>
 
-    @PUT("chat/update_history")
+    @PUT("assistant/chat/update_history")
     @Headers("Content-Type: application/json")
     suspend fun updateChatHistory(
         @Body request: UpdateHistoryRequest,
