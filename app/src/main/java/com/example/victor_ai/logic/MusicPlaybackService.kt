@@ -40,6 +40,8 @@ class MusicPlaybackService : Service() {
         const val EXTRA_TRACK_ARTIST = "track_artist"
         const val EXTRA_IS_PLAYING = "is_playing"
         const val EXTRA_SESSION_TOKEN = "session_token"
+        const val EXTRA_DURATION = "duration"  // 🔥 Длительность трека
+        const val EXTRA_POSITION = "position"  // 🔥 Текущая позиция
 
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "music_playback_channel"
@@ -53,7 +55,9 @@ class MusicPlaybackService : Service() {
             trackTitle: String,
             trackArtist: String,
             isPlaying: Boolean,
-            sessionToken: MediaSessionCompat.Token?
+            sessionToken: MediaSessionCompat.Token?,
+            duration: Long = 0,
+            position: Long = 0
         ) {
             val intent = Intent(context, MusicPlaybackService::class.java).apply {
                 action = ACTION_START
@@ -61,6 +65,8 @@ class MusicPlaybackService : Service() {
                 putExtra(EXTRA_TRACK_ARTIST, trackArtist)
                 putExtra(EXTRA_IS_PLAYING, isPlaying)
                 putExtra(EXTRA_SESSION_TOKEN, sessionToken)
+                putExtra(EXTRA_DURATION, duration)
+                putExtra(EXTRA_POSITION, position)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -77,7 +83,9 @@ class MusicPlaybackService : Service() {
             trackTitle: String,
             trackArtist: String,
             isPlaying: Boolean,
-            sessionToken: MediaSessionCompat.Token?
+            sessionToken: MediaSessionCompat.Token?,
+            duration: Long = 0,
+            position: Long = 0
         ) {
             val intent = Intent(context, MusicPlaybackService::class.java).apply {
                 action = ACTION_UPDATE
@@ -85,6 +93,8 @@ class MusicPlaybackService : Service() {
                 putExtra(EXTRA_TRACK_ARTIST, trackArtist)
                 putExtra(EXTRA_IS_PLAYING, isPlaying)
                 putExtra(EXTRA_SESSION_TOKEN, sessionToken)
+                putExtra(EXTRA_DURATION, duration)
+                putExtra(EXTRA_POSITION, position)
             }
             context.startService(intent)
         }
@@ -104,6 +114,8 @@ class MusicPlaybackService : Service() {
     private var currentTrackArtist = "Victor AI"
     private var isPlaying = false
     private var mediaSessionToken: MediaSessionCompat.Token? = null
+    private var duration: Long = 0  // 🔥 Длительность в секундах
+    private var position: Long = 0  // 🔥 Текущая позиция в секундах
 
     override fun onCreate() {
         super.onCreate()
@@ -120,6 +132,8 @@ class MusicPlaybackService : Service() {
                 currentTrackArtist = intent.getStringExtra(EXTRA_TRACK_ARTIST) ?: "Victor AI"
                 isPlaying = intent.getBooleanExtra(EXTRA_IS_PLAYING, false)
                 mediaSessionToken = intent.getParcelableExtra(EXTRA_SESSION_TOKEN)
+                duration = intent.getLongExtra(EXTRA_DURATION, 0)
+                position = intent.getLongExtra(EXTRA_POSITION, 0)
 
                 Log.d("MusicService", "▶️ Starting foreground service: $currentTrackTitle - $currentTrackArtist")
                 Log.d("MusicService", "🔑 MediaSession token: ${if (mediaSessionToken != null) "✅ present" else "❌ null"}")
@@ -130,6 +144,8 @@ class MusicPlaybackService : Service() {
                 currentTrackArtist = intent.getStringExtra(EXTRA_TRACK_ARTIST) ?: currentTrackArtist
                 isPlaying = intent.getBooleanExtra(EXTRA_IS_PLAYING, isPlaying)
                 mediaSessionToken = intent.getParcelableExtra(EXTRA_SESSION_TOKEN) ?: mediaSessionToken
+                duration = intent.getLongExtra(EXTRA_DURATION, duration)
+                position = intent.getLongExtra(EXTRA_POSITION, position)
 
                 Log.d("MusicService", "🔄 Updating notification: $currentTrackTitle (playing=$isPlaying)")
                 updateNotificationInternal()
@@ -219,6 +235,15 @@ class MusicPlaybackService : Service() {
     }
 
     /**
+     * 🔥 Форматирование времени (секунды -> MM:SS)
+     */
+    private fun formatTime(seconds: Long): String {
+        val minutes = seconds / 60
+        val secs = seconds % 60
+        return String.format("%d:%02d", minutes, secs)
+    }
+
+    /**
      * Создаём MediaStyle уведомление с кнопками управления
      */
     private fun createMediaNotification(): Notification {
@@ -240,15 +265,24 @@ class MusicPlaybackService : Service() {
         }
         val nextIntent = createActionIntent(ACTION_NEXT)
 
+        // 🔥 Создаем текст с прогрессом воспроизведения
+        val subText = if (duration > 0) {
+            "${formatTime(position)} / ${formatTime(duration)}"
+        } else {
+            formatTime(position)
+        }
+
         // Создаем MediaStyle notification
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(currentTrackTitle)
             .setContentText(currentTrackArtist)
+            .setSubText(subText)  // 🔥 Показываем прогресс воспроизведения
             .setSmallIcon(R.drawable.ic_launcher_foreground) // TODO: заменить на иконку музыки
             .setContentIntent(contentPendingIntent)
             .setOngoing(true) // Нельзя смахнуть
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Показывать на экране блокировки
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setShowWhen(false)  // 🔥 Не показывать время создания уведомления
 
             // Добавляем кнопки
             .addAction(

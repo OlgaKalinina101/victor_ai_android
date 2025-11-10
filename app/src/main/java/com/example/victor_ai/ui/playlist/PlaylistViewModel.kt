@@ -85,6 +85,7 @@ class PlaylistViewModel(
         Log.d("PlaylistViewModel", "🏗️ ViewModel created (init block)")
         loadTracks()
         startPositionUpdater()
+        startNotificationUpdater()  // 🔥 Периодическое обновление notification
         loadTracks()
         loadStats()
 
@@ -145,11 +146,33 @@ class PlaylistViewModel(
 
     private fun startPositionUpdater() {
         viewModelScope.launch {
+            var updateCounter = 0
             while (isActive) {  // ✅ Проверка isActive - останавливаем при onCleared()
                 delay(100) // обновление каждые 100мс
                 if (_isPlaying.value) {
                     val position = audioPlayer.getCurrentPosition()
                     _currentPosition.value = position / 1000f // миллисекунды → секунды
+
+                    // 🔥 Обновляем MediaSession каждую секунду (каждые 10 итераций по 100мс)
+                    updateCounter++
+                    if (updateCounter >= 10) {
+                        updateCounter = 0
+                        audioPlayer.updatePlaybackPosition(position.toLong())
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 🔥 Периодическое обновление notification с прогрессом воспроизведения
+     */
+    private fun startNotificationUpdater() {
+        viewModelScope.launch {
+            while (isActive) {
+                delay(5000) // обновление каждые 5 секунд
+                if (_isPlaying.value && _currentPlayingTrackId.value != null) {
+                    updateNotification()
                 }
             }
         }
@@ -205,7 +228,9 @@ class PlaylistViewModel(
                 trackTitle = track.title,
                 trackArtist = track.artist ?: "Victor AI",
                 isPlaying = true,
-                sessionToken = sessionToken
+                sessionToken = sessionToken,
+                duration = track.duration.toLong(),  // 🔥 Длительность в секундах
+                position = 0  // 🔥 Начинаем с 0
             )
             Log.d("PlaylistViewModel", "✅ Foreground service started with media notification")
         } catch (e: Exception) {
@@ -288,12 +313,17 @@ class PlaylistViewModel(
         }
 
         try {
+            val currentPositionMs = audioPlayer.getCurrentPosition()
+            val currentPositionSec = (currentPositionMs / 1000).toLong()
+
             MusicPlaybackService.updateNotification(
                 context = applicationContext,
                 trackTitle = currentTrack.title,
                 trackArtist = currentTrack.artist ?: "Victor AI",
                 isPlaying = _isPlaying.value,
-                sessionToken = audioPlayer.getMediaSessionToken()
+                sessionToken = audioPlayer.getMediaSessionToken(),
+                duration = currentTrack.duration.toLong(),  // 🔥 Длительность в секундах
+                position = currentPositionSec  // 🔥 Текущая позиция в секундах
             )
             Log.d("PlaylistViewModel", "🔄 Notification updated: ${currentTrack.title} (playing=${_isPlaying.value})")
         } catch (e: Exception) {

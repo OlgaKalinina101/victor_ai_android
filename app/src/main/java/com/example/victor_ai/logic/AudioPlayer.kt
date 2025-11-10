@@ -148,13 +148,13 @@ class AudioPlayer(private val context: Context? = null) {
     /**
      * 🔥 Обновление состояния воспроизведения в MediaSession
      */
-    private fun updatePlaybackState(state: Int) {
-        val position = exoPlayer?.currentPosition ?: 0L
+    private fun updatePlaybackState(state: Int, position: Long? = null) {
+        val currentPosition = position ?: (exoPlayer?.currentPosition ?: 0L)
         val playbackSpeed = if (state == PlaybackStateCompat.STATE_PLAYING) 1f else 0f
 
         mediaSession?.setPlaybackState(
             PlaybackStateCompat.Builder()
-                .setState(state, position, playbackSpeed)
+                .setState(state, currentPosition, playbackSpeed)
                 .setActions(
                     PlaybackStateCompat.ACTION_PLAY or
                             PlaybackStateCompat.ACTION_PAUSE or
@@ -165,6 +165,15 @@ class AudioPlayer(private val context: Context? = null) {
                 )
                 .build()
         )
+    }
+
+    /**
+     * 🔥 Обновление позиции воспроизведения (вызывается периодически)
+     */
+    fun updatePlaybackPosition(position: Long) {
+        if (exoPlayer?.isPlaying == true) {
+            updatePlaybackState(PlaybackStateCompat.STATE_PLAYING, position)
+        }
     }
 
     /**
