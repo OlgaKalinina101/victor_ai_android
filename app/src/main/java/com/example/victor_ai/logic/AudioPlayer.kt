@@ -435,16 +435,18 @@ class AudioPlayer(private val context: Context? = null) {
             audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(audioAttributes)
                 .setAcceptsDelayedFocusGain(true)
+                .setWillPauseWhenDucked(false)  // 🔥 Не останавливаемся при ducking
                 .setOnAudioFocusChangeListener(audioFocusChangeListener)
                 .build()
 
             val result = audioManager.requestAudioFocus(audioFocusRequest!!)
             hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-            if (hasAudioFocus) {
-                Log.d("AudioPlayer", "🔊 Audio focus acquired")
-            } else {
-                Log.w("AudioPlayer", "⚠️ Audio focus request denied")
-            }
+            Log.d("AudioPlayer", "🔊 Audio focus request result: ${when(result) {
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> "GRANTED ✅"
+                AudioManager.AUDIOFOCUS_REQUEST_FAILED -> "FAILED ❌"
+                AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> "DELAYED ⏳"
+                else -> "UNKNOWN"
+            }} (hasAudioFocus=$hasAudioFocus)")
             hasAudioFocus
         } else {
             // Android 7 и ниже
@@ -489,6 +491,18 @@ class AudioPlayer(private val context: Context? = null) {
      * 🔥 Обработчик изменения Audio Focus
      */
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        val focusChangeString = when (focusChange) {
+            AudioManager.AUDIOFOCUS_GAIN -> "AUDIOFOCUS_GAIN"
+            AudioManager.AUDIOFOCUS_LOSS -> "AUDIOFOCUS_LOSS"
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> "AUDIOFOCUS_LOSS_TRANSIENT"
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> "AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK"
+            else -> "UNKNOWN ($focusChange)"
+        }
+        Log.d("AudioPlayer", "🎧 ================================")
+        Log.d("AudioPlayer", "🎧 AUDIO FOCUS CHANGE: $focusChangeString")
+        Log.d("AudioPlayer", "🎧 Current state: isPlaying=${isPlaying()}, wasPlayingBeforeFocusLoss=$wasPlayingBeforeFocusLoss")
+        Log.d("AudioPlayer", "🎧 ================================")
+
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 // Получили фокус обратно - возобновляем воспроизведение если играли до потери
@@ -498,6 +512,8 @@ class AudioPlayer(private val context: Context? = null) {
                     Log.d("AudioPlayer", "▶️ Auto-resuming playback after focus gain")
                     resumeInternal()  // 🔥 Внутренний resume без запроса фокуса (он уже есть)
                     wasPlayingBeforeFocusLoss = false
+                } else {
+                    Log.d("AudioPlayer", "⏭️ NOT auto-resuming - wasPlayingBeforeFocusLoss is false")
                 }
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
@@ -513,7 +529,7 @@ class AudioPlayer(private val context: Context? = null) {
 
                 // Запоминаем что играли, чтобы возобновить когда фокус вернется
                 wasPlayingBeforeFocusLoss = isPlaying()
-                Log.d("AudioPlayer", "📝 Saved state: wasPlaying=$wasPlayingBeforeFocusLoss")
+                Log.d("AudioPlayer", "📝 Saved state: wasPlaying=$wasPlayingBeforeFocusLoss, hasAudioFocus=$hasAudioFocus")
 
                 pauseInternal()  // 🔥 Используем внутренний метод без управления фокусом
                 // НЕ отпускаем audio focus - ждем возврата!
