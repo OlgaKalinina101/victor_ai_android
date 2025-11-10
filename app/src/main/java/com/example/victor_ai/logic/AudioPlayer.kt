@@ -7,6 +7,8 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -45,6 +47,10 @@ class AudioPlayer(private val context: Context? = null) {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var hasAudioFocus = false
     private var wasPlayingBeforeFocusLoss = false  // 🔥 Запоминаем состояние перед потерей фокуса
+
+    // 🔥 Handler для отложенного восстановления Audio Focus
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var audioFocusRecoveryRunnable: Runnable? = null
 
     // 🔥 Текущий трек для MediaSession
     private var currentTrackTitle: String = "Неизвестный трек"
@@ -488,6 +494,57 @@ class AudioPlayer(private val context: Context? = null) {
     }
 
     /**
+     * 🔥 Пытаемся восстановить Audio Focus после потери
+     * Вызывается через несколько секунд после LOSS если мы должны были играть
+     */
+    private fun tryRecoverAudioFocus() {
+        Log.d("AudioPlayer", "🔄 Trying to recover audio focus... wasPlayingBeforeFocusLoss=$wasPlayingBeforeFocusLoss")
+
+        if (!wasPlayingBeforeFocusLoss) {
+            Log.d("AudioPlayer", "⏭️ Skip recovery - wasPlayingBeforeFocusLoss is false")
+            return
+        }
+
+        // Пытаемся запросить фокус заново
+        val focusGranted = requestAudioFocus()
+        Log.d("AudioPlayer", "🎯 Audio focus recovery result: $focusGranted")
+
+        if (focusGranted) {
+            Log.d("AudioPlayer", "✅ Audio focus recovered! Resuming playback...")
+            resumeInternal()
+            wasPlayingBeforeFocusLoss = false
+        } else {
+            Log.w("AudioPlayer", "❌ Failed to recover audio focus - will try again later")
+        }
+    }
+
+    /**
+     * 🔥 Отменяем отложенное восстановление фокуса
+     */
+    private fun cancelAudioFocusRecovery() {
+        audioFocusRecoveryRunnable?.let {
+            mainHandler.removeCallbacks(it)
+            Log.d("AudioPlayer", "🚫 Audio focus recovery cancelled")
+        }
+        audioFocusRecoveryRunnable = null
+    }
+
+    /**
+     * 🔥 Планируем попытку восстановления фокуса через 3 секунды
+     */
+    private fun scheduleAudioFocusRecovery() {
+        // Отменяем предыдущую попытку если была
+        cancelAudioFocusRecovery()
+
+        audioFocusRecoveryRunnable = Runnable {
+            tryRecoverAudioFocus()
+        }
+
+        mainHandler.postDelayed(audioFocusRecoveryRunnable!!, 3000) // 3 секунды
+        Log.d("AudioPlayer", "⏰ Audio focus recovery scheduled in 3 seconds")
+    }
+
+    /**
      * 🔥 Обработчик изменения Audio Focus
      */
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
@@ -507,6 +564,9 @@ class AudioPlayer(private val context: Context? = null) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 // Получили фокус обратно - возобновляем воспроизведение если играли до потери
                 Log.d("AudioPlayer", "🔊 Audio focus GAIN - wasPlayingBeforeFocusLoss=$wasPlayingBeforeFocusLoss")
+
+                // Отменяем отложенное восстановление (оно больше не нужно)
+                cancelAudioFocusRecovery()
 
                 if (wasPlayingBeforeFocusLoss) {
                     Log.d("AudioPlayer", "▶️ Auto-resuming playback after focus gain")
@@ -528,6 +588,10 @@ class AudioPlayer(private val context: Context? = null) {
 
                 pauseInternal()  // 🔥 Используем внутренний метод без управления фокусом
                 // НЕ вызываем abandonAudioFocus() - держим фокус и ждем возврата!
+
+                // 🔥 Планируем попытку восстановления фокуса через 3 секунды
+                // Если YouTube закрылся - мы сможем запросить фокус обратно
+                scheduleAudioFocusRecovery()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 // Временная потеря фокуса (другое приложение, YouTube, shorts) - пауза
@@ -558,6 +622,7 @@ class AudioPlayer(private val context: Context? = null) {
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при паузе
             releaseWifiLock()  // 🔥 Отпускаем WiFi Lock при паузе
             updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)  // 🔥 Обновляем MediaSession
+            onPlayPauseCallback?.invoke(false)  // 🔥 Уведомляем ViewModel о паузе
             Log.d("AudioPlayer", "⏸️ Paused (internal)")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error pausing", e)
@@ -570,6 +635,7 @@ class AudioPlayer(private val context: Context? = null) {
     fun pause() {
         try {
             wasPlayingBeforeFocusLoss = false  // 🔥 Сбрасываем флаг - пользователь сам остановил
+            cancelAudioFocusRecovery()  // 🔥 Отменяем отложенное восстановление
             pauseInternal()
             abandonAudioFocus()  // 🔥 Отпускаем Audio Focus только при явной паузе пользователем
             Log.d("AudioPlayer", "⏸️ Paused (user action)")
@@ -588,6 +654,7 @@ class AudioPlayer(private val context: Context? = null) {
             acquireWifiLock()  // 🔥 Захватываем WiFi Lock при возобновлении
             exoPlayer?.play()
             updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)  // 🔥 Обновляем MediaSession
+            onPlayPauseCallback?.invoke(true)  // 🔥 Уведомляем ViewModel о возобновлении
             Log.d("AudioPlayer", "▶️ Resumed (internal)")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error resuming", e)
@@ -614,6 +681,8 @@ class AudioPlayer(private val context: Context? = null) {
 
     fun stop() {
         try {
+            cancelAudioFocusRecovery()  // 🔥 Отменяем отложенное восстановление
+
             exoPlayer?.apply {
                 stop()
                 release()
@@ -643,6 +712,7 @@ class AudioPlayer(private val context: Context? = null) {
      * 🔥 Полная очистка ресурсов (вызывается при уничтожении AudioPlayer)
      */
     fun release() {
+        cancelAudioFocusRecovery()  // 🔥 Отменяем отложенное восстановление
         stop()
         mediaSession?.release()
         mediaSession = null
