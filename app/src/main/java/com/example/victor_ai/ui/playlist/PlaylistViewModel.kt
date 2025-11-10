@@ -197,12 +197,15 @@ class PlaylistViewModel(
 
         // 🔥 Запускаем Foreground Service с MediaStyle уведомлением
         try {
+            val sessionToken = audioPlayer.getMediaSessionToken()
+            Log.d("PlaylistViewModel", "🔑 MediaSession token: ${if (sessionToken != null) "✅ present" else "❌ null"}")
+
             MusicPlaybackService.startPlayback(
                 context = applicationContext,
                 trackTitle = track.title,
                 trackArtist = track.artist ?: "Victor AI",
                 isPlaying = true,
-                sessionToken = audioPlayer.getMediaSessionToken()
+                sessionToken = sessionToken
             )
             Log.d("PlaylistViewModel", "✅ Foreground service started with media notification")
         } catch (e: Exception) {
@@ -348,7 +351,8 @@ class PlaylistViewModel(
             Log.e("PlaylistViewModel", "⚠️ Failed to unregister receiver: ${e.message}")
         }
 
-        audioPlayer.stop()
+        // 🔥 Полная очистка AudioPlayer (включая MediaSession)
+        audioPlayer.release()
 
         // 🔥 Останавливаем Foreground Service при уничтожении ViewModel
         try {
