@@ -44,6 +44,7 @@ class AudioPlayer(private val context: Context? = null) {
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var hasAudioFocus = false
+    private var wasPlayingBeforeFocusLoss = false  // 🔥 Запоминаем состояние перед потерей фокуса
 
     // 🔥 Текущий трек для MediaSession
     private var currentTrackTitle: String = "Неизвестный трек"
@@ -490,52 +491,97 @@ class AudioPlayer(private val context: Context? = null) {
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
-                // Получили фокус обратно - возобновляем воспроизведение
-                Log.d("AudioPlayer", "🔊 Audio focus GAIN - resuming playback")
-                if (exoPlayer?.playWhenReady == false && exoPlayer?.playbackState == Player.STATE_READY) {
-                    exoPlayer?.play()
+                // Получили фокус обратно - возобновляем воспроизведение если играли до потери
+                Log.d("AudioPlayer", "🔊 Audio focus GAIN - wasPlayingBeforeFocusLoss=$wasPlayingBeforeFocusLoss")
+
+                if (wasPlayingBeforeFocusLoss) {
+                    Log.d("AudioPlayer", "▶️ Auto-resuming playback after focus gain")
+                    resumeInternal()  // 🔥 Внутренний resume без запроса фокуса (он уже есть)
+                    wasPlayingBeforeFocusLoss = false
                 }
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
-                // Потеряли фокус навсегда (звонок, другое приложение) - останавливаемся
-                Log.d("AudioPlayer", "🔇 Audio focus LOSS - pausing playback")
-                exoPlayer?.pause()
+                // Потеряли фокус навсегда (звонок) - останавливаемся и НЕ возобновляем
+                Log.d("AudioPlayer", "🔇 Audio focus LOSS (permanent) - pausing playback")
+                wasPlayingBeforeFocusLoss = false  // НЕ возобновляем после постоянной потери
+                pauseInternal()  // 🔥 Используем внутренний метод без управления фокусом
                 abandonAudioFocus()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                // Временная потеря фокуса (уведомление) - пауза
-                Log.d("AudioPlayer", "⏸️ Audio focus LOSS_TRANSIENT - pausing temporarily")
-                exoPlayer?.pause()
+                // Временная потеря фокуса (другое приложение, YouTube, shorts) - пауза
+                Log.d("AudioPlayer", "⏸️ Audio focus LOSS_TRANSIENT (temporary) - pausing")
+
+                // Запоминаем что играли, чтобы возобновить когда фокус вернется
+                wasPlayingBeforeFocusLoss = isPlaying()
+                Log.d("AudioPlayer", "📝 Saved state: wasPlaying=$wasPlayingBeforeFocusLoss")
+
+                pauseInternal()  // 🔥 Используем внутренний метод без управления фокусом
+                // НЕ отпускаем audio focus - ждем возврата!
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                // Можно продолжать играть тише (уведомление)
+                // Можно продолжать играть тише (короткое уведомление)
                 Log.d("AudioPlayer", "🔉 Audio focus LOSS_TRANSIENT_CAN_DUCK - lowering volume")
                 // ExoPlayer автоматически снижает громкость, ничего не делаем
             }
         }
     }
 
-    fun pause() {
+    /**
+     * 🔥 Внутренний метод паузы (без управления Audio Focus)
+     * Используется когда пауза вызвана системой через Audio Focus
+     */
+    private fun pauseInternal() {
         try {
             exoPlayer?.pause()
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при паузе
             releaseWifiLock()  // 🔥 Отпускаем WiFi Lock при паузе
-            abandonAudioFocus()  // 🔥 Отпускаем Audio Focus при паузе
             updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)  // 🔥 Обновляем MediaSession
-            Log.d("AudioPlayer", "⏸️ Paused")
+            Log.d("AudioPlayer", "⏸️ Paused (internal)")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error pausing", e)
         }
     }
 
-    fun resume() {
+    /**
+     * Публичный метод паузы (для вызова пользователем)
+     */
+    fun pause() {
+        try {
+            wasPlayingBeforeFocusLoss = false  // 🔥 Сбрасываем флаг - пользователь сам остановил
+            pauseInternal()
+            abandonAudioFocus()  // 🔥 Отпускаем Audio Focus только при явной паузе пользователем
+            Log.d("AudioPlayer", "⏸️ Paused (user action)")
+        } catch (e: Exception) {
+            Log.e("AudioPlayer", "❌ Error pausing", e)
+        }
+    }
+
+    /**
+     * 🔥 Внутренний метод возобновления (без запроса Audio Focus)
+     * Используется когда возобновление вызвано системой через Audio Focus GAIN
+     */
+    private fun resumeInternal() {
         try {
             acquireWakeLock()  // 🔥 Захватываем Wake Lock при возобновлении
             acquireWifiLock()  // 🔥 Захватываем WiFi Lock при возобновлении
-            requestAudioFocus()  // 🔥 Запрашиваем Audio Focus при возобновлении
             exoPlayer?.play()
             updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)  // 🔥 Обновляем MediaSession
-            Log.d("AudioPlayer", "▶️ Resumed")
+            Log.d("AudioPlayer", "▶️ Resumed (internal)")
+        } catch (e: Exception) {
+            Log.e("AudioPlayer", "❌ Error resuming", e)
+            releaseWakeLock()
+            releaseWifiLock()
+        }
+    }
+
+    /**
+     * Публичный метод возобновления (для вызова пользователем)
+     */
+    fun resume() {
+        try {
+            requestAudioFocus()  // 🔥 Запрашиваем Audio Focus при явном возобновлении
+            resumeInternal()
+            Log.d("AudioPlayer", "▶️ Resumed (user action)")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error resuming", e)
             releaseWakeLock()
