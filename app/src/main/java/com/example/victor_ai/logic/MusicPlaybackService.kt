@@ -284,6 +284,16 @@ class MusicPlaybackService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setShowWhen(false)  // 🔥 Не показывать время создания уведомления
 
+        // 🔥 Добавляем прогресс-бар (нативный Android progress bar)
+        if (duration > 0) {
+            builder.setProgress(
+                duration.toInt(),  // max
+                position.toInt(),  // current
+                false              // indeterminate = false (показываем точный прогресс)
+            )
+        }
+
+        builder
             // Добавляем кнопки
             .addAction(
                 android.R.drawable.ic_media_previous,
