@@ -8,6 +8,9 @@ import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -28,16 +31,147 @@ class AudioPlayer(private val context: Context? = null) {
     private var exoPlayer: ExoPlayer? = null
     private var currentTempFile: File? = null
     private var onCompletionCallback: (() -> Unit)? = null  // 🔥 Callback для окончания трека
+    private var onPlayPauseCallback: ((Boolean) -> Unit)? = null  // 🔥 Callback для изменения состояния play/pause
+    private var onNextCallback: (() -> Unit)? = null  // 🔥 Callback для переключения на следующий трек
+    private var onPreviousCallback: (() -> Unit)? = null  // 🔥 Callback для переключения на предыдущий трек
     private var wakeLock: PowerManager.WakeLock? = null  // 🔥 Wake Lock для работы при блокировке экрана
     private var wifiLock: WifiManager.WifiLock? = null  // 🔥 WiFi Lock для стабильного стриминга
+
+    // 🔥 MediaSession для интеграции с системой Android (lock screen, bluetooth, etc.)
+    private var mediaSession: MediaSessionCompat? = null
 
     // 🔥 Audio Focus управление
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var hasAudioFocus = false
 
+    // 🔥 Текущий трек для MediaSession
+    private var currentTrackTitle: String = "Неизвестный трек"
+    private var currentTrackArtist: String = "Victor AI"
+
+    init {
+        // Инициализируем MediaSession при создании AudioPlayer
+        initMediaSession()
+    }
+
     fun setOnCompletionListener(callback: () -> Unit) {
         onCompletionCallback = callback
+    }
+
+    fun setOnPlayPauseListener(callback: (Boolean) -> Unit) {
+        onPlayPauseCallback = callback
+    }
+
+    fun setOnNextListener(callback: () -> Unit) {
+        onNextCallback = callback
+    }
+
+    fun setOnPreviousListener(callback: () -> Unit) {
+        onPreviousCallback = callback
+    }
+
+    /**
+     * 🔥 Инициализация MediaSession для интеграции с lock screen и bluetooth
+     */
+    private fun initMediaSession() {
+        if (context == null) {
+            Log.w("AudioPlayer", "⚠️ Context is null, cannot create MediaSession")
+            return
+        }
+
+        mediaSession = MediaSessionCompat(context, "VictorAI_MediaSession").apply {
+            // Устанавливаем callback для обработки медиа-команд
+            setCallback(object : MediaSessionCompat.Callback() {
+                override fun onPlay() {
+                    Log.d("AudioPlayer", "🎵 MediaSession: onPlay")
+                    resume()
+                    onPlayPauseCallback?.invoke(true)
+                }
+
+                override fun onPause() {
+                    Log.d("AudioPlayer", "⏸️ MediaSession: onPause")
+                    pause()
+                    onPlayPauseCallback?.invoke(false)
+                }
+
+                override fun onSkipToNext() {
+                    Log.d("AudioPlayer", "⏭️ MediaSession: onSkipToNext")
+                    onNextCallback?.invoke()
+                }
+
+                override fun onSkipToPrevious() {
+                    Log.d("AudioPlayer", "⏮️ MediaSession: onSkipToPrevious")
+                    onPreviousCallback?.invoke()
+                }
+
+                override fun onStop() {
+                    Log.d("AudioPlayer", "🛑 MediaSession: onStop")
+                    stop()
+                }
+
+                override fun onSeekTo(pos: Long) {
+                    Log.d("AudioPlayer", "⏩ MediaSession: onSeekTo $pos")
+                    seekTo(pos.toInt())
+                }
+            })
+
+            // Указываем какие команды поддерживаем
+            setFlags(
+                MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
+                        MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
+            )
+
+            // Активируем сессию
+            isActive = true
+            Log.d("AudioPlayer", "✅ MediaSession initialized")
+        }
+    }
+
+    /**
+     * 🔥 Обновление метаданных трека в MediaSession
+     */
+    fun updateTrackMetadata(title: String, artist: String, duration: Long = 0) {
+        currentTrackTitle = title
+        currentTrackArtist = artist
+
+        mediaSession?.setMetadata(
+            MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                .build()
+        )
+
+        Log.d("AudioPlayer", "🎵 MediaSession metadata updated: $title - $artist")
+    }
+
+    /**
+     * 🔥 Обновление состояния воспроизведения в MediaSession
+     */
+    private fun updatePlaybackState(state: Int) {
+        val position = exoPlayer?.currentPosition ?: 0L
+        val playbackSpeed = if (state == PlaybackStateCompat.STATE_PLAYING) 1f else 0f
+
+        mediaSession?.setPlaybackState(
+            PlaybackStateCompat.Builder()
+                .setState(state, position, playbackSpeed)
+                .setActions(
+                    PlaybackStateCompat.ACTION_PLAY or
+                            PlaybackStateCompat.ACTION_PAUSE or
+                            PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                            PlaybackStateCompat.ACTION_SEEK_TO or
+                            PlaybackStateCompat.ACTION_STOP
+                )
+                .build()
+        )
+    }
+
+    /**
+     * 🔥 Получить MediaSession token для передачи в Service
+     */
+    fun getMediaSessionToken(): MediaSessionCompat.Token? {
+        return mediaSession?.sessionToken
     }
 
     fun getCurrentPosition(): Int {
@@ -182,6 +316,9 @@ class AudioPlayer(private val context: Context? = null) {
                 // Начинаем воспроизведение
                 Log.d("AudioPlayer", "▶️ Starting playback...")
                 play()
+
+                // Обновляем состояние MediaSession
+                updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
             }
 
             Log.d("AudioPlayer", "✅ ExoPlayer configured and started")
@@ -372,6 +509,7 @@ class AudioPlayer(private val context: Context? = null) {
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при паузе
             releaseWifiLock()  // 🔥 Отпускаем WiFi Lock при паузе
             abandonAudioFocus()  // 🔥 Отпускаем Audio Focus при паузе
+            updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)  // 🔥 Обновляем MediaSession
             Log.d("AudioPlayer", "⏸️ Paused")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error pausing", e)
@@ -384,6 +522,7 @@ class AudioPlayer(private val context: Context? = null) {
             acquireWifiLock()  // 🔥 Захватываем WiFi Lock при возобновлении
             requestAudioFocus()  // 🔥 Запрашиваем Audio Focus при возобновлении
             exoPlayer?.play()
+            updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)  // 🔥 Обновляем MediaSession
             Log.d("AudioPlayer", "▶️ Resumed")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error resuming", e)
@@ -408,6 +547,12 @@ class AudioPlayer(private val context: Context? = null) {
             releaseWakeLock()  // 🔥 Отпускаем Wake Lock при остановке
             releaseWifiLock()  // 🔥 Отпускаем WiFi Lock при остановке
             abandonAudioFocus()  // 🔥 Отпускаем Audio Focus при остановке
+            updatePlaybackState(PlaybackStateCompat.STATE_STOPPED)  // 🔥 Обновляем MediaSession
+
+            // 🔥 Деактивируем MediaSession при остановке
+            mediaSession?.isActive = false
+            mediaSession?.release()
+            mediaSession = null
 
             Log.d("AudioPlayer", "🛑 Stopped and released")
         } catch (e: Exception) {

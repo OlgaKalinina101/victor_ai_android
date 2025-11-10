@@ -120,6 +120,9 @@ dependencies {
     implementation("androidx.media3:media3-session:1.2.0")
     implementation("androidx.media3:media3-common:1.2.0")
 
+    // MediaCompat для MediaSessionCompat и MediaStyle notifications
+    implementation("androidx.media:media:1.7.0")
+
     implementation("androidx.navigation:navigation-compose:2.9.5")
 
     // Hilt

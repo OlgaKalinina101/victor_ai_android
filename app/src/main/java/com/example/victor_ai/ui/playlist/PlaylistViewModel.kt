@@ -1,6 +1,10 @@
 package com.example.victor_ai.ui.playlist
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -53,16 +57,77 @@ class PlaylistViewModel(
     private val _stats = MutableStateFlow<TrackStats?>(null)
     val stats: StateFlow<TrackStats?> = _stats.asStateFlow()
 
+    // 🔥 BroadcastReceiver для обработки команд из уведомления
+    private val mediaCommandReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                MusicPlaybackService.ACTION_PLAY -> {
+                    Log.d("PlaylistViewModel", "📻 Received PLAY command from notification")
+                    resumeTrack()
+                }
+                MusicPlaybackService.ACTION_PAUSE -> {
+                    Log.d("PlaylistViewModel", "📻 Received PAUSE command from notification")
+                    pauseTrack()
+                }
+                MusicPlaybackService.ACTION_NEXT -> {
+                    Log.d("PlaylistViewModel", "📻 Received NEXT command from notification")
+                    playNextTrack()
+                }
+                MusicPlaybackService.ACTION_PREVIOUS -> {
+                    Log.d("PlaylistViewModel", "📻 Received PREVIOUS command from notification")
+                    playPreviousTrack()
+                }
+            }
+        }
+    }
+
     init {
         Log.d("PlaylistViewModel", "🏗️ ViewModel created (init block)")
         loadTracks()
         startPositionUpdater()
         loadTracks()
         loadStats()
-        // 🔥 Устанавливаем callback для автовоспроизведения следующего трека
+
+        // 🔥 Устанавливаем callbacks для AudioPlayer
         audioPlayer.setOnCompletionListener {
             playNextTrack()
         }
+
+        audioPlayer.setOnPlayPauseListener { isPlaying ->
+            _isPlaying.value = isPlaying
+            updateNotification()
+        }
+
+        audioPlayer.setOnNextListener {
+            playNextTrack()
+        }
+
+        audioPlayer.setOnPreviousListener {
+            playPreviousTrack()
+        }
+
+        // 🔥 Регистрируем BroadcastReceiver для команд из уведомления
+        registerMediaCommandReceiver()
+    }
+
+    /**
+     * 🔥 Регистрация BroadcastReceiver для обработки команд из уведомления
+     */
+    private fun registerMediaCommandReceiver() {
+        val filter = IntentFilter().apply {
+            addAction(MusicPlaybackService.ACTION_PLAY)
+            addAction(MusicPlaybackService.ACTION_PAUSE)
+            addAction(MusicPlaybackService.ACTION_NEXT)
+            addAction(MusicPlaybackService.ACTION_PREVIOUS)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            applicationContext.registerReceiver(mediaCommandReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            applicationContext.registerReceiver(mediaCommandReceiver, filter)
+        }
+
+        Log.d("PlaylistViewModel", "✅ MediaCommandReceiver registered")
     }
 
     fun loadTracks() {
@@ -100,6 +165,13 @@ class PlaylistViewModel(
 
         Log.d("PlaylistViewModel", "🎵 Starting playback: trackId=$trackId")
 
+        // Получаем информацию о треке
+        val track = _tracks.value.firstOrNull { it.id == trackId }
+        if (track == null) {
+            Log.e("PlaylistViewModel", "❌ Track not found: $trackId")
+            return
+        }
+
         // ПРАВИЛЬНО: слэш между частями, & перед параметрами
         val streamUrl = "${RetrofitInstance.BASE_URL.trimEnd('/')}/assistant/stream/$trackId?account_id=$accountId"
 
@@ -111,33 +183,119 @@ class PlaylistViewModel(
             audioPlayer.stop()
         }
 
-        // 🔥 НОВОЕ: Запускаем Foreground Service чтобы защититься от Doze mode
-        // Примечание: Service показывает уведомление, но AudioPlayer остается в ViewModel
-        // TODO: В будущем переместить AudioPlayer в Service для лучшей архитектуры
-        try {
-            MusicPlaybackService.startPlayback(applicationContext, streamUrl)
-            Log.d("PlaylistViewModel", "✅ Foreground service started")
-        } catch (e: Exception) {
-            Log.e("PlaylistViewModel", "⚠️ Failed to start foreground service: ${e.message}")
-            // Продолжаем воспроизведение даже если сервис не запустился
-        }
+        // 🔥 Обновляем метаданные в AudioPlayer для MediaSession
+        audioPlayer.updateTrackMetadata(
+            title = track.title,
+            artist = track.artist ?: "Victor AI",
+            duration = (track.duration * 1000).toLong() // секунды -> миллисекунды
+        )
 
         audioPlayer.playFromUrl(streamUrl)
         _currentPlayingTrackId.value = trackId
         _isPlaying.value = true
         _currentPosition.value = 0f
+
+        // 🔥 Запускаем Foreground Service с MediaStyle уведомлением
+        try {
+            MusicPlaybackService.startPlayback(
+                context = applicationContext,
+                trackTitle = track.title,
+                trackArtist = track.artist ?: "Victor AI",
+                isPlaying = true,
+                sessionToken = audioPlayer.getMediaSessionToken()
+            )
+            Log.d("PlaylistViewModel", "✅ Foreground service started with media notification")
+        } catch (e: Exception) {
+            Log.e("PlaylistViewModel", "⚠️ Failed to start foreground service: ${e.message}")
+        }
     }
 
     fun pauseTrack() {
         Log.d("PlaylistViewModel", "⏸️ Pausing track")
         audioPlayer.pause()
-        _isPlaying.value = false  // ← ДОБАВЛЕНО
+        _isPlaying.value = false
+        updateNotification()  // 🔥 Обновляем уведомление
     }
 
     fun resumeTrack() {
         Log.d("PlaylistViewModel", "▶️ Resuming track")
         audioPlayer.resume()
-        _isPlaying.value = true  // ← ДОБАВЛЕНО
+        _isPlaying.value = true
+        updateNotification()  // 🔥 Обновляем уведомление
+    }
+
+    /**
+     * 🔥 Воспроизведение следующего трека
+     */
+    fun playNextTrack() {
+        val filteredTracks = getFilteredTracks()
+        if (filteredTracks.isEmpty()) {
+            Log.w("PlaylistViewModel", "⚠️ No tracks available for next")
+            return
+        }
+
+        val currentId = _currentPlayingTrackId.value
+        val currentIndex = filteredTracks.indexOfFirst { it.id == currentId }
+
+        // Выбираем следующий трек, если текущий не найден - начинаем с начала
+        val nextIndex = if (currentIndex == -1) {
+            0
+        } else {
+            (currentIndex + 1) % filteredTracks.size  // По кругу
+        }
+
+        val nextTrack = filteredTracks[nextIndex]
+        Log.d("PlaylistViewModel", "⏭️ Playing next track: ${nextTrack.title}")
+        playTrack(nextTrack.id)
+    }
+
+    /**
+     * 🔥 Воспроизведение предыдущего трека
+     */
+    fun playPreviousTrack() {
+        val filteredTracks = getFilteredTracks()
+        if (filteredTracks.isEmpty()) {
+            Log.w("PlaylistViewModel", "⚠️ No tracks available for previous")
+            return
+        }
+
+        val currentId = _currentPlayingTrackId.value
+        val currentIndex = filteredTracks.indexOfFirst { it.id == currentId }
+
+        // Выбираем предыдущий трек
+        val previousIndex = if (currentIndex <= 0) {
+            filteredTracks.size - 1  // Переход на последний трек
+        } else {
+            currentIndex - 1
+        }
+
+        val previousTrack = filteredTracks[previousIndex]
+        Log.d("PlaylistViewModel", "⏮️ Playing previous track: ${previousTrack.title}")
+        playTrack(previousTrack.id)
+    }
+
+    /**
+     * 🔥 Обновление уведомления при изменении состояния
+     */
+    private fun updateNotification() {
+        val currentTrack = _tracks.value.firstOrNull { it.id == _currentPlayingTrackId.value }
+        if (currentTrack == null) {
+            Log.w("PlaylistViewModel", "⚠️ No current track to update notification")
+            return
+        }
+
+        try {
+            MusicPlaybackService.updateNotification(
+                context = applicationContext,
+                trackTitle = currentTrack.title,
+                trackArtist = currentTrack.artist ?: "Victor AI",
+                isPlaying = _isPlaying.value,
+                sessionToken = audioPlayer.getMediaSessionToken()
+            )
+            Log.d("PlaylistViewModel", "🔄 Notification updated: ${currentTrack.title} (playing=${_isPlaying.value})")
+        } catch (e: Exception) {
+            Log.e("PlaylistViewModel", "⚠️ Failed to update notification: ${e.message}")
+        }
     }
 
     // 🔥 НОВОЕ: синхронизация состояния UI с реальным состоянием плеера
@@ -177,33 +335,22 @@ class PlaylistViewModel(
             }
     }
 
-    // 🔥 НОВОЕ: Автовоспроизведение следующего трека
-    private fun playNextTrack() {
-        val filteredTracks = getFilteredTracks()
-        if (filteredTracks.isEmpty()) return
-
-        val currentId = _currentPlayingTrackId.value
-        val currentIndex = filteredTracks.indexOfFirst { it.id == currentId }
-
-        // Выбираем следующий трек, если текущий не найден - начинаем с начала
-        val nextIndex = if (currentIndex == -1) {
-            0
-        } else {
-            (currentIndex + 1) % filteredTracks.size  // По кругу
-        }
-
-        val nextTrack = filteredTracks[nextIndex]
-        Log.d("PlaylistViewModel", "Auto-playing next track: ${nextTrack.title}")
-        playTrack(nextTrack.id)
-    }
-
     override fun onCleared() {
         super.onCleared()
         Log.d("PlaylistViewModel", "💀 ViewModel onCleared() - DESTROYING")
         Log.d("PlaylistViewModel", "💀 Current state: trackId=${_currentPlayingTrackId.value}, isPlaying=${_isPlaying.value}")
+
+        // 🔥 Отменяем регистрацию BroadcastReceiver
+        try {
+            applicationContext.unregisterReceiver(mediaCommandReceiver)
+            Log.d("PlaylistViewModel", "✅ MediaCommandReceiver unregistered")
+        } catch (e: Exception) {
+            Log.e("PlaylistViewModel", "⚠️ Failed to unregister receiver: ${e.message}")
+        }
+
         audioPlayer.stop()
 
-        // 🔥 НОВОЕ: Останавливаем Foreground Service при уничтожении ViewModel
+        // 🔥 Останавливаем Foreground Service при уничтожении ViewModel
         try {
             MusicPlaybackService.stopPlayback(applicationContext)
         } catch (e: Exception) {
