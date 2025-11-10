@@ -517,79 +517,13 @@ class AudioPlayer(private val context: Context? = null) {
                 }
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
-                // Потеряли фокус (может быть звонок или YouTube/другое приложение)
-                // ⚠️ YouTube неправильно использует LOSS вместо LOSS_TRANSIENT
-                Log.d("AudioPlayer", "🔇 Audio focus LOSS - pausing and requesting delayed focus gain")
+                // Потеряли фокус навсегда (звонок, YouTube, другое приложение)
+                // НЕ возобновляем автоматически - пользователь сам нажмет play
+                Log.d("AudioPlayer", "🔇 Audio focus LOSS (permanent) - pausing, no auto-resume")
 
-                // Запоминаем что играли
-                val shouldResume = isPlaying()
-                wasPlayingBeforeFocusLoss = shouldResume
-                Log.d("AudioPlayer", "📝 Saved state: wasPlaying=$wasPlayingBeforeFocusLoss")
-
-                pauseInternal()  // 🔥 Ставим на паузу
-                abandonAudioFocus()  // 🔥 Отпускаем старый фокус
-
-                // 🔥 Если играли - запрашиваем фокус заново с setAcceptsDelayedFocusGain(true)
-                if (shouldResume) {
-                    Log.d("AudioPlayer", "🔄 Requesting audio focus with delayed gain...")
-
-                    // Запрашиваем фокус напрямую чтобы получить детальный результат
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        val audioAttributes = AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build()
-
-                        audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                            .setAudioAttributes(audioAttributes)
-                            .setAcceptsDelayedFocusGain(true)
-                            .setWillPauseWhenDucked(false)
-                            .setOnAudioFocusChangeListener(audioFocusChangeListener)
-                            .build()
-
-                        val result = audioManager?.requestAudioFocus(audioFocusRequest!!)
-
-                        when (result) {
-                            AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
-                                // Фокус дан СРАЗУ (YouTube закрылся) - возобновляем немедленно
-                                Log.d("AudioPlayer", "✅ Audio focus GRANTED immediately - resuming now!")
-                                hasAudioFocus = true
-                                resumeInternal()
-                                wasPlayingBeforeFocusLoss = false
-                            }
-                            AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
-                                // Фокус будет дан позже - система пришлет AUDIOFOCUS_GAIN
-                                Log.d("AudioPlayer", "⏳ Audio focus DELAYED - waiting for GAIN event")
-                                hasAudioFocus = false
-                            }
-                            else -> {
-                                // Не получили фокус
-                                Log.w("AudioPlayer", "❌ Audio focus request FAILED")
-                                hasAudioFocus = false
-                                wasPlayingBeforeFocusLoss = false
-                            }
-                        }
-                    } else {
-                        // Android 7 и ниже - просто запрашиваем
-                        @Suppress("DEPRECATION")
-                        val result = audioManager?.requestAudioFocus(
-                            audioFocusChangeListener,
-                            AudioManager.STREAM_MUSIC,
-                            AudioManager.AUDIOFOCUS_GAIN
-                        )
-
-                        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                            Log.d("AudioPlayer", "✅ Audio focus GRANTED (legacy) - resuming now!")
-                            hasAudioFocus = true
-                            resumeInternal()
-                            wasPlayingBeforeFocusLoss = false
-                        } else {
-                            Log.w("AudioPlayer", "❌ Audio focus request FAILED (legacy)")
-                            hasAudioFocus = false
-                            wasPlayingBeforeFocusLoss = false
-                        }
-                    }
-                }
+                wasPlayingBeforeFocusLoss = false  // 🔥 НЕ возобновляем автоматически
+                pauseInternal()
+                abandonAudioFocus()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 // Временная потеря фокуса (другое приложение, YouTube, shorts) - пауза
