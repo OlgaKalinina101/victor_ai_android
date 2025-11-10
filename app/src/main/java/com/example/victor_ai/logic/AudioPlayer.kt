@@ -313,6 +313,9 @@ class AudioPlayer(private val context: Context? = null) {
                 Log.d("AudioPlayer", "⏳ Preparing ExoPlayer...")
                 prepare()
 
+                // Активируем MediaSession перед воспроизведением
+                mediaSession?.isActive = true
+
                 // Начинаем воспроизведение
                 Log.d("AudioPlayer", "▶️ Starting playback...")
                 play()
@@ -549,15 +552,24 @@ class AudioPlayer(private val context: Context? = null) {
             abandonAudioFocus()  // 🔥 Отпускаем Audio Focus при остановке
             updatePlaybackState(PlaybackStateCompat.STATE_STOPPED)  // 🔥 Обновляем MediaSession
 
-            // 🔥 Деактивируем MediaSession при остановке
+            // 🔥 Деактивируем MediaSession при остановке, но не удаляем её
+            // (она нужна для следующего воспроизведения)
             mediaSession?.isActive = false
-            mediaSession?.release()
-            mediaSession = null
 
             Log.d("AudioPlayer", "🛑 Stopped and released")
         } catch (e: Exception) {
             Log.e("AudioPlayer", "❌ Error stopping", e)
         }
+    }
+
+    /**
+     * 🔥 Полная очистка ресурсов (вызывается при уничтожении AudioPlayer)
+     */
+    fun release() {
+        stop()
+        mediaSession?.release()
+        mediaSession = null
+        Log.d("AudioPlayer", "🧹 AudioPlayer released")
     }
 
     fun isPlaying(): Boolean {

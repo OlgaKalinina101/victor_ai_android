@@ -122,6 +122,7 @@ class MusicPlaybackService : Service() {
                 mediaSessionToken = intent.getParcelableExtra(EXTRA_SESSION_TOKEN)
 
                 Log.d("MusicService", "▶️ Starting foreground service: $currentTrackTitle - $currentTrackArtist")
+                Log.d("MusicService", "🔑 MediaSession token: ${if (mediaSessionToken != null) "✅ present" else "❌ null"}")
                 startForegroundService()
             }
             ACTION_UPDATE -> {
@@ -138,22 +139,22 @@ class MusicPlaybackService : Service() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
-            // Обработка команд из уведомления - передаем broadcast
+            // Обработка команд из уведомления - передаем broadcast с explicit package
             ACTION_PLAY -> {
                 Log.d("MusicService", "▶️ Play command from notification")
-                sendBroadcast(Intent(ACTION_PLAY))
+                sendBroadcast(Intent(ACTION_PLAY).setPackage(packageName))
             }
             ACTION_PAUSE -> {
                 Log.d("MusicService", "⏸️ Pause command from notification")
-                sendBroadcast(Intent(ACTION_PAUSE))
+                sendBroadcast(Intent(ACTION_PAUSE).setPackage(packageName))
             }
             ACTION_NEXT -> {
                 Log.d("MusicService", "⏭️ Next command from notification")
-                sendBroadcast(Intent(ACTION_NEXT))
+                sendBroadcast(Intent(ACTION_NEXT).setPackage(packageName))
             }
             ACTION_PREVIOUS -> {
                 Log.d("MusicService", "⏮️ Previous command from notification")
-                sendBroadcast(Intent(ACTION_PREVIOUS))
+                sendBroadcast(Intent(ACTION_PREVIOUS).setPackage(packageName))
             }
         }
 
@@ -268,11 +269,14 @@ class MusicPlaybackService : Service() {
 
         // MediaStyle для красивого отображения на экране блокировки
         if (mediaSessionToken != null) {
+            Log.d("MusicService", "✅ Setting MediaStyle with session token")
             builder.setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(mediaSessionToken)
                     .setShowActionsInCompactView(0, 1, 2) // Показывать все 3 кнопки
             )
+        } else {
+            Log.w("MusicService", "⚠️ MediaStyle NOT set - token is null!")
         }
 
         return builder.build()
