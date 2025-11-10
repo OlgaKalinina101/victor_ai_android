@@ -517,11 +517,17 @@ class AudioPlayer(private val context: Context? = null) {
                 }
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
-                // Потеряли фокус навсегда (звонок) - останавливаемся и НЕ возобновляем
-                Log.d("AudioPlayer", "🔇 Audio focus LOSS (permanent) - pausing playback")
-                wasPlayingBeforeFocusLoss = false  // НЕ возобновляем после постоянной потери
+                // Потеряли фокус (может быть звонок или YouTube/другое приложение)
+                // ⚠️ YouTube неправильно использует LOSS вместо LOSS_TRANSIENT
+                // Поэтому НЕ отпускаем фокус, а ждем возврата
+                Log.d("AudioPlayer", "🔇 Audio focus LOSS - pausing but keeping focus")
+
+                // Запоминаем что играли
+                wasPlayingBeforeFocusLoss = isPlaying()
+                Log.d("AudioPlayer", "📝 Saved state: wasPlaying=$wasPlayingBeforeFocusLoss")
+
                 pauseInternal()  // 🔥 Используем внутренний метод без управления фокусом
-                abandonAudioFocus()
+                // НЕ вызываем abandonAudioFocus() - держим фокус и ждем возврата!
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 // Временная потеря фокуса (другое приложение, YouTube, shorts) - пауза
