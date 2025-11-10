@@ -490,7 +490,7 @@ class AudioPlayer(private val context: Context? = null) {
     /**
      * 🔥 Обработчик изменения Audio Focus
      */
-    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+    private val audioFocusChangeListener: AudioManager.OnAudioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         val focusChangeString = when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> "AUDIOFOCUS_GAIN"
             AudioManager.AUDIOFOCUS_LOSS -> "AUDIOFOCUS_LOSS"
