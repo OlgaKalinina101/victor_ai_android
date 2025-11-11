@@ -12,8 +12,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.victor_ai.R
-import com.example.victor_ai.data.network.AssistantMind
-import com.example.victor_ai.data.network.ModelUsage
 import com.example.victor_ai.ui.components.EyeState
 import com.example.victor_ai.ui.components.VictorEyes
 import com.example.victor_ai.utils.EmotionMapper
@@ -23,17 +21,8 @@ fun SystemMenuScreen(
     modifier: Modifier = Modifier,
     viewModel: SystemScreenViewModel = hiltViewModel()
 ) {
-    // Собираем состояние из ViewModel
-    val isOnline by viewModel.isOnline.collectAsState()
-    val isChecking by viewModel.isChecking.collectAsState()
-    val modelUsageList by viewModel.modelUsageList.collectAsState()
-    val assistantState by viewModel.assistantState.collectAsState()
-    val assistantMind by viewModel.assistantMind.collectAsState()
-    val trustLevel by viewModel.trustLevel.collectAsState()
-    val currentModel by viewModel.currentModel.collectAsState()
-
-    // Вычисляем эмоциональный сдвиг
-    val emotionalShift = viewModel.getEmotionalShift()
+    // Собираем единый state из ViewModel
+    val state by viewModel.state.collectAsState()
 
     Column(
         modifier = modifier
@@ -43,14 +32,7 @@ fun SystemMenuScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SystemStatusCard(
-            isOnline = isOnline,
-            isChecking = isChecking,
-            modelUsageList = modelUsageList,
-            assistantState = assistantState,
-            emotionalShift = emotionalShift,
-            assistantMind = assistantMind,
-            trustLevel = trustLevel,
-            currentModel = currentModel,
+            state = state,
             onModelChanged = viewModel::updateModel
         )
 
@@ -61,14 +43,7 @@ fun SystemMenuScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SystemStatusCard(
-    isOnline: Boolean,
-    isChecking: Boolean,
-    modelUsageList: List<ModelUsage>,
-    assistantState: String?,
-    emotionalShift: String?,
-    assistantMind: List<AssistantMind>,
-    trustLevel: Int,
-    currentModel: String?,
+    state: SystemScreenState,
     onModelChanged: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -82,32 +57,8 @@ fun SystemStatusCard(
     var showProviderDropdown by remember { mutableStateOf(false) }
     var showMemoriesSheet by remember { mutableStateOf(false) }
 
-    // Группировка по провайдеру
-    val usageByProvider = modelUsageList.groupBy { it.provider }
-
-    // Находим провайдер для текущей модели из ChatMeta
-    val currentProvider = if (currentModel != null) {
-        modelUsageList.find { it.model_name == currentModel }?.provider
-    } else null
-
-    // Используем текущий провайдер или первый доступный
-    val displayProvider = currentProvider ?: usageByProvider.keys.firstOrNull() ?: "N/A"
-
-    // Расчет процента баланса для отображаемого провайдера
-    val balancePercent = if (usageByProvider.isNotEmpty()) {
-        val entries = usageByProvider[displayProvider] ?: emptyList()
-        if (entries.isNotEmpty()) {
-            val totalSpent = entries.sumOf {
-                (it.input_tokens_used * it.input_token_price + it.output_tokens_used * it.output_token_price).toDouble()
-            }
-            val balance = entries.first().account_balance.toDouble().coerceAtLeast(0.01)
-            val percentRemaining = (1.0 - totalSpent / balance).coerceIn(0.0, 1.0)
-            "${(percentRemaining * 100).toInt()}%"
-        } else "N/A"
-    } else "N/A"
-
     // Парсинг эмоционального сдвига для эмодзи
-    val emotionEmojis = emotionalShift?.let { shift ->
+    val emotionEmojis = state.emotionalShift?.let { shift ->
         if (shift == "Эмоциональный сдвиг: Null") {
             shift
         } else {
@@ -123,8 +74,8 @@ fun SystemStatusCard(
     ) {
         // [связь: ✓] - индикатор связи
         ConnectionStatusIndicator(
-            isOnline = isOnline,
-            isChecking = isChecking,
+            isOnline = state.isOnline,
+            isChecking = state.isChecking,
             grayText = grayText,
             fontSize = fontSize,
             didactGothic = didactGothic,
@@ -157,7 +108,7 @@ fun SystemStatusCard(
 
                 // 💭 Мысли
                 ThoughtsSection(
-                    assistantMind = assistantMind,
+                    assistantMind = state.assistantMind,
                     onMemoriesClick = { showMemoriesSheet = true },
                     grayText = grayText,
                     fontSize = fontSize,
@@ -187,8 +138,8 @@ fun SystemStatusCard(
 
         // 🌐 + 😌 Орбитальные иконки
         OrbitalIconsRow(
-            balancePercent = balancePercent,
-            assistantState = assistantState,
+            balancePercent = state.balancePercent,
+            assistantState = state.assistantState,
             onProviderClick = { showBalancePanel = !showBalancePanel },
             grayText = grayText,
             didactGothic = didactGothic,
@@ -197,7 +148,7 @@ fun SystemStatusCard(
 
         // 🔄 Trust Level - тонкая шкала с ползунком
         TrustLevelSlider(
-            trustLevel = trustLevel,
+            trustLevel = state.trustLevel,
             grayText = grayText,
             fontSize = fontSize,
             didactGothic = didactGothic,
@@ -206,17 +157,17 @@ fun SystemStatusCard(
     }
 
     // 💰 Expandable Token Balance Panel
-    if (showBalancePanel && usageByProvider.isNotEmpty()) {
+    if (showBalancePanel && state.usageByProvider.isNotEmpty()) {
         TokenBalancePanel(
-            usageByProvider = usageByProvider,
-            displayProvider = displayProvider,
+            usageByProvider = state.usageByProvider,
+            displayProvider = state.displayProvider,
             showProviderDropdown = showProviderDropdown,
             onProviderDropdownToggle = { showProviderDropdown = !showProviderDropdown },
             onProviderSelected = { newModel ->
                 onModelChanged(newModel)
                 showProviderDropdown = false
             },
-            modelUsageList = modelUsageList,
+            modelUsageList = state.modelUsageList,
             coroutineScope = coroutineScope,
             grayText = grayText,
             didactGothic = didactGothic,

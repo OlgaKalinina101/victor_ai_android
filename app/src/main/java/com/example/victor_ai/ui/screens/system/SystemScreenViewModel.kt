@@ -29,30 +29,12 @@ class SystemScreenViewModel @Inject constructor(
     private val apiService = RetrofitInstance.apiService
     private val assistantApi = RetrofitInstance.assistantApi
 
-    // State flows для UI
-    private val _isOnline = MutableStateFlow(false)
-    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+    // Единый state для всего экрана
+    private val _state = MutableStateFlow(SystemScreenState())
+    val state: StateFlow<SystemScreenState> = _state.asStateFlow()
 
-    private val _isChecking = MutableStateFlow(true)
-    val isChecking: StateFlow<Boolean> = _isChecking.asStateFlow()
-
-    private val _modelUsageList = MutableStateFlow<List<ModelUsage>>(emptyList())
-    val modelUsageList: StateFlow<List<ModelUsage>> = _modelUsageList.asStateFlow()
-
+    // Вспомогательное поле для списка состояний (для вычисления emotionalShift)
     private val _assistantStateList = MutableStateFlow<List<AssistantState>>(emptyList())
-    val assistantStateList: StateFlow<List<AssistantState>> = _assistantStateList.asStateFlow()
-
-    private val _assistantState = MutableStateFlow<String?>(null)
-    val assistantState: StateFlow<String?> = _assistantState.asStateFlow()
-
-    private val _assistantMind = MutableStateFlow<List<AssistantMind>>(emptyList())
-    val assistantMind: StateFlow<List<AssistantMind>> = _assistantMind.asStateFlow()
-
-    private val _trustLevel = MutableStateFlow(0)
-    val trustLevel: StateFlow<Int> = _trustLevel.asStateFlow()
-
-    private val _currentModel = MutableStateFlow<String?>(null)
-    val currentModel: StateFlow<String?> = _currentModel.asStateFlow()
 
     init {
         loadAllData()
@@ -83,10 +65,10 @@ class SystemScreenViewModel @Inject constructor(
      * Проверяет связь с сервером
      */
     private suspend fun checkConnection() {
-        _isChecking.value = true
+        _state.value = _state.value.copy(isChecking = true)
         Log.d(TAG, "🌐 Проверяем связь...")
 
-        _isOnline.value = try {
+        val isOnline = try {
             val response = apiService.checkConnection()
             Log.d(TAG, "🌐 Связь проверена: ${response.isSuccessful}")
             response.isSuccessful
@@ -95,7 +77,7 @@ class SystemScreenViewModel @Inject constructor(
             false
         }
 
-        _isChecking.value = false
+        _state.value = _state.value.copy(isOnline = isOnline, isChecking = false)
     }
 
     /**
@@ -110,14 +92,16 @@ class SystemScreenViewModel @Inject constructor(
 
             result
                 .onSuccess { meta ->
-                    _trustLevel.value = meta.trust_level
-                    _currentModel.value = meta.model
+                    _state.value = _state.value.copy(
+                        trustLevel = meta.trust_level,
+                        currentModel = meta.model
+                    )
                     Log.d(TAG, "✅ ChatMeta загружена успешно!")
                     Log.d(TAG, "   account_id: ${meta.account_id}")
                     Log.d(TAG, "   trust_level: ${meta.trust_level}")
                     Log.d(TAG, "   model: ${meta.model}")
-                    Log.d(TAG, "   Значение trustLevel в state: ${_trustLevel.value}")
-                    Log.d(TAG, "   Значение currentModel в state: ${_currentModel.value}")
+                    Log.d(TAG, "   Значение trustLevel в state: ${_state.value.trustLevel}")
+                    Log.d(TAG, "   Значение currentModel в state: ${_state.value.currentModel}")
                 }
                 .onFailure { e ->
                     Log.e(TAG, "❌ Ошибка загрузки ChatMeta: ${e.message}", e)
@@ -132,7 +116,8 @@ class SystemScreenViewModel @Inject constructor(
      * Загружает данные об использовании моделей
      */
     private suspend fun loadModelUsage() {
-        _modelUsageList.value = usageRepository.getModelUsage(UserProvider.getCurrentUserId())
+        val modelUsage = usageRepository.getModelUsage(UserProvider.getCurrentUserId())
+        _state.value = _state.value.copy(modelUsageList = modelUsage)
     }
 
     /**
@@ -142,12 +127,17 @@ class SystemScreenViewModel @Inject constructor(
         try {
             val stateResponse = assistantApi.getAssistantState(UserProvider.getCurrentUserId())
             _assistantStateList.value = stateResponse
-            _assistantState.value = stateResponse.lastOrNull()?.state
 
-            _assistantMind.value = assistantApi.getAssistantMind(UserProvider.getCurrentUserId())
+            val mind = assistantApi.getAssistantMind(UserProvider.getCurrentUserId())
                 .filter { it.type == "focus" || it.type == "anchor" }
 
-            Log.d(TAG, "Получен список состояний: ${_assistantStateList.value}")
+            _state.value = _state.value.copy(
+                assistantState = stateResponse.lastOrNull()?.state,
+                assistantMind = mind,
+                emotionalShift = calculateEmotionalShift(stateResponse)
+            )
+
+            Log.d(TAG, "Получен список состояний: $stateResponse")
         } catch (e: Exception) {
             Log.e(TAG, "Ошибка запроса состояния или mind: ${e.message}")
         }
@@ -167,7 +157,7 @@ class SystemScreenViewModel @Inject constructor(
                 )
 
                 if (response.isSuccessful) {
-                    _currentModel.value = newModel
+                    _state.value = _state.value.copy(currentModel = newModel)
                     Log.d(TAG, "✅ Модель успешно обновлена на $newModel")
                 } else {
                     Log.e(TAG, "❌ Ошибка обновления модели: ${response.code()}")
@@ -181,9 +171,7 @@ class SystemScreenViewModel @Inject constructor(
     /**
      * Вычисляет эмоциональный сдвиг из списка состояний
      */
-    fun getEmotionalShift(): String? {
-        val stateList = _assistantStateList.value
-
+    private fun calculateEmotionalShift(stateList: List<AssistantState>): String? {
         return if (stateList.isNotEmpty()) {
             val uniqueStates = stateList
                 .takeLast(10)
