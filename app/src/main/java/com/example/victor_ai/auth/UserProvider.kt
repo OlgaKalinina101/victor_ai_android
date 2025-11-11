@@ -25,18 +25,23 @@ object UserProvider {
     suspend fun loadUserData(): Result<ChatMetaResponse> {
         return try {
             Log.d(TAG, "🔐 Загрузка данных пользователя для: $HARDCODED_USER_ID")
+            Log.d(TAG, "📡 Вызываем apiService.getChatMeta($HARDCODED_USER_ID)...")
             val response = RetrofitInstance.apiService.getChatMeta(HARDCODED_USER_ID)
+            Log.d(TAG, "📡 Получен ответ: isSuccessful=${response.isSuccessful}, code=${response.code()}")
 
             if (response.isSuccessful && response.body() != null) {
                 chatMeta = response.body()
-                Log.d(TAG, "✅ Данные пользователя загружены: ${chatMeta?.account_id}")
+                Log.d(TAG, "✅ Данные пользователя загружены успешно!")
+                Log.d(TAG, "   account_id: ${chatMeta?.account_id}")
+                Log.d(TAG, "   trust_level: ${chatMeta?.trust_level}")
+                Log.d(TAG, "   model: ${chatMeta?.model}")
                 Result.success(chatMeta!!)
             } else {
-                Log.e(TAG, "❌ Ошибка загрузки данных: HTTP ${response.code()}")
+                Log.e(TAG, "❌ Ошибка загрузки данных: HTTP ${response.code()}, body=${response.body()}")
                 Result.failure(Exception("Failed to load user data: ${response.code()}"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Исключение при загрузке данных пользователя", e)
+            Log.e(TAG, "❌ Исключение при загрузке данных пользователя: ${e.javaClass.simpleName}: ${e.message}", e)
             Result.failure(e)
         }
     }

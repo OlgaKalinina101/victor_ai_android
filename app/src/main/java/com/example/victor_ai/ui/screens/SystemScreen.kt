@@ -92,19 +92,26 @@ fun SystemMenuScreen(
 
 
     LaunchedEffect(true) {
+        Log.d("SystemMenu", "▶️ LaunchedEffect started")
+
         isChecking = true
+        Log.d("SystemMenu", "🌐 Проверяем связь...")
         isOnline = try {
             val response = apiService.checkConnection()
+            Log.d("SystemMenu", "🌐 Связь проверена: ${response.isSuccessful}")
             response.isSuccessful
         } catch (e: Exception) {
+            Log.e("SystemMenu", "🌐 Ошибка проверки связи", e)
             false
         }
         isChecking = false
 
         // 🔐 Загрузка ChatMeta для trust_level
+        Log.d("SystemMenu", "🔐 Переходим к загрузке ChatMeta...")
         try {
             Log.d("SystemMenu", "🔄 Начинаем загрузку ChatMeta...")
             val result = UserProvider.loadUserData()
+            Log.d("SystemMenu", "🔄 UserProvider.loadUserData() вызван, обрабатываем результат...")
             result
                 .onSuccess { meta ->
                     trustLevel = meta.trust_level
@@ -120,6 +127,7 @@ fun SystemMenuScreen(
         } catch (e: Exception) {
             Log.e("SystemMenu", "❌ Исключение при загрузке ChatMeta", e)
         }
+        Log.d("SystemMenu", "🔐 Загрузка ChatMeta завершена")
 
         modelUsageList = usageRepository.getModelUsage(UserProvider.getCurrentUserId())
 

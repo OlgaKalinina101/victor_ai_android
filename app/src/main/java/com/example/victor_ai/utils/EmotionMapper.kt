@@ -14,7 +14,7 @@ object EmotionMapper {
     fun getEmoji(emotion: String?): String {
         if (emotion == null) return "🤖"
 
-        return when (emotion.uppercase()) {
+        return when (emotion.lowercase()) {
             "радость" -> "😊"
             "грусть" -> "😔"
             "злость" -> "😠"
