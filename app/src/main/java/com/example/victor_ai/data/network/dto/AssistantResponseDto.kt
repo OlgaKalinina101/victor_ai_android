@@ -31,7 +31,7 @@ data class ChatMetaResponse(
     val trust_level: Int,
     val raw_trust_score: Int?,
     val gender: String,
-    val relationship_level: String,
+    val relationship_level: String?,
     val is_creator: Boolean,
     val trust_established: Boolean,
     val trust_test_completed: Boolean,
