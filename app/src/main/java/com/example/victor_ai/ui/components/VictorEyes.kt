@@ -1,6 +1,6 @@
 package com.example.victor_ai.ui.components
 
-import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
@@ -26,7 +26,7 @@ fun VictorEyes(
     state: EyeState = EyeState.IDLE,
     modifier: Modifier = Modifier
 ) {
-    var animationPhase by remember { mutableStateOf(0f) }
+    val animatable = remember { Animatable(0f) }
 
     LaunchedEffect(state) {
         when (state) {
@@ -34,30 +34,26 @@ fun VictorEyes(
                 // Медленное моргание каждые 3-5 сек
                 while (true) {
                     delay((3000..5000).random().toLong())
-                    animate(0f, 1f, tween(200)) { value, _ ->
-                        animationPhase = value
-                    }
-                    animate(1f, 0f, tween(200)) { value, _ ->
-                        animationPhase = value
-                    }
+                    animatable.animateTo(1f, animationSpec = tween(200))
+                    animatable.animateTo(0f, animationSpec = tween(200))
                 }
             }
             EyeState.THINKING -> {
                 // Зрачки двигаются
                 while (true) {
-                    animate(0f, 1f, tween(1000)) { value, _ ->
-                        animationPhase = value
-                    }
+                    animatable.animateTo(1f, animationSpec = tween(1000))
                 }
             }
             EyeState.SLEEPING -> {
-                animationPhase = 1f // закрыты
+                animatable.snapTo(1f) // закрыты мгновенно
             }
             EyeState.HAPPY -> {
-                animationPhase = 0f // открыты и улыбаются
+                animatable.snapTo(0f) // открыты и улыбаются
             }
         }
     }
+
+    val animationPhase = animatable.value
 
     Canvas(modifier = modifier.size(48.dp)) {
         drawEyes(animationPhase, state)
