@@ -200,7 +200,7 @@ fun SystemStatusCard(
     modifier: Modifier = Modifier
 ) {
     val grayText = Color(0xFFA6A6A6)
-    val fontSize = 18.sp
+    val fontSize = 20.sp
     val didactGothic = FontFamily(Font(R.font.didact_gothic))
     val coroutineScope = rememberCoroutineScope()
     val apiService = RetrofitInstance.apiService
@@ -275,7 +275,7 @@ fun SystemStatusCard(
         ) {
             // Текст "[связь: " серый
             Text(
-                "[связь: ",
+                "[ связь: ",
                 fontSize = fontSize,
                 color = grayText,
                 fontFamily = didactGothic
@@ -313,7 +313,7 @@ fun SystemStatusCard(
 
             // Закрывающая скобка серая
             Text(
-                "]",
+                " ]",
                 fontSize = fontSize,
                 color = grayText,
                 fontFamily = didactGothic
@@ -361,7 +361,7 @@ fun SystemStatusCard(
 
                     if (assistantMind.isEmpty()) {
                         Text(
-                            "Нет активных фокусов",
+                            "Тишина...",
                             fontSize = 16.sp,
                             color = grayText.copy(alpha = 0.7f),
                             fontFamily = didactGothic
@@ -370,7 +370,7 @@ fun SystemStatusCard(
                         val thoughtsText = assistantMind.joinToString(" ... ") { it.mind }
                         InfiniteMarqueeText(
                             text = thoughtsText,
-                            fontSize = 16.sp,
+                            fontSize = 18.sp,
                             color = grayText.copy(alpha = 0.8f),
                             fontFamily = didactGothic
                         )
@@ -388,7 +388,7 @@ fun SystemStatusCard(
                     ) {
                         Text(
                             text = text,
-                            fontSize = 16.sp,
+                            fontSize = 20.sp,
                             color = grayText,
                             fontFamily = didactGothic
                         )
