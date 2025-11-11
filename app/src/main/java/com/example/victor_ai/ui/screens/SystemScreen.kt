@@ -79,14 +79,22 @@ fun SystemMenuScreen(
     var assistantMind by remember { mutableStateOf<List<AssistantMind>>(emptyList()) }
     var trustLevel by remember { mutableStateOf(0) }
 
-    val emotionalShift = if (assistantStateList.size >= 3) {
-        assistantStateList
-            .takeLast(10) // можно взять чуть больше, чтобы были данные для уникальности
-            .distinctBy { it.state } // убираем дубликаты, сохраняя порядок
-            .takeLast(2) // а затем берём последние 3 уникальных
-            .joinToString(" → ") { it.state }
+    val emotionalShift = if (assistantStateList.isNotEmpty()) {
+        // Берём последние уникальные состояния (минимум 1, максимум 2)
+        val uniqueStates = assistantStateList
+            .takeLast(10)
+            .distinctBy { it.state }
+            .takeLast(2)
+
+        if (uniqueStates.size >= 2) {
+            // Если есть 2 или больше - показываем сдвиг
+            uniqueStates.joinToString(" → ") { it.state }
+        } else {
+            // Если только 1 - показываем просто её
+            uniqueStates.first().state
+        }
     } else {
-        "Недостаточно данных"
+        null // Не показываем блок вообще если нет данных
     }
 
 
@@ -175,7 +183,7 @@ fun SystemStatusCard(
     isChecking: Boolean,
     modelUsageList: List<ModelUsage>,
     assistantState: String?,
-    emotionalShift: String,
+    emotionalShift: String?,
     assistantMind: List<AssistantMind>,
     trustLevel: Int,
     modifier: Modifier = Modifier
@@ -218,8 +226,9 @@ fun SystemStatusCard(
     } else "N/A"
 
     // Парсинг эмоционального сдвига для эмодзи
-    val emotionEmojis =
-        emotionalShift.split(" → ").joinToString(" → ") { EmotionMapper.getEmoji(it.trim()) }
+    val emotionEmojis = emotionalShift?.let { shift ->
+        shift.split(" → ").joinToString(" → ") { EmotionMapper.getEmoji(it.trim()) }
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -233,10 +242,19 @@ fun SystemStatusCard(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
+            // Текст "[связь: " серый
+            Text(
+                "[связь: ",
+                fontSize = fontSize,
+                color = grayText,
+                fontFamily = didactGothic
+            )
+
+            // Иконка цветная
             when {
                 isChecking -> {
                     Text(
-                        "[связь: ⏳]",
+                        "⏳",
                         fontSize = fontSize,
                         color = grayText,
                         fontFamily = didactGothic
@@ -244,7 +262,7 @@ fun SystemStatusCard(
                 }
                 isOnline -> {
                     Text(
-                        "[связь: ✓]",
+                        "✓",
                         fontSize = fontSize,
                         color = Color(0xFF77FF77),
                         fontFamily = didactGothic
@@ -252,13 +270,21 @@ fun SystemStatusCard(
                 }
                 else -> {
                     Text(
-                        "[связь: ✗]",
+                        "✗",
                         fontSize = fontSize,
                         color = Color(0xFFFF7777),
                         fontFamily = didactGothic
                     )
                 }
             }
+
+            // Закрывающая скобка серая
+            Text(
+                "]",
+                fontSize = fontSize,
+                color = grayText,
+                fontFamily = didactGothic
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -315,7 +341,7 @@ fun SystemStatusCard(
         Spacer(modifier = Modifier.height(12.dp))
 
         // 🌀 Эмоциональный сдвиг с эмодзи - по центру
-        if (emotionEmojis != "🤖 → 🤖") {
+        if (emotionEmojis != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
@@ -361,9 +387,11 @@ fun SystemStatusCard(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🔄 Trust Level Bar
+        // 🔄 Trust Level - тонкая шкала с ползунком
         Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 "Trust Level: $trustLevel",
@@ -372,19 +400,36 @@ fun SystemStatusCard(
                 fontFamily = didactGothic
             )
 
-            // Progress bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .background(Color(0xFF333333), shape = RoundedCornerShape(4.dp))
+            // Тонкая шкала с квадратным ползунком
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth(0.8f)
             ) {
+                val barWidth = maxWidth
+                val sliderPosition = barWidth * (trustLevel / 100f) - 6.dp
+
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(trustLevel / 100f)
-                        .height(8.dp)
-                        .background(Color(0xFF77FF77), shape = RoundedCornerShape(4.dp))
-                )
+                        .fillMaxWidth()
+                        .height(16.dp)
+                ) {
+                    // Линия шкалы
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(Color(0xFF555555))
+                            .align(Alignment.Center)
+                    )
+
+                    // Квадратный ползунок
+                    Box(
+                        modifier = Modifier
+                            .offset(x = sliderPosition)
+                            .size(12.dp)
+                            .background(grayText)
+                            .align(Alignment.CenterStart)
+                    )
+                }
             }
         }
 
