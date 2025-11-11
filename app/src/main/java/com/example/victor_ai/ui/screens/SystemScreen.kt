@@ -103,13 +103,19 @@ fun SystemMenuScreen(
 
         // 🔐 Загрузка ChatMeta для trust_level
         try {
-            UserProvider.loadUserData()
+            Log.d("SystemMenu", "🔄 Начинаем загрузку ChatMeta...")
+            val result = UserProvider.loadUserData()
+            result
                 .onSuccess { meta ->
                     trustLevel = meta.trust_level
-                    Log.d("SystemMenu", "✅ ChatMeta загружена: trust_level=$trustLevel")
+                    Log.d("SystemMenu", "✅ ChatMeta загружена успешно!")
+                    Log.d("SystemMenu", "   account_id: ${meta.account_id}")
+                    Log.d("SystemMenu", "   trust_level: ${meta.trust_level}")
+                    Log.d("SystemMenu", "   model: ${meta.model}")
+                    Log.d("SystemMenu", "   Значение trustLevel в state: $trustLevel")
                 }
                 .onFailure { e ->
-                    Log.e("SystemMenu", "❌ Ошибка загрузки ChatMeta: ${e.message}")
+                    Log.e("SystemMenu", "❌ Ошибка загрузки ChatMeta: ${e.message}", e)
                 }
         } catch (e: Exception) {
             Log.e("SystemMenu", "❌ Исключение при загрузке ChatMeta", e)
@@ -173,6 +179,19 @@ fun SystemStatusCard(
     // Состояние для expandable панели балансов
     var showBalancePanel by remember { mutableStateOf(false) }
 
+    // Состояние для MemoriesSheet
+    var showMemoriesSheet by remember { mutableStateOf(false) }
+
+    // ViewModel для воспоминаний
+    val viewModel: MemoriesViewModel = hiltViewModel()
+    val memories by viewModel.memories.observeAsState(initial = emptyList())
+    val error by viewModel.error.observeAsState(initial = null)
+    val loading by viewModel.loading.observeAsState(initial = false)
+
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     // Группировка по провайдеру для орбитальных иконок
     val usageByProvider = modelUsageList.groupBy { it.provider }
     val firstProvider = usageByProvider.keys.firstOrNull() ?: "N/A"
@@ -201,42 +220,65 @@ fun SystemStatusCard(
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // ✓/✗ Минималистичный индикатор связи
+        // [связь: ✓] - индикатор связи
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
         ) {
             when {
                 isChecking -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = grayText
+                    Text(
+                        "[связь: ⏳]",
+                        fontSize = fontSize,
+                        color = grayText,
+                        fontFamily = didactGothic
                     )
                 }
                 isOnline -> {
-                    Text("✓", fontSize = 28.sp, color = Color(0xFF77FF77))
+                    Text(
+                        "[связь: ✓]",
+                        fontSize = fontSize,
+                        color = Color(0xFF77FF77),
+                        fontFamily = didactGothic
+                    )
                 }
                 else -> {
-                    Text("✗", fontSize = 28.sp, color = Color(0xFFFF7777))
+                    Text(
+                        "[связь: ✗]",
+                        fontSize = fontSize,
+                        color = Color(0xFFFF7777),
+                        fontFamily = didactGothic
+                    )
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 👀 VictorEyes
-        VictorEyes(
-            state = EyeState.IDLE,
-            showTime = false,
-            trailingText = null
-        )
+        // 👀 VictorEyes - по центру
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            VictorEyes(
+                state = EyeState.IDLE,
+                showTime = false,
+                trailingText = null
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 💭 Мысли
+        // 💭 Мысли - кликабельный блок по центру
         Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    showMemoriesSheet = true
+                }
         ) {
             Text(
                 "Мысли:",
@@ -265,11 +307,12 @@ fun SystemStatusCard(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🌀 Эмоциональный сдвиг с эмодзи
+        // 🌀 Эмоциональный сдвиг с эмодзи - по центру
         if (emotionEmojis != "🤖 → 🤖") {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     emotionEmojis,
@@ -402,6 +445,52 @@ fun SystemStatusCard(
                     }
                 }
             }
+        }
+    }
+
+    // ModalBottomSheet для воспоминаний
+    if (showMemoriesSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showMemoriesSheet = false
+            },
+            sheetState = sheetState,
+            containerColor = Color(0xFF2B2929),
+            contentColor = Color(0xFFE0E0E0),
+            scrimColor = Color.Black.copy(alpha = 0.5f),
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(32.dp)
+                        .height(4.dp)
+                        .background(Color(0xFF555555), shape = RoundedCornerShape(2.dp))
+                )
+            }
+        ) {
+            MemoriesSheet(
+                memories = memories,
+                loading = loading,
+                error = error,
+                onDelete = { recordId ->
+                    viewModel.deleteMemories(UserProvider.getCurrentUserId(), listOf(recordId))
+                },
+                onUpdate = { id, newText ->
+                    val memory = memories.find { it.id == id }
+                    if (memory != null) {
+                        viewModel.updateMemory(id, UserProvider.getCurrentUserId(), newText, memory.metadata)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+
+    // Загрузка воспоминаний при открытии BottomSheet
+    LaunchedEffect(showMemoriesSheet) {
+        if (showMemoriesSheet) {
+            Log.d("SystemMenu", "Запрашиваем воспоминания из Мысли")
+            viewModel.fetchMemories(UserProvider.getCurrentUserId())
         }
     }
 }
