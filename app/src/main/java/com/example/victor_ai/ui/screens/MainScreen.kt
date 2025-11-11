@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -101,9 +102,8 @@ fun MainScreen(
 @Composable
 fun PresencePlaceholder(
     modifier: Modifier = Modifier,
-    customLines: List<String>? = null  // 🔥 Кастомные строки для разных экранов
+    customLines: List<String>? = null
 ) {
-    var timeText by remember { mutableStateOf("") }
     var greetingText by remember { mutableStateOf("") }
     var showFirstLine by remember { mutableStateOf(false) }
     var showSecondLine by remember { mutableStateOf(false) }
@@ -126,11 +126,10 @@ fun PresencePlaceholder(
         textAlign = TextAlign.Start
     )
 
-    // обновление времени и последовательная анимация появления
+    // обновление приветствия и последовательная анимация появления
     LaunchedEffect(customLines) {
-        while (isActive) {  // ✅ Проверка isActive - останавливаем при выходе из composition
+        while (isActive) {
             val now = LocalTime.now()
-            timeText = "… ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}."
             greetingText = when (now.hour) {
                 in 6..11 -> "Доброе утро."
                 in 12..17 -> "Хорошего дня."
@@ -143,21 +142,21 @@ fun PresencePlaceholder(
             showSecondLine = false
             showThirdLine = false
 
-            delay(600) // начальная пауза
+            delay(600)
             showFirstLine = true
 
-            delay(1000 + Random.nextLong(200, 700)) // неравномерная задержка
+            delay(1000 + Random.nextLong(200, 700))
             showSecondLine = true
 
-            delay(800 + Random.nextLong(300, 600)) // ещё одна неравномерная задержка
+            delay(800 + Random.nextLong(300, 600))
             showThirdLine = true
 
-            delay(58_000) // обновляем почти каждую минуту
+            delay(58_000)
         }
     }
 
-    // 🔥 Используем кастомные строки, если переданы
-    val lines = customLines ?: listOf(timeText, "Я здесь.", greetingText)
+    // Используем кастомные строки, если переданы
+    val lines = customLines ?: listOf("Я здесь.", greetingText)
 
     Column(
         modifier = modifier
@@ -165,29 +164,26 @@ fun PresencePlaceholder(
             .padding(start = 230.dp, top = 200.dp, end = 36.dp)
             .alpha(alpha)
     ) {
-        if (showFirstLine && lines.isNotEmpty()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                VictorEyes(
-                    state = EyeState.IDLE,
-                    modifier = Modifier
-                )
-                Spacer(Modifier.width(8.dp))
-                TypingText(text = lines[0], style = didactStyle, speed = 40L)
-            }
+        // 👀 Глазки с временем (первая строка)
+        if (showFirstLine) {
+            VictorEyes(
+                state = EyeState.IDLE,
+                showTime = true
+            )
         }
 
         Spacer(Modifier.height(18.dp))
 
-        if (showSecondLine && lines.size > 1) {
-            TypingText(text = lines[1], style = didactStyle, speed = 45L)
+        // Вторая строка
+        if (showSecondLine && lines.isNotEmpty()) {
+            TypingText(text = lines[0], style = didactStyle, speed = 45L)
         }
 
         Spacer(Modifier.height(14.dp))
 
-        if (showThirdLine && lines.size > 2) {
-            TypingText(text = lines[2], style = didactStyle, speed = 50L)
+        // Третья строка
+        if (showThirdLine && lines.size > 1) {
+            TypingText(text = lines[1], style = didactStyle, speed = 50L)
         }
     }
 }
