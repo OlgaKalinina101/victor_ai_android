@@ -19,7 +19,7 @@ import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
 import com.example.victor_ai.ui.screens.ChatScreen
 import com.example.victor_ai.ui.screens.MainScreen
-import com.example.victor_ai.ui.screens.SystemMenuScreen
+import com.example.victor_ai.ui.screens.system.SystemMenuScreen
 
 @Composable
 fun AppNavHost(
