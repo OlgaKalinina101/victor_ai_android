@@ -2,8 +2,11 @@ package com.example.victor_ai.logic
 
 import com.example.victor_ai.data.network.ApiService
 import com.example.victor_ai.data.network.ModelUsage
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class UsageRepository(private val apiService: ApiService) {
+@Singleton
+class UsageRepository @Inject constructor(private val apiService: ApiService) {
 
     suspend fun getModelUsage(accountId: String): List<ModelUsage> {
         return try {
