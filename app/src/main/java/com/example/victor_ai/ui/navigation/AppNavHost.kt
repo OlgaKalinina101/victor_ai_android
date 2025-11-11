@@ -90,7 +90,6 @@ fun AppNavHost(
 
         composable("system") {
             SystemMenuScreen(
-                usageRepository = UsageRepository(RetrofitInstance.apiService),
                 modifier = Modifier
             )
         }
