@@ -52,6 +52,9 @@ import com.example.victor_ai.data.network.ModelUsage
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.data.network.RetrofitInstance.assistantApi
 import com.example.victor_ai.logic.UsageRepository
+import com.example.victor_ai.ui.components.EyeState
+import com.example.victor_ai.ui.components.VictorEyes
+import com.example.victor_ai.utils.EmotionMapper
 import kotlinx.coroutines.isActive
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -143,322 +146,106 @@ fun SystemStatusCard(
     assistantMind: List<AssistantMind>,
     modifier: Modifier = Modifier
 ) {
-    val grayText = Color(0xFFE0E0E0)
-    val backgroundCard = Color.Transparent
-    val barFilled = Color(0xFFCCCCCC)
-    val barEmpty = Color(0xFF555555)
+    val grayText = Color(0xFFA6A6A6)
     val fontSize = 18.sp
 
-    // Группировка по провайдеру
-    val usageByProvider = modelUsageList.groupBy { it.provider }
+    // Получаем trust level из UserProvider
+    val chatMeta = UserProvider.getChatMeta()
+    val trustLevel = chatMeta?.trust_level ?: 0
 
-    // Состояние для ModalBottomSheet
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showMemoriesSheet by remember { mutableStateOf(false) }
-
-    // ViewModel для воспоминаний
-    val viewModel: MemoriesViewModel = hiltViewModel()
-    val memories by viewModel.memories.observeAsState(initial = emptyList())
-    val error by viewModel.error.observeAsState(initial = null)
-    val loading by viewModel.loading.observeAsState(initial = false)
-
-    // Состояние для Snackbar
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-
-    // Основной Column с явным указанием высоты
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier
             .fillMaxWidth()
-            .wrapContentHeight() // Ограничиваем высоту контента
-            .padding(16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // 📶 Связь
-        Card(
-            colors = CardDefaults.cardColors(containerColor = backgroundCard),
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(0.dp),
-            shape = RoundedCornerShape(16.dp)
+        // ✓/✗ Минималистичный индикатор связи
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Связь:", fontSize = fontSize, color = grayText)
-                Spacer(modifier = Modifier.height(8.dp))
-                when {
-                    isChecking -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = grayText
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Загрузка...", color = grayText, fontSize = fontSize)
-                        }
-                    }
-                    isOnline -> {
-                        Text("Связь стабильная ✅", color = Color(0xFF77FF77), fontSize = fontSize)
-                    }
-                    else -> {
-                        Text("Нет подключения ❌", color = Color(0xFFFF7777), fontSize = fontSize)
-                    }
+            when {
+                isChecking -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = grayText
+                    )
+                }
+                isOnline -> {
+                    Text("✓", fontSize = 28.sp, color = Color(0xFF77FF77))
+                }
+                else -> {
+                    Text("✗", fontSize = 28.sp, color = Color(0xFFFF7777))
                 }
             }
         }
 
-        // 🎯 Баланс токенов по провайдерам
-        Card(
-            colors = CardDefaults.cardColors(containerColor = backgroundCard),
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(0.dp),
-            shape = RoundedCornerShape(16.dp)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 👀 VictorEyes
+        VictorEyes(
+            state = EyeState.IDLE,
+            showTime = false,
+            trailingText = null
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 💭 Мысли
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Баланс токенов:", fontSize = fontSize, color = grayText)
-                Spacer(modifier = Modifier.height(8.dp))
-                if (usageByProvider.isEmpty()) {
-                    Text("Нет данных", fontSize = fontSize, color = grayText)
-                } else {
-                    // Состояние для dropdown
-                    var expanded by remember { mutableStateOf(false) }
-                    var selectedProvider by remember { mutableStateOf(usageByProvider.keys.firstOrNull() ?: "") }
+            Text(
+                "Мысли:",
+                fontSize = fontSize,
+                color = grayText
+            )
 
-                    // Кнопка выбора провайдера
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight() // Ограничиваем высоту
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                Log.d("SystemMenu", "Кнопка провайдера кликнута")
-                                expanded = true
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = grayText
-                            ),
-                            border = BorderStroke(1.dp, Color(0xFF555555))
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("🌐 $selectedProvider", fontSize = fontSize)
-                                Icon(
-                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    tint = grayText
-                                )
-                            }
-                        }
-                        // Выпадающий список
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier
-                                .fillMaxWidth(0.9f)
-                                .background(Color(0xFF2B2929))
-                                .wrapContentHeight() // Ограничиваем высоту меню
-                        ) {
-                            usageByProvider.keys.forEach { provider ->
-                                DropdownMenuItem(
-                                    text = { Text("🌐 $provider", color = grayText, fontSize = fontSize) },
-                                    onClick = {
-                                        selectedProvider = provider
-                                        expanded = false
-                                        Log.d("SystemMenu", "Выбран провайдер: $provider")
-                                    },
-                                    colors = MenuDefaults.itemColors(textColor = grayText)
-                                )
-                            }
-                        }
-                    }
-
-                    // Отображаем баланс выбранного провайдера
-                    Spacer(modifier = Modifier.height(12.dp))
-                    val entries = usageByProvider[selectedProvider] ?: emptyList()
-                    if (entries.isNotEmpty()) {
-                        val totalSpent = entries.sumOf {
-                            (it.input_tokens_used * it.input_token_price + it.output_tokens_used * it.output_token_price).toDouble()
-                        }
-                        val balance = entries.first().account_balance.toDouble().coerceAtLeast(0.01)
-                        val percentRemaining = (1.0 - totalSpent / balance).coerceIn(0.0, 1.0)
-                        val blocks = (percentRemaining * 10).toInt()
-                        Row {
-                            repeat(blocks) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .background(barFilled)
-                                        .padding(1.dp)
-                                )
-                            }
-                            repeat(10 - blocks) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .background(barEmpty)
-                                        .padding(1.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "${(percentRemaining * 100).toInt()}% осталось",
-                            fontSize = fontSize,
-                            color = grayText
-                        )
-                    }
-                }
-            }
-        }
-
-        // 🧠 Состояние Victor AI
-        Card(
-            colors = CardDefaults.cardColors(containerColor = backgroundCard),
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(0.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Настроение Victor AI:", fontSize = fontSize, color = grayText)
-                Spacer(modifier = Modifier.height(8.dp))
+            if (assistantMind.isEmpty()) {
                 Text(
-                    assistantState ?: "Неизвестно",
-                    fontSize = fontSize,
-                    color = grayText
+                    "Нет активных фокусов",
+                    fontSize = 16.sp,
+                    color = grayText.copy(alpha = 0.7f)
                 )
-            }
-        }
-
-        // 🧠 Эмоциональный сдвиг
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = backgroundCard),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(0.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("🌀 Эмоциональный сдвиг:", fontSize = fontSize, color = grayText)
-                Spacer(modifier = Modifier.height(4.dp))
+            } else {
+                val thoughtsText = assistantMind.joinToString(" ... ") { it.mind }
                 Text(
-                    text = emotionalShift,
-                    fontSize = fontSize,
-                    color = grayText,
-                    maxLines = 1,
+                    thoughtsText,
+                    fontSize = 16.sp,
+                    color = grayText.copy(alpha = 0.8f),
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
             }
         }
 
-        // 💭 Мысли (фокусы и якоря)
-        Card(
-            colors = CardDefaults.cardColors(containerColor = backgroundCard),
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight() // Ограничиваем высоту карточки
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {
-                        Log.d("SystemMenu", "Карточка Мысли кликнута")
-                        showMemoriesSheet = true
-                    }
-                ),
-            elevation = CardDefaults.cardElevation(0.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("\uD83E\uDDE0 Мысли:", fontSize = fontSize, color = grayText)
-                Spacer(modifier = Modifier.height(8.dp))
-                if (assistantMind.isEmpty()) {
-                    Text("Нет активных фокусов", fontSize = fontSize, color = grayText)
-                } else {
-                    val textFlow = assistantMind.joinToString(" ... ") { it.mind }
-                    InfiniteMarqueeText(
-                        text = textFlow,
-                        fontSize = fontSize,
-                        color = grayText
-                    )
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // ModalBottomSheet для воспоминаний
-        if (showMemoriesSheet) {
-            Log.d("SystemMenu", "ModalBottomSheet отображается")
+        // 🔄 Trust Level Bar
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                "Trust Level: $trustLevel",
+                fontSize = fontSize,
+                color = grayText
+            )
+
+            // Progress bar
             Box(
                 modifier = Modifier
-                    .heightIn(max = screenHeight * 6 / 6)
-                    .background(Color.Black.copy(alpha = 0.3f))
-                    .pointerInput(Unit) {
-                        detectTapGestures { /* ничего не делаем */ }
-                    }
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .background(Color(0xFF333333), shape = RoundedCornerShape(4.dp))
             ) {
-                ModalBottomSheet(
-                    onDismissRequest = {
-                        Log.d("SystemMenu", "Шторка закрыта через onDismissRequest")
-                        showMemoriesSheet = false
-                    },
-                    sheetState = sheetState,
-                    containerColor = Color(0xFF2B2929),
-                    contentColor = Color(0xFFE0E0E0),
-                    scrimColor = Color.Transparent,
-                    dragHandle = {
-                        Box(
-                            modifier = Modifier
-                                .padding(vertical = 12.dp)
-                                .width(32.dp)
-                                .height(4.dp)
-                                .background(Color(0xFF555555), shape = RoundedCornerShape(2.dp))
-                        )
-                    }
-                ) {
-                    Log.d("SystemMenu", "Внутри контента ModalBottomSheet")
-                    MemoriesSheet(
-                        memories = memories,
-                        loading = loading,
-                        error = error,
-                        onDelete = { recordId ->
-                            viewModel.deleteMemories(UserProvider.getCurrentUserId(), listOf(recordId))
-                        },
-                        onUpdate = { id, newText ->
-                            val memory = memories.find { it.id == id }
-                            if (memory != null) {
-                                viewModel.updateMemory(id, UserProvider.getCurrentUserId(), newText, memory.metadata)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(trustLevel / 100f)
+                        .height(8.dp)
+                        .background(Color(0xFF77FF77), shape = RoundedCornerShape(4.dp))
+                )
             }
-        }
-
-        // Показ ошибок через Snackbar
-        error?.let { errorMessage ->
-            LaunchedEffect(errorMessage) {
-                snackbarHostState.showSnackbar(errorMessage)
-                viewModel.clearError()
-            }
-        }
-
-        // SnackbarHost
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-    }
-
-    // Загрузка воспоминаний при открытии BottomSheet
-    LaunchedEffect(showMemoriesSheet) {
-        if (showMemoriesSheet) {
-            Log.d("SystemMenu", "Запрашиваем воспоминания")
-            viewModel.fetchMemories(UserProvider.getCurrentUserId())
         }
     }
 }
