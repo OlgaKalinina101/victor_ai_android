@@ -42,8 +42,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.victor_ai.auth.UserProvider
+import com.example.victor_ai.R
 import com.example.victor_ai.ui.memories.MemoriesViewModel
 import com.example.victor_ai.data.network.dto.MemoryResponse
 import com.example.victor_ai.data.network.AssistantMind
@@ -74,6 +77,7 @@ fun SystemMenuScreen(
     var assistantStateList by remember { mutableStateOf<List<AssistantState>>(emptyList()) }
     var assistantState by remember { mutableStateOf<String?>(null) }
     var assistantMind by remember { mutableStateOf<List<AssistantMind>>(emptyList()) }
+    var trustLevel by remember { mutableStateOf(0) }
 
     val emotionalShift = if (assistantStateList.size >= 3) {
         assistantStateList
@@ -96,6 +100,20 @@ fun SystemMenuScreen(
             false
         }
         isChecking = false
+
+        // 🔐 Загрузка ChatMeta для trust_level
+        try {
+            UserProvider.loadUserData()
+                .onSuccess { meta ->
+                    trustLevel = meta.trust_level
+                    Log.d("SystemMenu", "✅ ChatMeta загружена: trust_level=$trustLevel")
+                }
+                .onFailure { e ->
+                    Log.e("SystemMenu", "❌ Ошибка загрузки ChatMeta: ${e.message}")
+                }
+        } catch (e: Exception) {
+            Log.e("SystemMenu", "❌ Исключение при загрузке ChatMeta", e)
+        }
 
         modelUsageList = usageRepository.getModelUsage(UserProvider.getCurrentUserId())
 
@@ -128,7 +146,8 @@ fun SystemMenuScreen(
             modelUsageList = modelUsageList,
             assistantState = assistantState,
             emotionalShift = emotionalShift,
-            assistantMind = assistantMind
+            assistantMind = assistantMind,
+            trustLevel = trustLevel
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -144,14 +163,12 @@ fun SystemStatusCard(
     assistantState: String?,
     emotionalShift: String,
     assistantMind: List<AssistantMind>,
+    trustLevel: Int,
     modifier: Modifier = Modifier
 ) {
     val grayText = Color(0xFFA6A6A6)
     val fontSize = 18.sp
-
-    // Получаем trust level из UserProvider
-    val chatMeta = UserProvider.getChatMeta()
-    val trustLevel = chatMeta?.trust_level ?: 0
+    val didactGothic = FontFamily(Font(R.font.didact_gothic))
 
     // Состояние для expandable панели балансов
     var showBalancePanel by remember { mutableStateOf(false) }
@@ -224,21 +241,24 @@ fun SystemStatusCard(
             Text(
                 "Мысли:",
                 fontSize = fontSize,
-                color = grayText
+                color = grayText,
+                fontFamily = didactGothic
             )
 
             if (assistantMind.isEmpty()) {
                 Text(
                     "Нет активных фокусов",
                     fontSize = 16.sp,
-                    color = grayText.copy(alpha = 0.7f)
+                    color = grayText.copy(alpha = 0.7f),
+                    fontFamily = didactGothic
                 )
             } else {
                 val thoughtsText = assistantMind.joinToString(" ... ") { it.mind }
                 InfiniteMarqueeText(
                     text = thoughtsText,
                     fontSize = 16.sp,
-                    color = grayText.copy(alpha = 0.8f)
+                    color = grayText.copy(alpha = 0.8f),
+                    fontFamily = didactGothic
                 )
             }
         }
@@ -254,7 +274,8 @@ fun SystemStatusCard(
                 Text(
                     emotionEmojis,
                     fontSize = 24.sp,
-                    color = grayText
+                    color = grayText,
+                    fontFamily = didactGothic
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -277,7 +298,8 @@ fun SystemStatusCard(
             Text(
                 balancePercent,
                 fontSize = 18.sp,
-                color = grayText
+                color = grayText,
+                fontFamily = didactGothic
             )
 
             // 😌 Mood emoji
@@ -296,7 +318,8 @@ fun SystemStatusCard(
             Text(
                 "Trust Level: $trustLevel",
                 fontSize = fontSize,
-                color = grayText
+                color = grayText,
+                fontFamily = didactGothic
             )
 
             // Progress bar
@@ -331,7 +354,8 @@ fun SystemStatusCard(
                     Text(
                         "Баланс токенов",
                         fontSize = 18.sp,
-                        color = grayText
+                        color = grayText,
+                        fontFamily = didactGothic
                     )
 
                     usageByProvider.forEach { (provider, entries) ->
@@ -348,7 +372,8 @@ fun SystemStatusCard(
                                 Text(
                                     "🌐 $provider",
                                     fontSize = 16.sp,
-                                    color = grayText
+                                    color = grayText,
+                                    fontFamily = didactGothic
                                 )
 
                                 // Progress bar
@@ -369,7 +394,8 @@ fun SystemStatusCard(
                                 Text(
                                     "${"%.2f".format(balance - totalSpent)} из ${"%.2f".format(balance)}",
                                     fontSize = 14.sp,
-                                    color = grayText.copy(alpha = 0.7f)
+                                    color = grayText.copy(alpha = 0.7f),
+                                    fontFamily = didactGothic
                                 )
                             }
                         }
@@ -807,6 +833,7 @@ fun InfiniteMarqueeText(
     text: String,
     fontSize: TextUnit = 18.sp,
     color: Color = Color.Gray,
+    fontFamily: FontFamily? = null,
     speed: Float = 360f, // px per second
     space: String = " ... ", // Пробелы между повторами
     modifier: Modifier = Modifier
@@ -832,6 +859,7 @@ fun InfiniteMarqueeText(
         text = repeatedText,
         fontSize = fontSize,
         color = color,
+        fontFamily = fontFamily,
         maxLines = 1,
         softWrap = false,
         modifier = modifier
