@@ -91,7 +91,7 @@ fun SystemMenuScreen(
             uniqueStates.joinToString(" → ") { it.state }
         } else {
             // Если только 1 - показываем просто её
-            uniqueStates.first().state
+           "Эмоциональный сдвиг: Null"
         }
     } else {
         null // Не показываем блок вообще если нет данных
@@ -208,6 +208,8 @@ fun SystemStatusCard(
     val screenHeight = configuration.screenHeightDp.dp
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    var balancePanelOffset by remember { mutableStateOf(0.dp) }
+
     // Группировка по провайдеру для орбитальных иконок
     val usageByProvider = modelUsageList.groupBy { it.provider }
     val firstProvider = usageByProvider.keys.firstOrNull() ?: "N/A"
@@ -227,20 +229,26 @@ fun SystemStatusCard(
 
     // Парсинг эмоционального сдвига для эмодзи
     val emotionEmojis = emotionalShift?.let { shift ->
-        shift.split(" → ").joinToString(" → ") { EmotionMapper.getEmoji(it.trim()) }
+        if (shift == "Эмоциональный сдвиг: Null") {
+            shift // оставляем как есть
+        } else {
+            shift.split(" → ").joinToString(" → ") { EmotionMapper.getEmoji(it.trim()) }
+        }
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.Top
     ) {
         // [связь: ✓] - индикатор связи
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = 60.dp) // ⬇️ вниз
         ) {
             // Текст "[связь: " серый
             Text(
@@ -260,6 +268,7 @@ fun SystemStatusCard(
                         fontFamily = didactGothic
                     )
                 }
+
                 isOnline -> {
                     Text(
                         "✓",
@@ -268,6 +277,7 @@ fun SystemStatusCard(
                         fontFamily = didactGothic
                     )
                 }
+
                 else -> {
                     Text(
                         "✗",
@@ -291,214 +301,236 @@ fun SystemStatusCard(
 
         // 👀 VictorEyes - по центру
         Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            VictorEyes(
-                state = EyeState.IDLE,
-                showTime = false,
-                trailingText = null
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 💭 Мысли - кликабельный блок по центру
-        Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    showMemoriesSheet = true
-                }
+                .offset(y = 120.dp) // ⬇️ двигает весь блок вниз
         ) {
-            Text(
-                "Мысли:",
-                fontSize = fontSize,
-                color = grayText,
-                fontFamily = didactGothic
-            )
-
-            if (assistantMind.isEmpty()) {
-                Text(
-                    "Нет активных фокусов",
-                    fontSize = 16.sp,
-                    color = grayText.copy(alpha = 0.7f),
-                    fontFamily = didactGothic
-                )
-            } else {
-                val thoughtsText = assistantMind.joinToString(" ... ") { it.mind }
-                InfiniteMarqueeText(
-                    text = thoughtsText,
-                    fontSize = 16.sp,
-                    color = grayText.copy(alpha = 0.8f),
-                    fontFamily = didactGothic
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 🌀 Эмоциональный сдвиг с эмодзи - по центру
-        if (emotionEmojis != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    emotionEmojis,
-                    fontSize = 24.sp,
-                    color = grayText,
-                    fontFamily = didactGothic
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-        }
+                // 👀 VictorEyes
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                    VictorEyes(
+                        state = EyeState.IDLE,
+                        showTime = false,
+                        trailingText = null
+                    )
+                }
 
-        // 🌐 Орбитальные иконки (provider, balance, mood)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 🌐 Provider - кликабельная для открытия панели
-            Text(
-                "🌐",
-                fontSize = 32.sp,
-                modifier = Modifier.clickable { showBalancePanel = !showBalancePanel }
-            )
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // 95% Balance
-            Text(
-                balancePercent,
-                fontSize = 18.sp,
-                color = grayText,
-                fontFamily = didactGothic
-            )
-
-            // 😌 Mood emoji
-            Text(
-                EmotionMapper.getEmoji(assistantState),
-                fontSize = 32.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 🔄 Trust Level - тонкая шкала с ползунком
-        Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                "Trust Level: $trustLevel",
-                fontSize = fontSize,
-                color = grayText,
-                fontFamily = didactGothic
-            )
-
-            // Тонкая шкала с квадратным ползунком
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                val barWidth = maxWidth
-                val sliderPosition = barWidth * (trustLevel / 100f) - 6.dp
-
-                Box(
+                // 💭 Мысли
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(16.dp)
-                ) {
-                    // Линия шкалы
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(2.dp)
-                            .background(Color(0xFF555555))
-                            .align(Alignment.Center)
-                    )
-
-                    // Квадратный ползунок
-                    Box(
-                        modifier = Modifier
-                            .offset(x = sliderPosition)
-                            .size(12.dp)
-                            .background(grayText)
-                            .align(Alignment.CenterStart)
-                    )
-                }
-            }
-        }
-
-        // 💰 Expandable Token Balance Panel
-        if (showBalancePanel && usageByProvider.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .clickable { showMemoriesSheet = true }
                 ) {
                     Text(
-                        "Баланс токенов",
-                        fontSize = 18.sp,
+                        "Мысли:",
+                        fontSize = fontSize,
                         color = grayText,
                         fontFamily = didactGothic
                     )
 
-                    usageByProvider.forEach { (provider, entries) ->
-                        if (entries.isNotEmpty()) {
-                            val totalSpent = entries.sumOf {
-                                (it.input_tokens_used * it.input_token_price + it.output_tokens_used * it.output_token_price).toDouble()
-                            }
-                            val balance = entries.first().account_balance.toDouble().coerceAtLeast(0.01)
-                            val percentRemaining = (1.0 - totalSpent / balance).coerceIn(0.0, 1.0)
+                    if (assistantMind.isEmpty()) {
+                        Text(
+                            "Нет активных фокусов",
+                            fontSize = 16.sp,
+                            color = grayText.copy(alpha = 0.7f),
+                            fontFamily = didactGothic
+                        )
+                    } else {
+                        val thoughtsText = assistantMind.joinToString(" ... ") { it.mind }
+                        InfiniteMarqueeText(
+                            text = thoughtsText,
+                            fontSize = 16.sp,
+                            color = grayText.copy(alpha = 0.8f),
+                            fontFamily = didactGothic
+                        )
+                    }
+                }
 
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 🌀 Эмоциональный сдвиг
+                emotionEmojis?.let { text ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = text,
+                            fontSize = 16.sp,
+                            color = grayText,
+                            fontFamily = didactGothic
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+
+
+// 🌐 + 😌 Орбитальные иконки
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = 180.dp) // ⬇️ двигает блок вниз
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 🌐 Provider - кликабельная для открытия панели
+                Text(
+                    "🌐",
+                    fontSize = 32.sp,
+                    modifier = Modifier.clickable { showBalancePanel = !showBalancePanel }
+                )
+
+                // 95% Balance
+                Text(
+                    balancePercent,
+                    fontSize = 18.sp,
+                    color = grayText,
+                    fontFamily = didactGothic
+                )
+
+                // 😌 Mood emoji
+                Text(
+                    EmotionMapper.getEmoji(assistantState),
+                    fontSize = 32.sp
+                )
+            }
+        }
+
+// 🔄 Trust Level - тонкая шкала с ползунком
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = 220.dp) // ⬇️ отдельно двигаем Trust Level ниже
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Trust Level: $trustLevel",
+                    fontSize = fontSize,
+                    color = grayText,
+                    fontFamily = didactGothic
+                )
+
+                // Тонкая шкала с квадратным ползунком
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    val barWidth = maxWidth
+                    val sliderPosition = barWidth * (trustLevel / 100f) - 6.dp
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                    ) {
+                        // Линия шкалы
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(2.dp)
+                                .background(Color(0xFF555555))
+                                .align(Alignment.Center)
+                        )
+
+                        // Квадратный ползунок
+                        Box(
+                            modifier = Modifier
+                                .offset(x = sliderPosition)
+                                .width(10.dp)   // ширина
+                                .height(28.dp)  // а высоту увеличиваем
+                                .background(grayText)
+                                .align(Alignment.CenterStart)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+// 💰 Expandable Token Balance Panel
+    if (showBalancePanel && usageByProvider.isNotEmpty()) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = 220.dp) // ⬇️ двигаем карточку вниз
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Баланс токенов",
+                    fontSize = 18.sp,
+                    color = grayText,
+                    fontFamily = didactGothic
+                )
+
+                usageByProvider.forEach { (provider, entries) ->
+                    if (entries.isNotEmpty()) {
+                        val totalSpent = entries.sumOf {
+                            (it.input_tokens_used * it.input_token_price +
+                                    it.output_tokens_used * it.output_token_price).toDouble()
+                        }
+                        val balance = entries.first().account_balance.toDouble().coerceAtLeast(0.01)
+                        val percentRemaining = (1.0 - totalSpent / balance).coerceIn(0.0, 1.0)
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                "🌐 $provider",
+                                fontSize = 16.sp,
+                                color = grayText,
+                                fontFamily = didactGothic
+                            )
+
+                            // Progress bar
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .background(Color(0xFF333333), shape = RoundedCornerShape(3.dp))
                             ) {
-                                Text(
-                                    "🌐 $provider",
-                                    fontSize = 16.sp,
-                                    color = grayText,
-                                    fontFamily = didactGothic
-                                )
-
-                                // Progress bar
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .fillMaxWidth(percentRemaining.toFloat())
                                         .height(6.dp)
-                                        .background(Color(0xFF333333), shape = RoundedCornerShape(3.dp))
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(percentRemaining.toFloat())
-                                            .height(6.dp)
-                                            .background(Color(0xFF77FF77), shape = RoundedCornerShape(3.dp))
-                                    )
-                                }
-
-                                Text(
-                                    "${"%.2f".format(balance - totalSpent)} из ${"%.2f".format(balance)}",
-                                    fontSize = 14.sp,
-                                    color = grayText.copy(alpha = 0.7f),
-                                    fontFamily = didactGothic
+                                        .background(Color(0xFF3F4650), shape = RoundedCornerShape(3.dp))
                                 )
                             }
+
+                            Text(
+                                "${"%.2f".format(balance - totalSpent)} из ${"%.2f".format(balance)}",
+                                fontSize = 14.sp,
+                                color = grayText.copy(alpha = 0.7f),
+                                fontFamily = didactGothic
+                            )
                         }
                     }
                 }
             }
         }
     }
+
 
     // ModalBottomSheet для воспоминаний
     if (showMemoriesSheet) {
