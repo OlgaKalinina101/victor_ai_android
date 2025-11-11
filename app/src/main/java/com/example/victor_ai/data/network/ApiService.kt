@@ -7,6 +7,8 @@ import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.dto.Achievement
 import com.example.victor_ai.data.network.dto.AssistantRequest
 import com.example.victor_ai.data.network.dto.AssistantResponse
+import com.example.victor_ai.data.network.dto.ChatMetaResponse
+import com.example.victor_ai.data.network.dto.ChatMetaUpdateRequest
 import com.example.victor_ai.data.network.dto.DeleteRequest
 import com.example.victor_ai.data.network.dto.DeleteResponse
 import com.example.victor_ai.data.network.dto.JournalEntry
@@ -31,8 +33,10 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Headers
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Streaming
 import java.time.Instant
@@ -53,6 +57,19 @@ interface ApiService {
     suspend fun markReminderAsDone(
         @Body body: ReminderRequest
     ): Response<ReminderResponse>
+
+    // GET /chat_meta/{account_id}
+    @GET("chat_meta/{account_id}")
+    suspend fun getChatMeta(
+        @Path("account_id") accountId: String
+    ): Response<ChatMetaResponse>
+
+    // PATCH /chat_meta/{account_id}
+    @PATCH("chat_meta/{account_id}")
+    suspend fun updateChatMeta(
+        @Path("account_id") accountId: String,
+        @Body body: ChatMetaUpdateRequest
+    ): Response<ChatMetaResponse>
 
     @POST("assistant/reminders/delay")
     suspend fun delayReminder(
