@@ -10,11 +10,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +41,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.permissions.PermissionManager
+import com.example.victor_ai.ui.components.EyeState
+import com.example.victor_ai.ui.components.VictorEyes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.time.LocalTime
@@ -126,7 +130,7 @@ fun PresencePlaceholder(
     LaunchedEffect(customLines) {
         while (isActive) {  // ✅ Проверка isActive - останавливаем при выходе из composition
             val now = LocalTime.now()
-            timeText = "👀… ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}."
+            timeText = "… ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}."
             greetingText = when (now.hour) {
                 in 6..11 -> "Доброе утро."
                 in 12..17 -> "Хорошего дня."
@@ -162,7 +166,16 @@ fun PresencePlaceholder(
             .alpha(alpha)
     ) {
         if (showFirstLine && lines.isNotEmpty()) {
-            TypingText(text = lines[0], style = didactStyle, speed = 40L)
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                VictorEyes(
+                    state = EyeState.IDLE,
+                    modifier = Modifier
+                )
+                Spacer(Modifier.width(8.dp))
+                TypingText(text = lines[0], style = didactStyle, speed = 40L)
+            }
         }
 
         Spacer(Modifier.height(18.dp))
