@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.TextStyle
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.ui.memories.MemoriesViewModel
 import com.example.victor_ai.data.network.dto.MemoryResponse
 import com.example.victor_ai.data.network.AssistantMind
@@ -93,15 +94,15 @@ fun SystemMenuScreen(
         }
         isChecking = false
 
-        modelUsageList = usageRepository.getModelUsage("test_user")
+        modelUsageList = usageRepository.getModelUsage(UserProvider.getCurrentUserId())
 
         // ✅ Получение состояния и фокусов
         try {
-            val stateResponse = assistantApi.getAssistantState("test_user")
+            val stateResponse = assistantApi.getAssistantState(UserProvider.getCurrentUserId())
             assistantStateList = stateResponse
             assistantState = stateResponse.lastOrNull()?.state
 
-            assistantMind = assistantApi.getAssistantMind("test_user")
+            assistantMind = assistantApi.getAssistantMind(UserProvider.getCurrentUserId())
                 .filter { it.type == "focus" || it.type == "anchor" }
 
             Log.d("SystemMenu", "Получен список состояний: $assistantStateList")
@@ -424,12 +425,12 @@ fun SystemStatusCard(
                         loading = loading,
                         error = error,
                         onDelete = { recordId ->
-                            viewModel.deleteMemories("test_user", listOf(recordId))
+                            viewModel.deleteMemories(UserProvider.getCurrentUserId(), listOf(recordId))
                         },
                         onUpdate = { id, newText ->
                             val memory = memories.find { it.id == id }
                             if (memory != null) {
-                                viewModel.updateMemory(id, "test_user", newText, memory.metadata)
+                                viewModel.updateMemory(id, UserProvider.getCurrentUserId(), newText, memory.metadata)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -457,7 +458,7 @@ fun SystemStatusCard(
     LaunchedEffect(showMemoriesSheet) {
         if (showMemoriesSheet) {
             Log.d("SystemMenu", "Запрашиваем воспоминания")
-            viewModel.fetchMemories("test_user")
+            viewModel.fetchMemories(UserProvider.getCurrentUserId())
         }
     }
 }

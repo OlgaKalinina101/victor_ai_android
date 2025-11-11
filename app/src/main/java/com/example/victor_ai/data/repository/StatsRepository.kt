@@ -3,6 +3,7 @@ package com.example.victor_ai.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.PlacesApi
 import com.example.victor_ai.data.network.dto.Achievement
 import com.example.victor_ai.data.network.dto.JournalEntry
@@ -37,7 +38,6 @@ class StatsRepository(
         private const val KEY_ACHIEVEMENTS = "achievements"
         private const val KEY_JOURNAL_ENTRIES = "journal_entries"
         private const val KEY_LAST_UPDATE = "last_update"
-        private const val ACCOUNT_ID = "test_user" // TODO: Получать из настроек
 
         // 🔥 TEMPORARY: Mock данные для тестирования пока бэкенд не возвращает реальные данные
         private const val USE_MOCK_DATA = false  // Убрали моки - ищем реальную проблему!
@@ -166,8 +166,9 @@ class StatsRepository(
     suspend fun syncWithAPI(): Result<LocalStats> = withContext(Dispatchers.IO) {
         try {
             // Загружаем статистику
-            Log.d(TAG, "🔍 Запрашиваем статистику для account_id: $ACCOUNT_ID")
-            val statsResponse = placesApi.getStats(ACCOUNT_ID)
+            val accountId = UserProvider.getCurrentUserId()
+            Log.d(TAG, "🔍 Запрашиваем статистику для account_id: $accountId")
+            val statsResponse = placesApi.getStats(accountId)
 
             Log.d(TAG, "🔍 HTTP код ответа: ${statsResponse.code()}")
             Log.d(TAG, "🔍 Успешный ответ: ${statsResponse.isSuccessful}")
@@ -199,8 +200,8 @@ class StatsRepository(
             }
 
             // Загружаем журнал
-            Log.d(TAG, "🔍 Запрашиваем записи дневника для account_id: $ACCOUNT_ID")
-            val journalResponse = placesApi.getJournalEntries(ACCOUNT_ID)
+            Log.d(TAG, "🔍 Запрашиваем записи дневника для account_id: $accountId")
+            val journalResponse = placesApi.getJournalEntries(accountId)
 
             Log.d(TAG, "🔍 Journal HTTP код: ${journalResponse.code()}")
             Log.d(TAG, "🔍 Journal успешный: ${journalResponse.isSuccessful}")

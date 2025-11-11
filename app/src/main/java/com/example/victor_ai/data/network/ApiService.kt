@@ -3,6 +3,7 @@ package com.example.victor_ai.data.network
 import DiaryEntry
 import DiaryResponse
 import android.util.Log
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.dto.Achievement
 import com.example.victor_ai.data.network.dto.AssistantRequest
 import com.example.victor_ai.data.network.dto.AssistantResponse
@@ -112,14 +113,14 @@ interface ApiService {
 interface ChatApi {
     @GET("assistant/chat/history")
     suspend fun getChatHistory(
-        @Query("account_id") accountId: String = "test_user"
+        @Query("account_id") accountId: String = UserProvider.getCurrentUserId()
     ): List<ChatMessage>
 
     @PUT("assistant/chat/update_history")
     @Headers("Content-Type: application/json")
     suspend fun updateChatHistory(
         @Body request: UpdateHistoryRequest,
-        @Query("account_id") accountId: String = "test_user"
+        @Query("account_id") accountId: String = UserProvider.getCurrentUserId()
     ): UpdateHistoryResponse
 }
 
@@ -156,7 +157,7 @@ data class ReminderRequest(val reminder_id: String)
 suspend fun sendToDiaryEntry(text: String) {
     val diaryApi = RetrofitInstance.api // ← настроенный Retrofit
     val diaryEntry = DiaryEntry(
-        account_id = "test_user", // ← подставь свой ID
+        account_id = UserProvider.getCurrentUserId(),
         entry_text = text,
         timestamp = Instant.now().toString()
     )

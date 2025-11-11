@@ -1,6 +1,7 @@
 package com.example.victor_ai.data.repository
 
 import android.util.Log
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.local.dao.ChatMessageDao
 import com.example.victor_ai.data.local.entity.ChatMessageEntity
 import com.example.victor_ai.data.network.ChatApi
@@ -29,7 +30,7 @@ class ChatRepository @Inject constructor(
     }
 
     // Синхронизация с бэкендом (загрузка истории)
-    suspend fun syncWithBackend(accountId: String = "test_user"): Result<Unit> {
+    suspend fun syncWithBackend(accountId: String = UserProvider.getCurrentUserId()): Result<Unit> {
         return try {
             Log.d(TAG, "Синхронизация истории чата с бэкендом...")
             val messages = chatApi.getChatHistory(accountId)
@@ -60,7 +61,7 @@ class ChatRepository @Inject constructor(
     }
 
     // Обновить историю на бэкенде
-    suspend fun updateBackendHistory(accountId: String = "test_user"): Result<Unit> {
+    suspend fun updateBackendHistory(accountId: String = UserProvider.getCurrentUserId()): Result<Unit> {
         return try {
             Log.d(TAG, "Отправка истории на бэкенд...")
             val localMessages = chatMessageDao.getAllMessagesOnce()

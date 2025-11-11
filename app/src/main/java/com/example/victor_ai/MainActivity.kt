@@ -42,6 +42,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
 import androidx.navigation.compose.rememberNavController
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.dto.GeoLocation
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.logic.SoundPlayer
@@ -104,7 +105,7 @@ class MainActivity : ComponentActivity() {
     private val playlistViewModel: PlaylistViewModel by viewModels {
         PlaylistViewModelFactory(
             apiService = RetrofitInstance.api,
-            accountId = "test_user",
+            accountId = UserProvider.getCurrentUserId(),
             cacheDir = cacheDir,
             application = application  // 🔥 Передаём application для Wake Lock
         )
@@ -343,7 +344,7 @@ class MainActivity : ComponentActivity() {
         withContext(Dispatchers.IO) {
             try {
                 val client = OkHttpClient()
-                val json = """{"user_id":"test_user","token":"$token"}"""
+                val json = """{"user_id":"${UserProvider.getCurrentUserId()}","token":"$token"}"""
                 val request = Request.Builder()
                     .url("${RetrofitInstance.BASE_URL}assistant/register_token")
                     .post(json.toRequestBody("application/json".toMediaType()))
@@ -406,7 +407,7 @@ class MainActivity : ComponentActivity() {
                 _isTyping.value = true // 🔥 Включаем анимацию
 
                 val request = AssistantRequest(
-                    sessionId = "test_user",
+                    sessionId = UserProvider.getCurrentUserId(),
                     text = text,
                     geo = latestGeo
                 )
