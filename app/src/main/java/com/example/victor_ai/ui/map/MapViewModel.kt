@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.PlacesApi
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.data.repository.VisitedPlacesRepository
@@ -148,7 +149,7 @@ class MapViewModel(
     private fun loadVisitedPlacesFromJournal() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val response = placesApi.getJournalEntries("test_user") // TODO: Получать из настроек
+                val response = placesApi.getJournalEntries(UserProvider.getCurrentUserId())
                 if (response.isSuccessful) {
                     val entries = response.body() ?: emptyList()
                     Log.d(TAG, "✅ Загружено ${entries.size} записей из дневника")
@@ -453,7 +454,7 @@ class MapViewModel(
             // Если идет walk session, добавляем в список посещений
             if (_searching.value) {
                 val visit = POIVisit(
-                    account_id = "test_user",
+                    account_id = UserProvider.getCurrentUserId(),
                     poi_id = poi.id,
                     poi_name = poi.name,
                     distance_from_start = _walkedMeters.value.toFloat(),
@@ -513,7 +514,7 @@ class MapViewModel(
                     photo_path = null,
                     poi_name = poi.name,
                     session_id = currentSessionId,
-                    account_id = "test_user" // TODO: Получать из настроек/авторизации
+                    account_id = UserProvider.getCurrentUserId()
                 )
 
                 val response = placesApi.createJournalEntry(entry)
@@ -561,7 +562,7 @@ class MapViewModel(
                 val steps = (_walkedMeters.value / 0.75).toInt()
 
                 val walkSession = WalkSessionCreate(
-                    account_id = "test_user", // TODO: Получать из настроек/авторизации
+                    account_id = UserProvider.getCurrentUserId(),
                     start_time = Instant.ofEpochMilli(startTime).toString(),
                     end_time = Instant.ofEpochMilli(endTime).toString(),
                     distance_m = _walkedMeters.value.toFloat(),

@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.repository.ChatRepository
 import com.example.victor_ai.data.repository.MemoryRepository
 import com.example.victor_ai.data.repository.ReminderRepository
@@ -59,12 +60,12 @@ class MyApp : Application(), DefaultLifecycleObserver {
             .onFailure { e -> Log.w(TAG, "⚠️ Ошибка синхронизации чата: ${e.message}") }
 
         // Синхронизация воспоминаний
-        memoryRepository.syncWithBackend("test_user")
+        memoryRepository.syncWithBackend(UserProvider.getCurrentUserId())
             .onSuccess { Log.d(TAG, "✅ Воспоминания синхронизированы") }
             .onFailure { e -> Log.w(TAG, "⚠️ Ошибка синхронизации воспоминаний: ${e.message}") }
 
         // Синхронизация напоминалок
-        reminderRepository.syncWithBackend("test_user")
+        reminderRepository.syncWithBackend(UserProvider.getCurrentUserId())
             .onSuccess { Log.d(TAG, "✅ Напоминалки синхронизированы") }
             .onFailure { e -> Log.w(TAG, "⚠️ Ошибка синхронизации напоминалок: ${e.message}") }
 

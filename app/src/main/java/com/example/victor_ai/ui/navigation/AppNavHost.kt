@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.runtime.State
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.logic.ReminderManager
 import com.example.victor_ai.logic.UsageRepository
@@ -83,7 +84,7 @@ fun AppNavHost(
 
         composable("calendar") {
             CalendarScreenWithReminders {
-                com.example.victor_ai.logic.getRemindersFromRepository("test_user")
+                com.example.victor_ai.logic.getRemindersFromRepository(UserProvider.getCurrentUserId())
             }
         }
 

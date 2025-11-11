@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.victor_ai.R
+import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.ui.menu.MenuState
 import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
@@ -89,7 +90,7 @@ fun MainMenu(
         // ✅ Вставляем календарь ниже всех кнопок, если надо
         if (showCalendar) {
             CalendarScreenWithReminders {
-                com.example.victor_ai.logic.getRemindersFromRepository("test_user")
+                com.example.victor_ai.logic.getRemindersFromRepository(UserProvider.getCurrentUserId())
             }
         }
     }
