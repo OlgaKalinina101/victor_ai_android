@@ -54,6 +54,15 @@ class MyApp : Application(), DefaultLifecycleObserver {
     private suspend fun syncDataOnStartup() {
         Log.d(TAG, "🔄 Начало синхронизации данных при старте...")
 
+        // 🔐 Авторизация: загрузка данных пользователя через getChatMeta
+        UserProvider.loadUserData()
+            .onSuccess { meta ->
+                Log.d(TAG, "✅ Авторизация успешна: user_id=${meta.account_id}, model=${meta.model}")
+            }
+            .onFailure { e ->
+                Log.w(TAG, "⚠️ Ошибка авторизации: ${e.message}, используем test_user")
+            }
+
         // Синхронизация истории чата
         chatRepository.syncWithBackend()
             .onSuccess { Log.d(TAG, "✅ История чата синхронизирована") }
