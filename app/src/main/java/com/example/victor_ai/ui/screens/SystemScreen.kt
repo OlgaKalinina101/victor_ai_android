@@ -49,6 +49,7 @@ import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.R
 import com.example.victor_ai.ui.memories.MemoriesViewModel
 import com.example.victor_ai.data.network.dto.MemoryResponse
+import com.example.victor_ai.data.network.dto.ChatMetaUpdateRequest
 import com.example.victor_ai.data.network.AssistantMind
 import com.example.victor_ai.data.network.AssistantState
 import com.example.victor_ai.data.network.ModelUsage
@@ -59,6 +60,7 @@ import com.example.victor_ai.ui.components.EyeState
 import com.example.victor_ai.ui.components.VictorEyes
 import com.example.victor_ai.utils.EmotionMapper
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -78,6 +80,7 @@ fun SystemMenuScreen(
     var assistantState by remember { mutableStateOf<String?>(null) }
     var assistantMind by remember { mutableStateOf<List<AssistantMind>>(emptyList()) }
     var trustLevel by remember { mutableStateOf(0) }
+    var currentModel by remember { mutableStateOf<String?>(null) }
 
     val emotionalShift = if (assistantStateList.isNotEmpty()) {
         // Берём последние уникальные состояния (минимум 1, максимум 2)
@@ -123,11 +126,13 @@ fun SystemMenuScreen(
             result
                 .onSuccess { meta ->
                     trustLevel = meta.trust_level
+                    currentModel = meta.model
                     Log.d("SystemMenu", "✅ ChatMeta загружена успешно!")
                     Log.d("SystemMenu", "   account_id: ${meta.account_id}")
                     Log.d("SystemMenu", "   trust_level: ${meta.trust_level}")
                     Log.d("SystemMenu", "   model: ${meta.model}")
                     Log.d("SystemMenu", "   Значение trustLevel в state: $trustLevel")
+                    Log.d("SystemMenu", "   Значение currentModel в state: $currentModel")
                 }
                 .onFailure { e ->
                     Log.e("SystemMenu", "❌ Ошибка загрузки ChatMeta: ${e.message}", e)
@@ -169,7 +174,11 @@ fun SystemMenuScreen(
             assistantState = assistantState,
             emotionalShift = emotionalShift,
             assistantMind = assistantMind,
-            trustLevel = trustLevel
+            trustLevel = trustLevel,
+            currentModel = currentModel,
+            onModelChanged = { newModel ->
+                currentModel = newModel
+            }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -186,14 +195,21 @@ fun SystemStatusCard(
     emotionalShift: String?,
     assistantMind: List<AssistantMind>,
     trustLevel: Int,
+    currentModel: String?,
+    onModelChanged: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val grayText = Color(0xFFA6A6A6)
     val fontSize = 18.sp
     val didactGothic = FontFamily(Font(R.font.didact_gothic))
+    val coroutineScope = rememberCoroutineScope()
+    val apiService = RetrofitInstance.apiService
 
     // Состояние для expandable панели балансов
     var showBalancePanel by remember { mutableStateOf(false) }
+
+    // Состояние для выпадающего списка провайдеров
+    var showProviderDropdown by remember { mutableStateOf(false) }
 
     // Состояние для MemoriesSheet
     var showMemoriesSheet by remember { mutableStateOf(false) }
@@ -212,11 +228,18 @@ fun SystemStatusCard(
 
     // Группировка по провайдеру для орбитальных иконок
     val usageByProvider = modelUsageList.groupBy { it.provider }
-    val firstProvider = usageByProvider.keys.firstOrNull() ?: "N/A"
 
-    // Расчет процента баланса для первого провайдера
+    // Находим провайдер для текущей модели из ChatMeta
+    val currentProvider = if (currentModel != null) {
+        modelUsageList.find { it.model_name == currentModel }?.provider
+    } else null
+
+    // Используем текущий провайдер или первый доступный
+    val displayProvider = currentProvider ?: usageByProvider.keys.firstOrNull() ?: "N/A"
+
+    // Расчет процента баланса для отображаемого провайдера
     val balancePercent = if (usageByProvider.isNotEmpty()) {
-        val entries = usageByProvider[firstProvider] ?: emptyList()
+        val entries = usageByProvider[displayProvider] ?: emptyList()
         if (entries.isNotEmpty()) {
             val totalSpent = entries.sumOf {
                 (it.input_tokens_used * it.input_token_price + it.output_tokens_used * it.output_token_price).toDouble()
@@ -484,47 +507,123 @@ fun SystemStatusCard(
                     fontFamily = didactGothic
                 )
 
-                usageByProvider.forEach { (provider, entries) ->
-                    if (entries.isNotEmpty()) {
-                        val totalSpent = entries.sumOf {
-                            (it.input_tokens_used * it.input_token_price +
-                                    it.output_tokens_used * it.output_token_price).toDouble()
-                        }
-                        val balance = entries.first().account_balance.toDouble().coerceAtLeast(0.01)
-                        val percentRemaining = (1.0 - totalSpent / balance).coerceIn(0.0, 1.0)
+                // Отображаем только текущий провайдер
+                val entries = usageByProvider[displayProvider] ?: emptyList()
+                if (entries.isNotEmpty()) {
+                    val totalSpent = entries.sumOf {
+                        (it.input_tokens_used * it.input_token_price +
+                                it.output_tokens_used * it.output_token_price).toDouble()
+                    }
+                    val balance = entries.first().account_balance.toDouble().coerceAtLeast(0.01)
+                    val percentRemaining = (1.0 - totalSpent / balance).coerceIn(0.0, 1.0)
 
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Провайдер с выпадающим списком
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showProviderDropdown = !showProviderDropdown },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "🌐 $provider",
+                                "🌐 $displayProvider",
                                 fontSize = 16.sp,
                                 color = grayText,
                                 fontFamily = didactGothic
                             )
 
-                            // Progress bar
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .background(Color(0xFF333333), shape = RoundedCornerShape(3.dp))
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(percentRemaining.toFloat())
-                                        .height(6.dp)
-                                        .background(Color(0xFF3F4650), shape = RoundedCornerShape(3.dp))
-                                )
-                            }
-
-                            Text(
-                                "${"%.2f".format(balance - totalSpent)} из ${"%.2f".format(balance)}",
-                                fontSize = 14.sp,
-                                color = grayText.copy(alpha = 0.7f),
-                                fontFamily = didactGothic
+                            Icon(
+                                imageVector = if (showProviderDropdown)
+                                    Icons.Default.KeyboardArrowUp
+                                else
+                                    Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Переключатель провайдера",
+                                tint = grayText,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
+
+                        // Выпадающий список других провайдеров
+                        if (showProviderDropdown) {
+                            val otherProviders = usageByProvider.keys.filter { it != displayProvider }
+                            if (otherProviders.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF2A2A2A), shape = RoundedCornerShape(8.dp))
+                                        .padding(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    otherProviders.forEach { provider ->
+                                        Text(
+                                            "🌐 $provider",
+                                            fontSize = 14.sp,
+                                            color = grayText.copy(alpha = 0.8f),
+                                            fontFamily = didactGothic,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            // Находим модель для выбранного провайдера
+                                                            val newModel = modelUsageList.find {
+                                                                it.provider == provider
+                                                            }?.model_name
+
+                                                            if (newModel != null) {
+                                                                // Отправляем PATCH запрос
+                                                                val response = apiService.updateChatMeta(
+                                                                    accountId = UserProvider.getCurrentUserId(),
+                                                                    body = ChatMetaUpdateRequest(model = newModel)
+                                                                )
+
+                                                                if (response.isSuccessful) {
+                                                                    // Обновляем локальное состояние
+                                                                    onModelChanged(newModel)
+                                                                    Log.d("SystemMenu", "✅ Провайдер успешно обновлен на $provider (модель: $newModel)")
+                                                                } else {
+                                                                    Log.e("SystemMenu", "❌ Ошибка обновления провайдера: ${response.code()}")
+                                                                }
+                                                            } else {
+                                                                Log.e("SystemMenu", "❌ Не найдена модель для провайдера $provider")
+                                                            }
+                                                        } catch (e: Exception) {
+                                                            Log.e("SystemMenu", "❌ Исключение при обновлении провайдера", e)
+                                                        }
+                                                    }
+                                                    showProviderDropdown = false
+                                                }
+                                                .padding(vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Progress bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .background(Color(0xFF333333), shape = RoundedCornerShape(3.dp))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(percentRemaining.toFloat())
+                                    .height(6.dp)
+                                    .background(Color(0xFF3F4650), shape = RoundedCornerShape(3.dp))
+                            )
+                        }
+
+                        Text(
+                            "${"%.2f".format(balance - totalSpent)} из ${"%.2f".format(balance)}",
+                            fontSize = 14.sp,
+                            color = grayText.copy(alpha = 0.7f),
+                            fontFamily = didactGothic
+                        )
                     }
                 }
             }
