@@ -1,7 +1,9 @@
 package com.example.victor_ai.ui.menu.components
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -9,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,8 +23,6 @@ import com.example.victor_ai.R
 import com.example.victor_ai.ui.menu.MenuState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
 
 @Composable
 fun HorizontalScrollMenu(
@@ -31,15 +30,17 @@ fun HorizontalScrollMenu(
     onMenuItemClick: (MenuState) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val offsetX by animateDpAsState(
-        targetValue = if (visible) 0.dp else (-300).dp,
-        animationSpec = tween(durationMillis = 300),
-        label = "menu_slide"
-    )
-
-    Box(
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInHorizontally(
+            initialOffsetX = { -it },
+            animationSpec = tween(durationMillis = 300)
+        ),
+        exit = slideOutHorizontally(
+            targetOffsetX = { -it },
+            animationSpec = tween(durationMillis = 300)
+        ),
         modifier = modifier
-            .offset(x = offsetX)
     ) {
         Row(
             modifier = Modifier
@@ -49,22 +50,28 @@ fun HorizontalScrollMenu(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Основное
+            // Расписание
             MenuText(
-                text = "основное",
-                onClick = { onMenuItemClick(MenuState.MAIN) }
-            )
-
-            // Места
-            MenuText(
-                text = "места",
-                onClick = { onMenuItemClick(MenuState.PLACES) }
+                text = "расписание",
+                onClick = { onMenuItemClick(MenuState.CALENDAR) }
             )
 
             // Плейлист
             MenuText(
                 text = "плейлист",
                 onClick = { onMenuItemClick(MenuState.PLAYLIST) }
+            )
+
+            // Дневник
+            MenuText(
+                text = "дневник",
+                onClick = { /* TODO: Дневник в разработке */ }
+            )
+
+            // Места
+            MenuText(
+                text = "места",
+                onClick = { onMenuItemClick(MenuState.PLACES) }
             )
 
             // Браузер
