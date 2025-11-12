@@ -302,26 +302,6 @@ fun PlaylistScreen(
                 }
             }
         }
-
-        // 🔹 Верхний бар (кнопка "Плейлист") - размещаем ПОСЛЕ Column чтобы был поверх
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.TopEnd),
-            horizontalArrangement = Arrangement.End
-        ) {
-            IconButton(onClick = {
-                showPlaylistSheet = true
-                println("PlaylistSheet opened")
-            }) {
-                Icon(
-                    Icons.Default.List,
-                    contentDescription = "Плейлист",
-                    tint = Color(0xFFE0E0E0)
-                )
-            }
-        }
     }
 
     // Плейлист
