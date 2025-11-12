@@ -22,10 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.victor_ai.R
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.ui.playlist.components.formatDuration
 
@@ -43,6 +46,8 @@ fun CurrentTrackPlayer(
     barEmpty: Color,
     barFilled: Color
 ) {
+    val didactGothic = FontFamily(Font(R.font.didact_gothic))
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -75,6 +80,7 @@ fun CurrentTrackPlayer(
                         text = track.title,
                         color = grayText,
                         fontSize = 16.sp,
+                        fontFamily = didactGothic,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -83,6 +89,7 @@ fun CurrentTrackPlayer(
                         text = track.artist,
                         color = grayText.copy(alpha = 0.7f),
                         fontSize = 14.sp,
+                        fontFamily = didactGothic,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -101,12 +108,14 @@ fun CurrentTrackPlayer(
                     Text(
                         text = formatDuration(currentPosition),
                         color = grayText.copy(alpha = 0.6f),
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        fontFamily = didactGothic
                     )
                     Text(
                         text = formatDuration(track.duration),
                         color = grayText.copy(alpha = 0.6f),
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        fontFamily = didactGothic
                     )
                 }
 

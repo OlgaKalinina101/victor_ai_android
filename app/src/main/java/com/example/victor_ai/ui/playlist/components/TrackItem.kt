@@ -19,10 +19,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.victor_ai.R
 import com.example.victor_ai.domain.model.Track
 
 /**
@@ -36,6 +39,8 @@ fun TrackItemCompact(
     onClick: () -> Unit,
     grayText: Color
 ) {
+    val didactGothic = FontFamily(Font(R.font.didact_gothic))
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -70,6 +75,7 @@ fun TrackItemCompact(
                     text = track.title,
                     color = grayText,
                     fontSize = 16.sp,
+                    fontFamily = didactGothic,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -78,6 +84,7 @@ fun TrackItemCompact(
                     text = track.artist,
                     color = grayText.copy(alpha = 0.7f),
                     fontSize = 14.sp,
+                    fontFamily = didactGothic,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -87,7 +94,8 @@ fun TrackItemCompact(
             Text(
                 text = formatDuration(track.duration),
                 color = grayText.copy(alpha = 0.5f),
-                fontSize = 12.sp
+                fontSize = 12.sp,
+                fontFamily = didactGothic
             )
         }
     }
