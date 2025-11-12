@@ -179,7 +179,7 @@ fun PlaylistScreen(
                 Text(
                     text = "# СТАТИСТИКА НЕДЕЛИ",
                     color = Color(0xFFE0E0E0),
-                    fontSize = 24.sp,
+                    fontSize = 28.sp,
                     fontFamily = didactGothic
                 )
 
@@ -189,18 +189,18 @@ fun PlaylistScreen(
                 Text(
                     text = "## Трек недели",
                     color = Color(0xFFB0B0B0),
-                    fontSize = 18.sp,
+                    fontSize = 22.sp,
                     fontFamily = didactGothic
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
 
                 // > Название трека (markdown цитата, кликабельная)
                 stats?.top_tracks?.firstOrNull()?.let { t ->
                     Text(
                         text = "> ${t.title}",
                         color = Color(0xFFE0E0E0),
-                        fontSize = 16.sp,
+                        fontSize = 20.sp,
                         fontFamily = didactGothic,
                         modifier = Modifier.clickable {
                             showPlaylistSheet = true
@@ -221,7 +221,7 @@ fun PlaylistScreen(
                 Text(
                     text = "---",
                     color = Color(0xFF606060),
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
                     fontFamily = didactGothic
                 )
 
@@ -231,7 +231,7 @@ fun PlaylistScreen(
                 Text(
                     text = "Энергия: [${stats?.top_energy ?: "—"}]",
                     color = Color(0xFFB0B0B0),
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
                     fontFamily = didactGothic
                 )
                 Spacer(Modifier.height(8.dp))
@@ -240,7 +240,7 @@ fun PlaylistScreen(
                 Text(
                     text = "Температура: [${stats?.top_temperature ?: "—"}]",
                     color = Color(0xFFB0B0B0),
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
                     fontFamily = didactGothic
                 )
 
@@ -250,7 +250,7 @@ fun PlaylistScreen(
                 Text(
                     text = "---",
                     color = Color(0xFF606060),
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
                     fontFamily = didactGothic
                 )
 
@@ -260,14 +260,14 @@ fun PlaylistScreen(
                 Text(
                     text = "[ Запустить волну ]",
                     color = Color(0xFFCCCCCC),
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
                     fontFamily = didactGothic,
                     modifier = Modifier.clickable {
                         /* TODO: запуск волны по треку недели */
                     }
                 )
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
 
                 // [ Выбери сам... ] + стрим логов на одном уровне
                 Row(
@@ -277,7 +277,7 @@ fun PlaylistScreen(
                     Text(
                         text = "[ Выбери сам... ]",
                         color = Color(0xFFCCCCCC),
-                        fontSize = 14.sp,
+                        fontSize = 18.sp,
                         fontFamily = didactGothic,
                         modifier = Modifier.clickable {
                             showAmbientStream = !showAmbientStream
@@ -294,7 +294,7 @@ fun PlaylistScreen(
                         Text(
                             text = typedText,
                             color = Color(0xFF666666),
-                            fontSize = 14.sp,
+                            fontSize = 18.sp,
                             fontFamily = didactGothic,
                             modifier = Modifier.padding(start = 16.dp)
                         )
