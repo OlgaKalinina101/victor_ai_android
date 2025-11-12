@@ -70,6 +70,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -152,147 +153,150 @@ fun PlaylistScreen(
         previousTrackId = currentPlayingTrackId
     }
 
+    // Шрифт Didact Gothic для всей страницы
+    val didactGothic = FontFamily(Font(R.font.didact_gothic))
+
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 🔹 Основной контент — колонка по центру
+        // 🔹 Основной контент — markdown страница с выравниванием по левому верхнему краю
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .padding(24.dp)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Top
         ) {
             if (stats == null) {
                 Text(
                     text = "Загружается статистика...",
                     color = Color(0xFFE0E0E0),
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Light
+                    fontFamily = didactGothic
                 )
             } else {
-                // Заголовок
+                // # СТАТИСТИКА НЕДЕЛИ (markdown h1)
                 Text(
-                    text = "СТАТИСТИКА НЕДЕЛИ",
-                    color = Color(0xFF888888),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Normal,
-                    letterSpacing = 1.5.sp
+                    text = "# СТАТИСТИКА НЕДЕЛИ",
+                    color = Color(0xFFE0E0E0),
+                    fontSize = 24.sp,
+                    fontFamily = didactGothic
                 )
 
                 Spacer(Modifier.height(24.dp))
 
-                // Трек недели
-                stats?.top_tracks?.firstOrNull()?.let { t ->
-                    Text(
-                        text = "Трек недели",
-                        color = Color(0xFF999999),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = t.title,
-                        color = Color(0xFFE0E0E0),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Normal,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "${t.plays} прослушиваний",
-                        color = Color(0xFF777777),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Light
-                    )
-                }
-
-                Spacer(Modifier.height(32.dp))
-                HorizontalDivider(
-                    thickness = 0.5.dp,
-                    color = Color(0xFF404040),
-                    modifier = Modifier.padding(horizontal = 48.dp)
-                )
-                Spacer(Modifier.height(32.dp))
-
-                // Характеристики
+                // ## Трек недели (markdown h2)
                 Text(
-                    text = "Энергия: ${stats?.top_energy ?: "—"}",
+                    text = "## Трек недели",
                     color = Color(0xFFB0B0B0),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Light
+                    fontSize = 18.sp,
+                    fontFamily = didactGothic
                 )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Температура: ${stats?.top_temperature ?: "—"}",
-                    color = Color(0xFFB0B0B0),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Light
-                )
-                Spacer(Modifier.height(40.dp))
-                HorizontalDivider(
-                    thickness = 0.5.dp,
-                    color = Color(0xFF404040),
-                    modifier = Modifier.padding(horizontal = 48.dp)
-                )
-                Spacer(Modifier.height(40.dp))
-
-                // Действия
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { /* TODO: запуск волны по треку недели */ }
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Запустить волну",
-                        color = Color(0xFFCCCCCC),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal,
-                        textAlign = TextAlign.Center
-                    )
-                }
 
                 Spacer(Modifier.height(8.dp))
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            showAmbientStream = !showAmbientStream
-                            if (showAmbientStream) viewModel.runPlaylistWave(manual = true)
-                        }
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                // > Название трека (markdown цитата, кликабельная)
+                stats?.top_tracks?.firstOrNull()?.let { t ->
                     Text(
-                        text = "Выбери сам...",
-                        color = Color(0xFFCCCCCC),
+                        text = "> ${t.title}",
+                        color = Color(0xFFE0E0E0),
+                        fontSize = 16.sp,
+                        fontFamily = didactGothic,
+                        modifier = Modifier.clickable {
+                            showPlaylistSheet = true
+                        }
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "  ${t.plays} прослушиваний",
+                        color = Color(0xFF888888),
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal,
-                        textAlign = TextAlign.Center
+                        fontFamily = didactGothic
                     )
                 }
 
-                // Индикатор процесса с анимацией печати
-                AnimatedVisibility(
-                    visible = showAmbientStream,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
+                Spacer(Modifier.height(24.dp))
+
+                // --- (markdown разделитель)
+                Text(
+                    text = "---",
+                    color = Color(0xFF606060),
+                    fontSize = 14.sp,
+                    fontFamily = didactGothic
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                // Энергия: [значение]
+                Text(
+                    text = "Энергия: [${stats?.top_energy ?: "—"}]",
+                    color = Color(0xFFB0B0B0),
+                    fontSize = 14.sp,
+                    fontFamily = didactGothic
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // Температура: [значение]
+                Text(
+                    text = "Температура: [${stats?.top_temperature ?: "—"}]",
+                    color = Color(0xFFB0B0B0),
+                    fontSize = 14.sp,
+                    fontFamily = didactGothic
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                // --- (markdown разделитель)
+                Text(
+                    text = "---",
+                    color = Color(0xFF606060),
+                    fontSize = 14.sp,
+                    fontFamily = didactGothic
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                // [ Запустить волну ] (markdown кнопка)
+                Text(
+                    text = "[ Запустить волну ]",
+                    color = Color(0xFFCCCCCC),
+                    fontSize = 14.sp,
+                    fontFamily = didactGothic,
+                    modifier = Modifier.clickable {
+                        /* TODO: запуск волны по треку недели */
+                    }
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // [ Выбери сам... ] + стрим логов на одном уровне
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Text(
+                        text = "[ Выбери сам... ]",
+                        color = Color(0xFFCCCCCC),
+                        fontSize = 14.sp,
+                        fontFamily = didactGothic,
+                        modifier = Modifier.clickable {
+                            showAmbientStream = !showAmbientStream
+                            if (showAmbientStream) viewModel.runPlaylistWave(manual = true)
+                        }
+                    )
+
+                    // Стрим логов рядом с кнопкой
+                    AnimatedVisibility(
+                        visible = showAmbientStream,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
                     ) {
                         Text(
                             text = typedText,
-                            color = Color(0xFF555555),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Light,
-                            fontFamily = FontFamily.Monospace
+                            color = Color(0xFF666666),
+                            fontSize = 14.sp,
+                            fontFamily = didactGothic,
+                            modifier = Modifier.padding(start = 16.dp)
                         )
                     }
                 }
