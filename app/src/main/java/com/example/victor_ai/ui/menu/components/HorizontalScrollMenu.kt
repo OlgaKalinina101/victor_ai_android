@@ -49,16 +49,6 @@ fun HorizontalScrollMenu(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Разделитель ║
-            Text(
-                text = "║",
-                style = TextStyle(
-                    fontFamily = FontFamily(Font(R.font.didact_gothic)),
-                    color = Color(0xFFA6A6A6),
-                    fontSize = 28.sp
-                )
-            )
-
             // Основное
             MenuText(
                 text = "основное",
@@ -87,16 +77,6 @@ fun HorizontalScrollMenu(
             MenuText(
                 text = "системное",
                 onClick = { onMenuItemClick(MenuState.SYSTEM) }
-            )
-
-            // Разделитель ║
-            Text(
-                text = "║",
-                style = TextStyle(
-                    fontFamily = FontFamily(Font(R.font.didact_gothic)),
-                    color = Color(0xFFA6A6A6),
-                    fontSize = 28.sp
-                )
             )
         }
     }
