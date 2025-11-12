@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,10 +54,12 @@ fun AssistantButtonArea(
         }
     }
 
-     // 🔥 Убрали fillMaxSize() чтобы Box не перекрывал весь экран
+     // Кнопка ≡
      Box(
          modifier = modifier
-             .padding(24.dp)
+             .fillMaxSize()
+             .padding(start = 24.dp, bottom = 24.dp),
+         contentAlignment = Alignment.BottomStart
      ) {
          FloatingActionButton(
              onClick = {
@@ -69,6 +72,12 @@ fun AssistantButtonArea(
              },
              containerColor = Color.Transparent,
              contentColor = Color(0xFFA6A6A6),
+             elevation = FloatingActionButtonDefaults.elevation(
+                 defaultElevation = 0.dp,
+                 pressedElevation = 0.dp,
+                 focusedElevation = 0.dp,
+                 hoveredElevation = 0.dp
+             ),
              modifier = Modifier.size(48.dp)
          ) {
              Text(
