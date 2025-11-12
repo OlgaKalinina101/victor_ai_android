@@ -1,13 +1,18 @@
 package com.example.victor_ai.ui.components
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.example.victor_ai.R
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Text
@@ -79,7 +84,7 @@ fun AssistantButtonArea(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 24.dp, end = 72.dp), // 72dp отступ под кнопку
+                .padding(start = 24.dp, end = 72.dp) // 72dp отступ под кнопку
         ) {
             HorizontalScrollMenu(
                 visible = showAssistantMenu && currentRoute == "main",
@@ -108,35 +113,35 @@ fun AssistantButtonArea(
             )
         }
 
-        // Кнопка ≡
-        FloatingActionButton(
-            onClick = {
-                navController.navigate("main") {
-                    popUpTo("main") { inclusive = false }
-                    launchSingleTop = true
-                }
-                showAssistantMenu = !showAssistantMenu
-            },
-            containerColor = Color.Transparent,
-            contentColor = Color(0xFFA6A6A6),
-            elevation = FloatingActionButtonDefaults.elevation(0.dp),
+        // 🔘 Кнопка ≡ (без FloatingActionButton)
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .size(48.dp)
+                .offset(y = (-3).dp)
+                .background(Color.Transparent, shape = CircleShape)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ){
+                    navController.navigate("main") {
+                        popUpTo("main") { inclusive = false }
+                        launchSingleTop = true
+                    }
+                    showAssistantMenu = !showAssistantMenu
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "≡",
-                    style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.didact_gothic)),
-                        color = Color(0xFFA6A6A6),
-                        fontSize = 56.sp
-                    )
+            Text(
+                text = "≡",
+                style = TextStyle(
+                    fontFamily = FontFamily(Font(R.font.didact_gothic)),
+                    color = Color(0xFFA6A6A6),
+                    fontSize = 48.sp,      // 🔽 меньше, чтобы не резалось
+                    lineHeight = 32.sp
                 )
-            }
+            )
         }
     }
 }
+

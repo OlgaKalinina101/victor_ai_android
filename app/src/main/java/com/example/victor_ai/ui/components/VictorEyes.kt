@@ -1,6 +1,12 @@
 package com.example.victor_ai.ui.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Row
@@ -12,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -43,72 +50,84 @@ fun VictorEyes(
 ) {
     val animatable = remember { Animatable(0f) }
     var timeText by remember { mutableStateOf("") }
+    var typedText by remember { mutableStateOf("") }
+    var isVisible by remember { mutableStateOf(false) }
 
-    // Обновление времени
-    LaunchedEffect(showTime) {
+    // ⏰ обновление времени (реальное время)
+    LaunchedEffect(Unit) {
         if (showTime && trailingText == null) {
             while (isActive) {
-                val now = LocalTime.now()
-                timeText = now.format(DateTimeFormatter.ofPattern("HH:mm"))
+                timeText = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
                 delay(1000)
             }
         }
     }
 
+    // 👁️ моргание
     LaunchedEffect(state) {
         when (state) {
             EyeState.IDLE -> {
-                // Медленное моргание каждые 3-5 сек
                 while (isActive) {
                     delay((3000..5000).random().toLong())
-                    animatable.animateTo(1f, animationSpec = tween(200))
-                    animatable.animateTo(0f, animationSpec = tween(200))
+                    animatable.animateTo(1f, tween(200))
+                    animatable.animateTo(0f, tween(200))
                 }
             }
             EyeState.THINKING -> {
-                // Зрачки двигаются по кругу
                 while (isActive) {
-                    animatable.animateTo(1f, animationSpec = tween(2000))
-                    animatable.snapTo(0f)  // ← сброс в начало для loop
+                    animatable.animateTo(1f, tween(2000))
+                    animatable.snapTo(0f)
                 }
             }
-            EyeState.SLEEPING -> {
-                animatable.snapTo(1f) // закрыты
-            }
-            EyeState.HAPPY -> {
-                animatable.snapTo(0f) // открыты
-            }
+            EyeState.SLEEPING -> animatable.snapTo(1f)
+            EyeState.HAPPY -> animatable.snapTo(0f)
         }
     }
 
     val animationPhase = animatable.value
+    val fullText = trailingText ?: if (showTime) "... $timeText." else ""
 
-    // 👀 + ... время
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-    ) {
-        // Глазки
-        Canvas(modifier = Modifier.size(62.dp)) {
-            drawEyes(animationPhase, state)
+    // ✨ эффект "печатающегося текста"
+    LaunchedEffect(fullText) {
+        isVisible = true
+        typedText = ""
+        delay(300) // короткая пауза перед "началом печати"
+        for (i in fullText.indices) {
+            typedText = fullText.substring(0, i + 1)
+            delay(45) // скорость совпадает с TypingText
         }
+    }
 
-        // Текст справа
-        val displayText = trailingText ?: if (showTime) "... $timeText." else null
+    if (isVisible) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier.alpha(1f)
+        ) {
+            // глазки
+            Canvas(
+                modifier = Modifier
+                    .size(62.dp)
+                    .offset(x = (-18).dp)
+            ) {
+                drawEyes(animationPhase, state)
+            }
 
-        if (displayText != null) {
+            // печатающийся текст
             Text(
-                text = displayText,
+                text = typedText,
                 style = TextStyle(
                     fontFamily = FontFamily(Font(R.font.didact_gothic)),
                     color = Color(0xFFA6A6A6),
                     fontSize = 26.sp
-                ) ,
+                ),
                 modifier = Modifier.offset(x = (-16).dp)
             )
         }
     }
 }
+
+
+
 
 /**
  * Состояния глаз Виктора

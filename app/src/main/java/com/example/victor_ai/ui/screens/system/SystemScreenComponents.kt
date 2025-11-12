@@ -19,23 +19,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.victor_ai.R
 import com.example.victor_ai.auth.UserProvider
 import com.example.victor_ai.data.network.AssistantMind
 import com.example.victor_ai.data.network.ModelUsage
 import com.example.victor_ai.data.network.RetrofitInstance
 import com.example.victor_ai.data.network.dto.ChatMetaUpdateRequest
-import com.example.victor_ai.data.network.dto.MemoryResponse
-import com.example.victor_ai.ui.components.EyeState
-import com.example.victor_ai.ui.components.VictorEyes
+import com.example.victor_ai.ui.memories.MemoriesSheet
 import com.example.victor_ai.ui.memories.MemoriesViewModel
-import com.example.victor_ai.ui.screens.MemoriesSheet
 import com.example.victor_ai.utils.EmotionMapper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.isActive
@@ -480,7 +475,12 @@ fun MemoriesBottomSheet(
             onUpdate = { id, newText ->
                 val memory = memories.find { it.id == id }
                 if (memory != null) {
-                    viewModel.updateMemory(id, UserProvider.getCurrentUserId(), newText, memory.metadata)
+                    viewModel.updateMemory(
+                        id,
+                        UserProvider.getCurrentUserId(),
+                        newText,
+                        memory.metadata
+                    )
                 }
             },
             modifier = Modifier.fillMaxWidth()

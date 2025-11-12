@@ -172,7 +172,7 @@ fun PresencePlaceholder(
             )
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(6.dp))
 
         // Вторая строка
         if (showSecondLine && lines.isNotEmpty()) {

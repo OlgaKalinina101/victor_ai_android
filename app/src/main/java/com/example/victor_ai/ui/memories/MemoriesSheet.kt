@@ -1,4 +1,4 @@
-package com.example.victor_ai.ui.screens
+package com.example.victor_ai.ui.memories
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
