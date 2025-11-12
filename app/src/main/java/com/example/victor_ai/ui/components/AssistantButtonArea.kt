@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -17,12 +17,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.victor_ai.logic.ReminderManager
-import com.example.victor_ai.ui.menu.components.AssistantMenu
+import com.example.victor_ai.ui.menu.components.HorizontalScrollMenu
+import com.example.victor_ai.ui.menu.MenuState
 import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 
@@ -64,13 +68,16 @@ fun AssistantButtonArea(
                  showAssistantMenu = !showAssistantMenu
              },
              containerColor = Color.Transparent,
-             contentColor = Color.White,
+             contentColor = Color(0xFFA6A6A6),
              modifier = Modifier.size(48.dp)
          ) {
-             Icon(
-                 painter = painterResource(id = R.drawable.ic_assistant),
-                 contentDescription = "Меню ассистента",
-                 modifier = Modifier.size(48.dp)
+             Text(
+                 text = "≡",
+                 style = TextStyle(
+                     fontFamily = FontFamily(Font(R.font.didact_gothic)),
+                     color = Color(0xFFA6A6A6),
+                     fontSize = 28.sp
+                 )
              )
          }
      }
@@ -89,22 +96,39 @@ fun AssistantButtonArea(
                 onDismiss = { reminderManager.clearPopup() }
             )
         }
-    if (showAssistantMenu) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.TopEnd
-        ) {
-            AssistantMenu(
-                modifier = Modifier.padding(top = 48.dp),
-                navController = navController,  // 🔥 Передаём navController
-                playlistViewModel = playlistViewModel,
-                placesViewModel = placesViewModel,
-                onRequestVoice = onStartVoiceRecognition,
-                onRequestPermission = onRequestMicrophone,
-                onClose = { showAssistantMenu = false }  // 🔥 Закрываем меню после навигации
-            )
-        }
+    // Горизонтальное меню
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 72.dp, top = 24.dp),
+        contentAlignment = Alignment.TopStart
+    ) {
+        HorizontalScrollMenu(
+            visible = showAssistantMenu && currentRoute == "main",
+            onMenuItemClick = { menuState ->
+                when (menuState) {
+                    MenuState.MAIN -> {
+                        // Уже на главном, ничего не делаем
+                    }
+                    MenuState.PLACES -> {
+                        navController.navigate("places")
+                        showAssistantMenu = false
+                    }
+                    MenuState.PLAYLIST -> {
+                        navController.navigate("playlist")
+                        showAssistantMenu = false
+                    }
+                    MenuState.SYSTEM -> {
+                        navController.navigate("system")
+                        showAssistantMenu = false
+                    }
+                    MenuState.CALENDAR -> {
+                        navController.navigate("calendar")
+                        showAssistantMenu = false
+                    }
+                    else -> Unit
+                }
+            }
+        )
     }
 }

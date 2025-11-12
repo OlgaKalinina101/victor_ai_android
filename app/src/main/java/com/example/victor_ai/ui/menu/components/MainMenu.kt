@@ -77,16 +77,6 @@ fun MainMenu(
                 .clickable { onItemClick("Дневник") }
         )
 
-        // Кнопка "Назад"
-        Image(
-            painter = painterResource(id = R.drawable.btn_back),
-            contentDescription = "Назад",
-            modifier = Modifier
-                .width(200.dp)
-                .height(64.dp)
-                .clickable { onBack() }
-        )
-
         // ✅ Вставляем календарь ниже всех кнопок, если надо
         if (showCalendar) {
             CalendarScreenWithReminders {
