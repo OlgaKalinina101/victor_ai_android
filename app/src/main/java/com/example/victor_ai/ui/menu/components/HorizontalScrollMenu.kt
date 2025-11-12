@@ -33,11 +33,11 @@ fun HorizontalScrollMenu(
     AnimatedVisibility(
         visible = visible,
         enter = slideInHorizontally(
-            initialOffsetX = { -it },
+            initialOffsetX = { it },
             animationSpec = tween(durationMillis = 300)
         ),
         exit = slideOutHorizontally(
-            targetOffsetX = { -it },
+            targetOffsetX = { it },
             animationSpec = tween(durationMillis = 300)
         ),
         modifier = modifier
