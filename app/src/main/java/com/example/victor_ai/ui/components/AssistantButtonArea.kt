@@ -76,7 +76,7 @@ fun AssistantButtonArea(
                  style = TextStyle(
                      fontFamily = FontFamily(Font(R.font.didact_gothic)),
                      color = Color(0xFFA6A6A6),
-                     fontSize = 28.sp
+                     fontSize = 56.sp
                  )
              )
          }
@@ -100,8 +100,8 @@ fun AssistantButtonArea(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 72.dp, top = 24.dp),
-        contentAlignment = Alignment.TopStart
+            .padding(start = 72.dp, bottom = 24.dp),
+        contentAlignment = Alignment.BottomStart
     ) {
         HorizontalScrollMenu(
             visible = showAssistantMenu && currentRoute == "main",
