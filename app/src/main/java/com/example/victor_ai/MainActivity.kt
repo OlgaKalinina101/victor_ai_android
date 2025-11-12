@@ -276,7 +276,11 @@ class MainActivity : ComponentActivity() {
                         val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
                         if (currentRoute == "main" || currentRoute == null) {
-                            PresencePlaceholder()
+                            PresencePlaceholder(
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .offset(x = (-40).dp, y = (-80).dp)
+                            )
                         }
 
                         // TODO: Добавить PresencePlaceholder на другие экраны после определения правильного расположения
