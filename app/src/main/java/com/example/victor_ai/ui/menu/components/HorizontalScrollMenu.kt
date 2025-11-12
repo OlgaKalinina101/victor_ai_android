@@ -50,24 +50,6 @@ fun HorizontalScrollMenu(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Расписание
-            MenuText(
-                text = "расписание",
-                onClick = { onMenuItemClick(MenuState.CALENDAR) }
-            )
-
-            // Плейлист
-            MenuText(
-                text = "плейлист",
-                onClick = { onMenuItemClick(MenuState.PLAYLIST) }
-            )
-
-            // Дневник
-            MenuText(
-                text = "дневник",
-                onClick = { /* TODO: Дневник в разработке */ }
-            )
-
             // Места
             MenuText(
                 text = "места",
@@ -84,6 +66,24 @@ fun HorizontalScrollMenu(
             MenuText(
                 text = "системное",
                 onClick = { onMenuItemClick(MenuState.SYSTEM) }
+            )
+
+            // Расписание
+            MenuText(
+                text = "расписание",
+                onClick = { onMenuItemClick(MenuState.CALENDAR) }
+            )
+
+            // Плейлист
+            MenuText(
+                text = "плейлист",
+                onClick = { onMenuItemClick(MenuState.PLAYLIST) }
+            )
+
+            // Дневник
+            MenuText(
+                text = "дневник",
+                onClick = { /* TODO: Дневник в разработке */ }
             )
         }
     }
