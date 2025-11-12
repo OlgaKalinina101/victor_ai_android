@@ -31,113 +31,103 @@ import com.example.victor_ai.ui.menu.MenuState
 import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 
-// ui/assistant/AssistantButtonArea.kt
 @Composable
 fun AssistantButtonArea(
-    modifier: Modifier = Modifier,  // ← вот он
-    playlistViewModel: PlaylistViewModel,  // 🔥 Получаем извне
+    modifier: Modifier = Modifier,
+    playlistViewModel: PlaylistViewModel,
     placesViewModel: PlacesViewModel,
     reminderManager: ReminderManager,
-    navController: NavController,  // 🔥 Передаём navController вместо callbacks
+    navController: NavController,
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
     onOpenChat: () -> Unit
-)
- {
+) {
     var showAssistantMenu by remember { mutableStateOf(false) }
 
-    // 🔥 Закрываем меню при переходе на другие экраны
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     LaunchedEffect(currentRoute) {
-        if (currentRoute != "main" && currentRoute != null) {
-            showAssistantMenu = false
-        }
+        if (currentRoute != "main" && currentRoute != null) showAssistantMenu = false
     }
 
-     // Кнопка ≡
-     Box(
-         modifier = modifier
-             .fillMaxSize()
-             .padding(end = 24.dp, bottom = 25.dp),
-         contentAlignment = Alignment.BottomEnd
-     ) {
-         FloatingActionButton(
-             onClick = {
-                 // 🔥 При открытии меню сначала переходим на главный экран
-                 navController.navigate("main") {
-                     popUpTo("main") { inclusive = false }
-                     launchSingleTop = true
-                 }
-                 showAssistantMenu = !showAssistantMenu
-             },
-             containerColor = Color.Transparent,
-             contentColor = Color(0xFFA6A6A6),
-             elevation = FloatingActionButtonDefaults.elevation(
-                 defaultElevation = 0.dp,
-                 pressedElevation = 0.dp,
-                 focusedElevation = 0.dp,
-                 hoveredElevation = 0.dp
-             ),
-             modifier = Modifier.size(48.dp)
-         ) {
-             Text(
-                 text = "≡",
-                 style = TextStyle(
-                     fontFamily = FontFamily(Font(R.font.didact_gothic)),
-                     color = Color(0xFFA6A6A6),
-                     fontSize = 56.sp
-                 )
-             )
-         }
-     }
-        val popup by reminderManager.reminderPopup.collectAsState()
-        popup?.let {
-            ReminderOverlay(
-                popup = it,
-                onOk = {
-                    reminderManager.clearPopup()
-                    reminderManager.sendReminderActionCoroutine("done", it.id)
-                },
-                onDelay = {
-                    reminderManager.clearPopup()
-                    reminderManager.sendReminderActionCoroutine("delay", it.id)
-                },
-                onDismiss = { reminderManager.clearPopup() }
+    val popup by reminderManager.reminderPopup.collectAsState()
+    popup?.let {
+        ReminderOverlay(
+            popup = it,
+            onOk = {
+                reminderManager.clearPopup()
+                reminderManager.sendReminderActionCoroutine("done", it.id)
+            },
+            onDelay = {
+                reminderManager.clearPopup()
+                reminderManager.sendReminderActionCoroutine("delay", it.id)
+            },
+            onDismiss = { reminderManager.clearPopup() }
+        )
+    }
+
+    // 🔥 Объединяем кнопку и меню в один Box
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(bottom = 24.dp, end = 24.dp)
+    ) {
+        // Горизонтальное меню
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 24.dp, end = 72.dp), // 72dp отступ под кнопку
+        ) {
+            HorizontalScrollMenu(
+                visible = showAssistantMenu && currentRoute == "main",
+                onMenuItemClick = { menuState ->
+                    when (menuState) {
+                        MenuState.MAIN -> Unit
+                        MenuState.PLACES -> {
+                            navController.navigate("places")
+                            showAssistantMenu = false
+                        }
+                        MenuState.PLAYLIST -> {
+                            navController.navigate("playlist")
+                            showAssistantMenu = false
+                        }
+                        MenuState.SYSTEM -> {
+                            navController.navigate("system")
+                            showAssistantMenu = false
+                        }
+                        MenuState.CALENDAR -> {
+                            navController.navigate("calendar")
+                            showAssistantMenu = false
+                        }
+                        else -> Unit
+                    }
+                }
             )
         }
-    // Горизонтальное меню
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(end = 72.dp, bottom = 24.dp),
-        contentAlignment = Alignment.BottomEnd
-    ) {
-        HorizontalScrollMenu(
-            visible = showAssistantMenu && currentRoute == "main",
-            onMenuItemClick = { menuState ->
-                when (menuState) {
-                    MenuState.MAIN -> {
-                        // Уже на главном, ничего не делаем
-                    }
-                    MenuState.PLACES -> {
-                        navController.navigate("places")
-                        showAssistantMenu = false
-                    }
-                    MenuState.PLAYLIST -> {
-                        navController.navigate("playlist")
-                        showAssistantMenu = false
-                    }
-                    MenuState.SYSTEM -> {
-                        navController.navigate("system")
-                        showAssistantMenu = false
-                    }
-                    MenuState.CALENDAR -> {
-                        navController.navigate("calendar")
-                        showAssistantMenu = false
-                    }
-                    else -> Unit
+
+        // Кнопка ≡
+        FloatingActionButton(
+            onClick = {
+                navController.navigate("main") {
+                    popUpTo("main") { inclusive = false }
+                    launchSingleTop = true
                 }
-            }
-        )
+                showAssistantMenu = !showAssistantMenu
+            },
+            containerColor = Color.Transparent,
+            contentColor = Color(0xFFA6A6A6),
+            elevation = FloatingActionButtonDefaults.elevation(0.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(48.dp)
+        ) {
+            Text(
+                text = "≡",
+                style = TextStyle(
+                    fontFamily = FontFamily(Font(R.font.didact_gothic)),
+                    color = Color(0xFFA6A6A6),
+                    fontSize = 56.sp
+                )
+            )
+        }
     }
 }
