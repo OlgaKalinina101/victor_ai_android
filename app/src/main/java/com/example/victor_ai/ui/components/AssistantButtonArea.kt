@@ -58,8 +58,8 @@ fun AssistantButtonArea(
      Box(
          modifier = modifier
              .fillMaxSize()
-             .padding(start = 24.dp, bottom = 24.dp),
-         contentAlignment = Alignment.BottomStart
+             .padding(end = 24.dp, bottom = 25.dp),
+         contentAlignment = Alignment.BottomEnd
      ) {
          FloatingActionButton(
              onClick = {
@@ -109,8 +109,8 @@ fun AssistantButtonArea(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 72.dp, bottom = 24.dp),
-        contentAlignment = Alignment.BottomStart
+            .padding(end = 72.dp, bottom = 24.dp),
+        contentAlignment = Alignment.BottomEnd
     ) {
         HorizontalScrollMenu(
             visible = showAssistantMenu && currentRoute == "main",
