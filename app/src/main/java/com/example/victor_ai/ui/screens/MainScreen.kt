@@ -160,6 +160,7 @@ fun PresencePlaceholder(
 
     Column(
         modifier = modifier
+            .fillMaxWidth()
             .alpha(alpha)
     ) {
         // 👀 Глазки с временем (первая строка)
