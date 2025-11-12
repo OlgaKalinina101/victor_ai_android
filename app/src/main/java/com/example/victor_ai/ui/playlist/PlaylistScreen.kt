@@ -217,13 +217,6 @@ fun PlaylistScreen(
 
                 // Характеристики
                 Text(
-                    text = "Характеристики",
-                    color = Color(0xFF999999),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
                     text = "Энергия: ${stats?.top_energy ?: "—"}",
                     color = Color(0xFFB0B0B0),
                     fontSize = 13.sp,
@@ -236,14 +229,6 @@ fun PlaylistScreen(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Light
                 )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Средняя длина: ${stats?.average_duration ?: 0} сек",
-                    color = Color(0xFFB0B0B0),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Light
-                )
-
                 Spacer(Modifier.height(40.dp))
                 HorizontalDivider(
                     thickness = 0.5.dp,

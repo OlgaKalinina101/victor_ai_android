@@ -100,7 +100,8 @@ fun SystemStatusCard(
                     VictorEyes(
                         state = EyeState.IDLE,
                         showTime = false,
-                        trailingText = null
+                        trailingText = null,
+                        alignCenter = true // 👈 добавляем
                     )
                 }
 

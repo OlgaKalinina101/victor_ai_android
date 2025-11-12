@@ -47,10 +47,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.victor_ai.R
 import com.example.victor_ai.data.network.dto.MemoryResponse
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -70,6 +73,7 @@ fun MemoriesSheet(
     val barFilled = Color(0xFFCCCCCC)
     val barEmpty = Color(0xFF555555)
     val fontSize = 18.sp
+    val fontFamily = FontFamily(Font(R.font.didact_gothic))
 
     // Состояния для фильтров
     var hasCriticalFilter by remember { mutableStateOf<Boolean?>(null) }
@@ -151,6 +155,7 @@ fun MemoriesSheet(
             text = "Воспоминания",
             fontSize = 20.sp,
             color = grayText,
+            fontFamily = fontFamily,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -181,7 +186,7 @@ fun MemoriesSheet(
                             checkmarkColor = Color.Black
                         )
                     )
-                    Text("Критичные", fontSize = 14.sp, color = grayText)
+                    Text("Критичные", fontSize = 14.sp, color = grayText, fontFamily = fontFamily)
                 }
 
                 // Фильтр по категории
@@ -199,6 +204,7 @@ fun MemoriesSheet(
                             text = categoryFilter ?: "Все категории",
                             fontSize = 14.sp,
                             color = grayText,
+                            fontFamily = fontFamily,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -208,7 +214,7 @@ fun MemoriesSheet(
                         onDismissRequest = { showCategoryDropdown = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Все категории", fontSize = 14.sp) },
+                            text = { Text("Все категории", fontSize = 14.sp, fontFamily = fontFamily) },
                             onClick = {
                                 categoryFilter = null
                                 showCategoryDropdown = false
@@ -216,7 +222,7 @@ fun MemoriesSheet(
                         )
                         categories.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category, fontSize = 14.sp) },
+                                text = { Text(category, fontSize = 14.sp, fontFamily = fontFamily) },
                                 onClick = {
                                     categoryFilter = category
                                     showCategoryDropdown = false
@@ -248,7 +254,8 @@ fun MemoriesSheet(
                             else -> "Сортировка: По дате"
                         },
                         fontSize = 14.sp,
-                        color = grayText
+                        color = grayText,
+                        fontFamily = fontFamily
                     )
                 }
                 DropdownMenu(
@@ -256,21 +263,21 @@ fun MemoriesSheet(
                     onDismissRequest = { showSortDropdown = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("По значимости", fontSize = 14.sp) },
+                        text = { Text("По значимости", fontSize = 14.sp, fontFamily = fontFamily) },
                         onClick = {
                             sortBy = "impressive"
                             showSortDropdown = false
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("По частоте", fontSize = 14.sp) },
+                        text = { Text("По частоте", fontSize = 14.sp, fontFamily = fontFamily) },
                         onClick = {
                             sortBy = "frequency"
                             showSortDropdown = false
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("По дате", fontSize = 14.sp) },
+                        text = { Text("По дате", fontSize = 14.sp, fontFamily = fontFamily) },
                         onClick = {
                             sortBy = "last_used"
                             showSortDropdown = false
@@ -294,6 +301,7 @@ fun MemoriesSheet(
                 text = "Ошибка: $error",
                 fontSize = fontSize,
                 color = Color(0xFFFF7777),
+                fontFamily = fontFamily,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         } else if (filteredAndSortedMemories.isEmpty()) {
@@ -301,6 +309,7 @@ fun MemoriesSheet(
                 text = "Нет воспоминаний",
                 fontSize = fontSize,
                 color = barEmpty,
+                fontFamily = fontFamily,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         } else {
@@ -322,6 +331,7 @@ fun MemoriesSheet(
                         grayText = grayText,
                         barEmpty = barEmpty,
                         backgroundCard = backgroundCard,
+                        fontFamily = fontFamily
                     )
                 }
             }
@@ -337,7 +347,8 @@ fun MemoryItem(
     fontSize: TextUnit,
     grayText: Color,
     barEmpty: Color,
-    backgroundCard: Color
+    backgroundCard: Color,
+    fontFamily: FontFamily
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var editedText by remember { mutableStateOf(memory.text) }
@@ -362,7 +373,8 @@ fun MemoryItem(
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = TextStyle(
                         fontSize = fontSize,
-                        color = grayText
+                        color = grayText,
+                        fontFamily = fontFamily
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF77FF77),
@@ -378,6 +390,7 @@ fun MemoryItem(
                     text = memory.text,
                     fontSize = fontSize,
                     color = grayText,
+                    fontFamily = fontFamily,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.clickable { isEditing = true } // ← клик для редактирования
@@ -402,12 +415,14 @@ fun MemoryItem(
                         Text(
                             text = "📁 ${memory.metadata["category"]?.toString() ?: "Без категории"}",
                             fontSize = 13.sp,
-                            color = grayText.copy(alpha = 0.8f)
+                            color = grayText.copy(alpha = 0.8f),
+                            fontFamily = fontFamily
                         )
                         Text(
                             text = "⭐ ${memory.metadata["impressive"]?.toString() ?: "0"} | 🔄 ${memory.metadata["frequency"]?.toString() ?: "0"}",
                             fontSize = 13.sp,
-                            color = grayText.copy(alpha = 0.8f)
+                            color = grayText.copy(alpha = 0.8f),
+                            fontFamily = fontFamily
                         )
                         Text(
                             text = "🕒 ${
@@ -420,7 +435,8 @@ fun MemoryItem(
                                 } ?: "—"
                             }",
                             fontSize = 13.sp,
-                            color = grayText.copy(alpha = 0.8f)
+                            color = grayText.copy(alpha = 0.8f),
+                            fontFamily = fontFamily
                         )
                     }
 

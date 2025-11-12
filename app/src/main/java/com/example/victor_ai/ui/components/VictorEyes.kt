@@ -46,6 +46,7 @@ fun VictorEyes(
     state: EyeState = EyeState.IDLE,
     trailingText: String? = null,
     showTime: Boolean = true,
+    alignCenter: Boolean = false, // 👈 новый параметр
     modifier: Modifier = Modifier
 ) {
     val animatable = remember { Animatable(0f) }
@@ -107,7 +108,9 @@ fun VictorEyes(
             Canvas(
                 modifier = Modifier
                     .size(62.dp)
-                    .offset(x = (-18).dp)
+                    .then(
+                        if (!alignCenter) Modifier.offset(x = (-18).dp) else Modifier // 👈 смещение только если не центр
+                    )
             ) {
                 drawEyes(animationPhase, state)
             }
