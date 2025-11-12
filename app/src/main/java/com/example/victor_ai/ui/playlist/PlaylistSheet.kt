@@ -33,9 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.victor_ai.R
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 import com.example.victor_ai.ui.playlist.components.TrackItemCompact
@@ -56,6 +59,7 @@ fun PlaylistSheet(
     viewModel: PlaylistViewModel,
     onEditTrack: (Track?) -> Unit  // 🔥 Колбэк для открытия редактирования
 ) {
+    val didactGothic = FontFamily(Font(R.font.didact_gothic))
     val grayText = Color(0xFFE0E0E0)
     val barEmpty = Color(0xFF555555)
     val barFilled = Color(0xFFCCCCCC)
@@ -123,6 +127,7 @@ fun PlaylistSheet(
             text = "Плейлист",
             fontSize = 20.sp,
             color = grayText,
+            fontFamily = didactGothic,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -172,6 +177,7 @@ fun PlaylistSheet(
                         Text(
                             text = energyFilter ?: "Энергия",
                             fontSize = 14.sp,
+                            fontFamily = didactGothic,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -181,7 +187,7 @@ fun PlaylistSheet(
                         onDismissRequest = { showEnergyDropdown = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Все", fontSize = 14.sp) },
+                            text = { Text("Все", fontSize = 14.sp, fontFamily = didactGothic) },
                             onClick = {
                                 energyFilter = null
                                 showEnergyDropdown = false
@@ -189,7 +195,7 @@ fun PlaylistSheet(
                         )
                         energyOptions.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option, fontSize = 14.sp) },
+                                text = { Text(option, fontSize = 14.sp, fontFamily = didactGothic) },
                                 onClick = {
                                     energyFilter = option
                                     showEnergyDropdown = false
@@ -215,6 +221,7 @@ fun PlaylistSheet(
                         Text(
                             text = temperatureFilter ?: "Температура",
                             fontSize = 14.sp,
+                            fontFamily = didactGothic,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -224,7 +231,7 @@ fun PlaylistSheet(
                         onDismissRequest = { showTempDropdown = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Все", fontSize = 14.sp) },
+                            text = { Text("Все", fontSize = 14.sp, fontFamily = didactGothic) },
                             onClick = {
                                 temperatureFilter = null
                                 showTempDropdown = false
@@ -232,7 +239,7 @@ fun PlaylistSheet(
                         )
                         tempOptions.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option, fontSize = 14.sp) },
+                                text = { Text(option, fontSize = 14.sp, fontFamily = didactGothic) },
                                 onClick = {
                                     temperatureFilter = option
                                     showTempDropdown = false
@@ -263,7 +270,8 @@ fun PlaylistSheet(
                             "duration" -> "Сортировка: По длине"
                             else -> "Сортировка: Недавние"
                         },
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        fontFamily = didactGothic
                     )
                 }
                 DropdownMenu(
@@ -271,19 +279,19 @@ fun PlaylistSheet(
                     onDismissRequest = { showSortDropdown = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Недавние", fontSize = 14.sp) },
+                        text = { Text("Недавние", fontSize = 14.sp, fontFamily = didactGothic) },
                         onClick = { sortBy = "recent"; showSortDropdown = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("По названию", fontSize = 14.sp) },
+                        text = { Text("По названию", fontSize = 14.sp, fontFamily = didactGothic) },
                         onClick = { sortBy = "title"; showSortDropdown = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("По исполнителю", fontSize = 14.sp) },
+                        text = { Text("По исполнителю", fontSize = 14.sp, fontFamily = didactGothic) },
                         onClick = { sortBy = "artist"; showSortDropdown = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("По длине", fontSize = 14.sp) },
+                        text = { Text("По длине", fontSize = 14.sp, fontFamily = didactGothic) },
                         onClick = { sortBy = "duration"; showSortDropdown = false }
                     )
                 }
@@ -304,6 +312,7 @@ fun PlaylistSheet(
                 text = "Нет треков",
                 fontSize = 18.sp,
                 color = barEmpty,
+                fontFamily = didactGothic,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         } else {
