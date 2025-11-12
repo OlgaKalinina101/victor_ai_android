@@ -1,13 +1,12 @@
 package com.example.victor_ai.ui.components
 import com.example.victor_ai.R
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Text
@@ -68,45 +67,40 @@ fun AssistantButtonArea(
         )
     }
 
-    // 🔥 Объединяем кнопку и меню в один Box
-    Box(
+    // 🔥 Компонент для кнопки и меню (без fillMaxSize - он конфликтует с align в MainActivity)
+    Row(
         modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(bottom = 24.dp, end = 24.dp)
+            .padding(bottom = 24.dp, end = 24.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.End
     ) {
-        // Горизонтальное меню
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 24.dp, end = 72.dp), // 72dp отступ под кнопку
-        ) {
-            HorizontalScrollMenu(
-                visible = showAssistantMenu && currentRoute == "main",
-                onMenuItemClick = { menuState ->
-                    when (menuState) {
-                        MenuState.MAIN -> Unit
-                        MenuState.PLACES -> {
-                            navController.navigate("places")
-                            showAssistantMenu = false
-                        }
-                        MenuState.PLAYLIST -> {
-                            navController.navigate("playlist")
-                            showAssistantMenu = false
-                        }
-                        MenuState.SYSTEM -> {
-                            navController.navigate("system")
-                            showAssistantMenu = false
-                        }
-                        MenuState.CALENDAR -> {
-                            navController.navigate("calendar")
-                            showAssistantMenu = false
-                        }
-                        else -> Unit
+        // Горизонтальное меню слева от кнопки
+        HorizontalScrollMenu(
+            visible = showAssistantMenu && currentRoute == "main",
+            onMenuItemClick = { menuState ->
+                when (menuState) {
+                    MenuState.MAIN -> Unit
+                    MenuState.PLACES -> {
+                        navController.navigate("places")
+                        showAssistantMenu = false
                     }
+                    MenuState.PLAYLIST -> {
+                        navController.navigate("playlist")
+                        showAssistantMenu = false
+                    }
+                    MenuState.SYSTEM -> {
+                        navController.navigate("system")
+                        showAssistantMenu = false
+                    }
+                    MenuState.CALENDAR -> {
+                        navController.navigate("calendar")
+                        showAssistantMenu = false
+                    }
+                    else -> Unit
                 }
-            )
-        }
+            },
+            modifier = Modifier.padding(end = 8.dp)
+        )
 
         // Кнопка ≡
         FloatingActionButton(
@@ -120,9 +114,7 @@ fun AssistantButtonArea(
             containerColor = Color.Transparent,
             contentColor = Color(0xFFA6A6A6),
             elevation = FloatingActionButtonDefaults.elevation(0.dp),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .size(48.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
