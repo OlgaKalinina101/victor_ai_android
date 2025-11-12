@@ -278,8 +278,8 @@ class MainActivity : ComponentActivity() {
                         if (currentRoute == "main" || currentRoute == null) {
                             PresencePlaceholder(
                                 modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .offset(x = (-40).dp, y = (-80).dp)
+                                    .align(Alignment.TopStart)
+                                    .padding(start = 230.dp, top = 200.dp, end = 36.dp)
                             )
                         }
 
