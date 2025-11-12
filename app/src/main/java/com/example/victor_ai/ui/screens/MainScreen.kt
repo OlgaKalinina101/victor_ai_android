@@ -69,11 +69,12 @@ fun MainScreen(
         val allowGestures = currentRoute == "main" && popup == null
 
         // 🔸 Слой жестов — только на главном экране
+        // 🔥 Освобождаем правый нижний угол для кнопки ассистента
         if (allowGestures) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()  // можешь оставить, т.к. allowGestures теперь контролирует
-                    .padding(start = 220.dp, top = 360.dp)
+                    .fillMaxSize()
+                    .padding(start = 220.dp, top = 360.dp, end = 100.dp, bottom = 120.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = {
