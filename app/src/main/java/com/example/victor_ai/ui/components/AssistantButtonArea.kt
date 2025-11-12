@@ -124,14 +124,19 @@ fun AssistantButtonArea(
                 .align(Alignment.BottomEnd)
                 .size(48.dp)
         ) {
-            Text(
-                text = "≡",
-                style = TextStyle(
-                    fontFamily = FontFamily(Font(R.font.didact_gothic)),
-                    color = Color(0xFFA6A6A6),
-                    fontSize = 56.sp
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "≡",
+                    style = TextStyle(
+                        fontFamily = FontFamily(Font(R.font.didact_gothic)),
+                        color = Color(0xFFA6A6A6),
+                        fontSize = 56.sp
+                    )
                 )
-            )
+            }
         }
     }
 }
