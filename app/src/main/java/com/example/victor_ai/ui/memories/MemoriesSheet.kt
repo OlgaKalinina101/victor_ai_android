@@ -2,6 +2,7 @@ package com.example.victor_ai.ui.memories
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -393,7 +394,12 @@ fun MemoryItem(
                     fontFamily = fontFamily,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { isEditing = true } // ← клик для редактирования
+                    modifier = Modifier.clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        isEditing = true
+                    }
                 )
             }
 

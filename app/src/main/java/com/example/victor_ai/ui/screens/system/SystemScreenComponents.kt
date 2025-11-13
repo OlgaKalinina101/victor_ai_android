@@ -5,6 +5,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -115,7 +116,12 @@ fun ThoughtsSection(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onMemoriesClick() }
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                onMemoriesClick()
+            }
     ) {
         Text(
             "Мысли:",
@@ -164,7 +170,12 @@ fun OrbitalIconsRow(
         Text(
             "🌐",
             fontSize = 32.sp,
-            modifier = Modifier.clickable { onProviderClick() }
+            modifier = Modifier.clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                onProviderClick()
+            }
         )
 
         // 95% Balance
@@ -290,7 +301,12 @@ fun TokenBalancePanel(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onProviderDropdownToggle() },
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) {
+                                onProviderDropdownToggle()
+                            },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -383,7 +399,10 @@ fun ProviderDropdownList(
                         fontFamily = didactGothic,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) {
                                 coroutineScope.launch {
                                     try {
                                         // Находим модель для выбранного провайдера
