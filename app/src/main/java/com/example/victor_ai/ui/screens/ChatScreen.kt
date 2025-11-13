@@ -21,7 +21,7 @@ import com.example.victor_ai.ui.chat.ChatBox
 fun ChatScreen(
     messages: List<ChatMessage>,
     onSendMessage: (String) -> Unit,
-    onEditMessage: (Int, String) -> Unit, // 👈 добавляем новый параметр
+    onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onClose: () -> Unit,
     permissionManager: PermissionManager,
@@ -32,42 +32,22 @@ fun ChatScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF2C2C2E))  // 🔹 Непрозрачный фон
+            .background(Color(0xFF2C2C2E))
     ) {
-        // 🔹 Чат
+        // Чат с жестами на всей области
         ChatBox(
             messages = messages,
             onSendMessage = onSendMessage,
-            onEditMessage = onEditMessage, // 👈 пробрасываем в ChatBox
+            onEditMessage = onEditMessage,
             onInitHistory = onInitHistory,
             visible = true,
-            isTyping = isTypingState.value
-        )
-
-        // 🔹 Прозрачная полоса сверху — тап/долгий тап
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-                .align(Alignment.TopCenter)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            println("❌ TAP -> закрываем чат")
-                            onClose()
-                        },
-                        onLongPress = {
-                            println("🎤 LONG TAP -> микрофон")
-                            permissionManager.requestMicrophonePermission()
-                        },
-                        onPress = {
-                            tryAwaitRelease()
-                            if (isListeningState.value) {
-                                onStopListening()
-                            }
-                        }
-                    )
-                }
+            isTyping = isTypingState.value,
+            onClose = onClose,
+            onStartVoiceRecognition = {
+                permissionManager.requestMicrophonePermission()
+            },
+            isListeningState = isListeningState.value,
+            onStopListening = onStopListening
         )
     }
 }
