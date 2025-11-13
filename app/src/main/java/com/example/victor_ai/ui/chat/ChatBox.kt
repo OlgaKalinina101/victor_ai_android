@@ -4,10 +4,12 @@ import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Menu
@@ -52,7 +54,11 @@ fun ChatBox(
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     visible: Boolean,
-    isTyping: Boolean = false
+    isTyping: Boolean = false,
+    onClose: () -> Unit = {},
+    onStartVoiceRecognition: () -> Unit = {},
+    isListeningState: Boolean = false,
+    onStopListening: () -> Unit = {}
 ) {
     var userInput by remember { mutableStateOf("") }
     var editingMessageIndex by remember { mutableStateOf<Int?>(null) }
@@ -82,6 +88,24 @@ fun ChatBox(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFF1E1E1E))
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            Log.d("ChatBox", "❌ TAP -> закрываем чат")
+                            onClose()
+                        },
+                        onLongPress = {
+                            Log.d("ChatBox", "🎤 LONG TAP -> микрофон")
+                            onStartVoiceRecognition()
+                        },
+                        onPress = {
+                            tryAwaitRelease()
+                            if (isListeningState) {
+                                onStopListening()
+                            }
+                        }
+                    )
+                }
         ) {
             // ┌─────────────────────────────┐
             // │ Header: меню, заголовок, поиск
