@@ -219,6 +219,20 @@ fun ChatBox(
             )
         }
 
+        // Полупрозрачный overlay для закрытия меню
+        if (showMenu) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { showMenu = false }
+                        )
+                    }
+            )
+        }
+
         // Оверлей поиска
         if (showSearchOverlay) {
             SearchOverlay(
@@ -273,41 +287,39 @@ fun ChatHeader(
 
                 // Кастомное меню режимов
                 if (showMenu) {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .padding(top = 48.dp)
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) {
-                                onDismissMenu()
+                            .width(200.dp)
+                            .background(Color(0xFF3A3A3C), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                            .pointerInput(Unit) {
+                                // Блокируем все события, чтобы они не проходили к родителю
+                                detectTapGestures(
+                                    onTap = { /* consume */ },
+                                    onLongPress = { /* consume */ },
+                                    onPress = { /* consume */ }
+                                )
                             }
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .width(200.dp)
-                                .background(Color(0xFF3A3A3C), RoundedCornerShape(12.dp))
-                                .padding(12.dp)
-                        ) {
-                            Text(
-                                text = "mode: $currentMode",
-                                fontSize = 12.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
+                        Text(
+                            text = "mode: $currentMode",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
 
-                            ModeMenuItem(
-                                text = "production",
-                                isSelected = currentMode == "production",
-                                onClick = { onModeChange("production") }
-                            )
+                        ModeMenuItem(
+                            text = "production",
+                            isSelected = currentMode == "production",
+                            onClick = { onModeChange("production") }
+                        )
 
-                            ModeMenuItem(
-                                text = "edit mode",
-                                isSelected = currentMode == "edit mode",
-                                onClick = { onModeChange("edit mode") }
-                            )
-                        }
+                        ModeMenuItem(
+                            text = "edit mode",
+                            isSelected = currentMode == "edit mode",
+                            onClick = { onModeChange("edit mode") }
+                        )
                     }
                 }
             }
