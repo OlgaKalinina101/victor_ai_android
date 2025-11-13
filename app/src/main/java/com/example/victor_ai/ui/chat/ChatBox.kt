@@ -68,6 +68,8 @@ fun ChatBox(
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
     var currentMode by remember { mutableStateOf("production") }
+    var showSearchOverlay by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         try {
@@ -119,7 +121,7 @@ fun ChatBox(
             // └─────────────────────────────┘
             ChatHeader(
                 onMenuClick = { showMenu = true },
-                onSearchClick = { /* TODO: заглушка */ },
+                onSearchClick = { showSearchOverlay = true },
                 showMenu = showMenu,
                 currentMode = currentMode,
                 onModeChange = { mode ->
@@ -216,6 +218,18 @@ fun ChatBox(
                 onAttachClick = { /* TODO: заглушка */ }
             )
         }
+
+        // Оверлей поиска
+        if (showSearchOverlay) {
+            SearchOverlay(
+                searchQuery = searchQuery,
+                onQueryChange = { searchQuery = it },
+                onClose = {
+                    showSearchOverlay = false
+                    searchQuery = ""
+                }
+            )
+        }
     }
 }
 
@@ -257,27 +271,44 @@ fun ChatHeader(
                     )
                 }
 
-                // Выпадающее меню
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = onDismissMenu
-                ) {
-                    Text(
-                        text = "mode: $currentMode",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-                    HorizontalDivider(thickness = 1.dp, color = Color(0xFF333333))
+                // Кастомное меню режимов
+                if (showMenu) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 48.dp)
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) {
+                                onDismissMenu()
+                            }
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .width(200.dp)
+                                .background(Color(0xFF3A3A3C), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "mode: $currentMode",
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
 
-                    DropdownMenuItem(
-                        text = { Text("production") },
-                        onClick = { onModeChange("production") }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("edit mode") },
-                        onClick = { onModeChange("edit mode") }
-                    )
+                            ModeMenuItem(
+                                text = "production",
+                                isSelected = currentMode == "production",
+                                onClick = { onModeChange("production") }
+                            )
+
+                            ModeMenuItem(
+                                text = "edit mode",
+                                isSelected = currentMode == "edit mode",
+                                onClick = { onModeChange("edit mode") }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -475,6 +506,111 @@ fun ChatInputPanel(
             modifier = Modifier.size(40.dp)
         ) {
             Text("▶", fontSize = 20.sp, color = Color(0xFFE0E0E0))
+        }
+    }
+}
+
+/**
+ * Элемент меню режимов
+ */
+@Composable
+fun ModeMenuItem(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                onClick()
+            }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (isSelected) "> " else "  ",
+            fontSize = 14.sp,
+            color = Color(0xFFE0E0E0),
+            modifier = Modifier.width(20.dp)
+        )
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            color = Color(0xFFE0E0E0)
+        )
+    }
+}
+
+/**
+ * Оверлей поиска
+ */
+@Composable
+fun SearchOverlay(
+    searchQuery: String,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.85f))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                onClose()
+            }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    // Блокируем закрытие при клике на содержимое
+                }
+        ) {
+            Text(
+                text = "ПОИСК",
+                fontSize = 20.sp,
+                color = Color(0xFFE0E0E0),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedContainerColor = Color(0xFF2C2C2E),
+                    unfocusedContainerColor = Color(0xFF2C2C2E),
+                    focusedIndicatorColor = Color(0xFFBB86FC),
+                    unfocusedIndicatorColor = Color.Gray,
+                    cursorColor = Color(0xFFBB86FC)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                placeholder = {
+                    Text("Введите запрос...", color = Color.Gray)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "результаты... (в самом чате)",
+                fontSize = 14.sp,
+                color = Color(0xFF888888),
+                fontStyle = FontStyle.Italic
+            )
         }
     }
 }
