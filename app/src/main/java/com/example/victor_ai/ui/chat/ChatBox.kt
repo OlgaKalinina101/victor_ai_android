@@ -366,7 +366,7 @@ fun MessageItem(
 
     // User-сообщения справа и светлее фона
     val alignment = if (message.isUser) Alignment.End else Alignment.Start
-    val backgroundColor = if (message.isUser) Color(0xFF232323) else Color.Transparent
+    val backgroundColor = if (message.isUser) Color(0xFF3A3838) else Color.Transparent
 
     Column(
         modifier = Modifier
@@ -416,12 +416,21 @@ fun MessageItem(
             }
         } else {
             // Обычный режим
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(8.dp))
-                    .padding(if (message.isUser) 8.dp else 0.dp)
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
             ) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(
+                            max = if (message.isUser) 320.dp else 380.dp
+                        ) // ← чтобы бабл был нормальной ширины
+                        .background(backgroundColor, RoundedCornerShape(8.dp))
+                        .padding(6.dp)
+                ) {
+
                 // Текст сообщения
                 if (currentMode == "edit mode") {
                     // В edit mode включаем долгий тап для редактирования
@@ -475,7 +484,7 @@ fun MessageItem(
                         tint = Color(0xFF666666)
                     )
                 }
-            }
+            }}
         }
     }
 }
