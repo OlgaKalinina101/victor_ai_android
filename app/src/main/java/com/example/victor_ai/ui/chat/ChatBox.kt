@@ -35,9 +35,12 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import com.example.victor_ai.R
 import com.example.victor_ai.data.network.sendToDiaryEntry
 import com.example.victor_ai.logic.fetchChatHistory
 import com.example.victor_ai.domain.model.ChatMessage
@@ -140,6 +143,7 @@ fun ChatBox(
                 // Индикатор печати
                 if (isTyping) {
                     item {
+                        val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -150,7 +154,8 @@ fun ChatBox(
                                 "~ набирает ответ ~",
                                 fontSize = 14.sp,
                                 color = Color(0xFF888888),
-                                fontStyle = FontStyle.Italic
+                                fontStyle = FontStyle.Italic,
+                                fontFamily = didactGothicFont
                             )
                         }
                     }
@@ -215,6 +220,8 @@ fun ChatBox(
 
         // Меню режимов (вынесено на верхний уровень)
         if (showMenu) {
+            val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -244,7 +251,8 @@ fun ChatBox(
                         text = "mode: $currentMode",
                         fontSize = 12.sp,
                         color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        fontFamily = didactGothicFont
                     )
 
                     ModeMenuItem(
@@ -295,6 +303,8 @@ fun ChatHeader(
     onSearchClick: () -> Unit,
     currentMode: String
 ) {
+    val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -321,7 +331,8 @@ fun ChatHeader(
                 text = "Victor AI",
                 fontSize = 18.sp,
                 color = Color(0xFFE0E0E0),
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                fontFamily = didactGothicFont
             )
 
             // [🔍] Поиск
@@ -351,10 +362,17 @@ fun MessageItem(
     onSaveEdit: () -> Unit,
     onCopy: () -> Unit
 ) {
+    val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+
+    // User-сообщения справа и светлее фона
+    val alignment = if (message.isUser) Alignment.End else Alignment.Start
+    val backgroundColor = if (message.isUser) Color(0xFF232323) else Color.Transparent
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        horizontalAlignment = alignment
     ) {
         if (isEditing) {
             // Режим редактирования
@@ -377,7 +395,7 @@ fun MessageItem(
                         unfocusedIndicatorColor = Color.Gray,
                         cursorColor = Color(0xFFBB86FC)
                     ),
-                    textStyle = TextStyle(fontSize = 15.sp),
+                    textStyle = TextStyle(fontSize = 15.sp, fontFamily = didactGothicFont),
                     minLines = 2
                 )
 
@@ -388,17 +406,22 @@ fun MessageItem(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onCancelEdit) {
-                        Text("Отмена", color = Color.Gray, fontSize = 14.sp)
+                        Text("Отмена", color = Color.Gray, fontSize = 14.sp, fontFamily = didactGothicFont)
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     TextButton(onClick = onSaveEdit) {
-                        Text("✓", color = Color(0xFFBB86FC), fontSize = 18.sp)
+                        Text("✓", color = Color(0xFFBB86FC), fontSize = 18.sp, fontFamily = didactGothicFont)
                     }
                 }
             }
         } else {
             // Обычный режим
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor, RoundedCornerShape(8.dp))
+                    .padding(if (message.isUser) 8.dp else 0.dp)
+            ) {
                 // Текст сообщения
                 if (currentMode == "edit mode") {
                     // В edit mode включаем долгий тап для редактирования
@@ -407,7 +430,8 @@ fun MessageItem(
                         onLongClick = onStartEdit,
                         style = TextStyle(
                             fontSize = 15.sp,
-                            color = Color(0xFFE0E0E0)
+                            color = Color(0xFFE0E0E0),
+                            fontFamily = didactGothicFont
                         )
                     )
                 } else {
@@ -416,7 +440,8 @@ fun MessageItem(
                         text = parseMarkdown(message.text),
                         style = TextStyle(
                             fontSize = 15.sp,
-                            color = Color(0xFFE0E0E0)
+                            color = Color(0xFFE0E0E0),
+                            fontFamily = didactGothicFont
                         )
                     )
                 }
@@ -432,7 +457,8 @@ fun MessageItem(
                     Text(
                         text = formatTimestamp(message.timestamp),
                         fontSize = 12.sp,
-                        color = Color(0xFF888888)
+                        color = Color(0xFF888888),
+                        fontFamily = didactGothicFont
                     )
 
                     Icon(
@@ -464,6 +490,8 @@ fun ChatInputPanel(
     onSend: () -> Unit,
     onAttachClick: () -> Unit
 ) {
+    val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -500,8 +528,9 @@ fun ChatInputPanel(
             ),
             shape = RoundedCornerShape(20.dp),
             placeholder = {
-                Text("текст...", color = Color.Gray, fontSize = 14.sp)
-            }
+                Text("текст...", color = Color.Gray, fontSize = 14.sp, fontFamily = didactGothicFont)
+            },
+            textStyle = TextStyle(fontFamily = didactGothicFont)
         )
 
         // [▶] Отправить
@@ -509,7 +538,7 @@ fun ChatInputPanel(
             onClick = onSend,
             modifier = Modifier.size(40.dp)
         ) {
-            Text("▶", fontSize = 20.sp, color = Color(0xFFE0E0E0))
+            Text("▶", fontSize = 20.sp, color = Color(0xFFE0E0E0), fontFamily = didactGothicFont)
         }
     }
 }
@@ -523,6 +552,8 @@ fun ModeMenuItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -539,12 +570,14 @@ fun ModeMenuItem(
             text = if (isSelected) "> " else "  ",
             fontSize = 14.sp,
             color = Color(0xFFE0E0E0),
-            modifier = Modifier.width(20.dp)
+            modifier = Modifier.width(20.dp),
+            fontFamily = didactGothicFont
         )
         Text(
             text = text,
             fontSize = 14.sp,
-            color = Color(0xFFE0E0E0)
+            color = Color(0xFFE0E0E0),
+            fontFamily = didactGothicFont
         )
     }
 }
@@ -558,6 +591,8 @@ fun SearchOverlay(
     onQueryChange: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -585,7 +620,8 @@ fun SearchOverlay(
                 fontSize = 20.sp,
                 color = Color(0xFFE0E0E0),
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
+                fontFamily = didactGothicFont
             )
 
             OutlinedTextField(
@@ -603,8 +639,9 @@ fun SearchOverlay(
                 ),
                 shape = RoundedCornerShape(8.dp),
                 placeholder = {
-                    Text("Введите запрос...", color = Color.Gray)
-                }
+                    Text("Введите запрос...", color = Color.Gray, fontFamily = didactGothicFont)
+                },
+                textStyle = TextStyle(fontFamily = didactGothicFont)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -613,7 +650,8 @@ fun SearchOverlay(
                 text = "результаты... (в самом чате)",
                 fontSize = 14.sp,
                 color = Color(0xFF888888),
-                fontStyle = FontStyle.Italic
+                fontStyle = FontStyle.Italic,
+                fontFamily = didactGothicFont
             )
         }
     }
