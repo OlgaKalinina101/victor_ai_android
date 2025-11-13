@@ -88,24 +88,31 @@ fun ChatBox(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFF1E1E1E))
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            Log.d("ChatBox", "❌ TAP -> закрываем чат")
-                            onClose()
-                        },
-                        onLongPress = {
-                            Log.d("ChatBox", "🎤 LONG TAP -> микрофон")
-                            onStartVoiceRecognition()
-                        },
-                        onPress = {
-                            tryAwaitRelease()
-                            if (isListeningState) {
-                                onStopListening()
-                            }
+                .then(
+                    // Жесты работают только в production mode
+                    if (currentMode == "production") {
+                        Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = {
+                                    Log.d("ChatBox", "❌ TAP -> закрываем чат")
+                                    onClose()
+                                },
+                                onLongPress = {
+                                    Log.d("ChatBox", "🎤 LONG TAP -> микрофон")
+                                    onStartVoiceRecognition()
+                                },
+                                onPress = {
+                                    tryAwaitRelease()
+                                    if (isListeningState) {
+                                        onStopListening()
+                                    }
+                                }
+                            )
                         }
-                    )
-                }
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             // ┌─────────────────────────────┐
             // │ Header: меню, заголовок, поиск
@@ -162,6 +169,7 @@ fun ChatBox(
                         message = message,
                         isEditing = isEditing,
                         editingText = editingText,
+                        currentMode = currentMode,
                         onEditingTextChange = { editingText = it },
                         onStartEdit = {
                             editingMessageIndex = actualIndex
@@ -301,6 +309,7 @@ fun MessageItem(
     message: ChatMessage,
     isEditing: Boolean,
     editingText: String,
+    currentMode: String,
     onEditingTextChange: (String) -> Unit,
     onStartEdit: () -> Unit,
     onCancelEdit: () -> Unit,
@@ -356,14 +365,26 @@ fun MessageItem(
             // Обычный режим
             Column(modifier = Modifier.fillMaxWidth()) {
                 // Текст сообщения
-                LongClickableText(
-                    text = parseMarkdown(message.text),
-                    onLongClick = onStartEdit,
-                    style = TextStyle(
-                        fontSize = 15.sp,
-                        color = Color(0xFFE0E0E0)
+                if (currentMode == "edit mode") {
+                    // В edit mode включаем долгий тап для редактирования
+                    LongClickableText(
+                        text = parseMarkdown(message.text),
+                        onLongClick = onStartEdit,
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            color = Color(0xFFE0E0E0)
+                        )
                     )
-                )
+                } else {
+                    // В production mode просто отображаем текст
+                    Text(
+                        text = parseMarkdown(message.text),
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            color = Color(0xFFE0E0E0)
+                        )
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
