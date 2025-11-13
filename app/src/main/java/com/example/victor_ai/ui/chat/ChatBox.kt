@@ -122,13 +122,7 @@ fun ChatBox(
             ChatHeader(
                 onMenuClick = { showMenu = true },
                 onSearchClick = { showSearchOverlay = true },
-                showMenu = showMenu,
-                currentMode = currentMode,
-                onModeChange = { mode ->
-                    currentMode = mode
-                    showMenu = false
-                },
-                onDismissMenu = { showMenu = false }
+                currentMode = currentMode
             )
 
             HorizontalDivider(thickness = 1.dp, color = Color(0xFF333333))
@@ -219,18 +213,59 @@ fun ChatBox(
             )
         }
 
-        // Полупрозрачный overlay для закрытия меню
+        // Меню режимов (вынесено на верхний уровень)
         if (showMenu) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Transparent)
+                    .background(Color.Black.copy(alpha = 0.3f))
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { showMenu = false }
                         )
                     }
-            )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(start = 12.dp, top = 72.dp)
+                        .width(200.dp)
+                        .background(Color(0xFF3A3A3C), RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                        .pointerInput(Unit) {
+                            // Блокируем все события, чтобы они не проходили к родителю
+                            detectTapGestures(
+                                onTap = { /* consume */ },
+                                onLongPress = { /* consume */ },
+                                onPress = { /* consume */ }
+                            )
+                        }
+                ) {
+                    Text(
+                        text = "mode: $currentMode",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    ModeMenuItem(
+                        text = "production",
+                        isSelected = currentMode == "production",
+                        onClick = {
+                            currentMode = "production"
+                            showMenu = false
+                        }
+                    )
+
+                    ModeMenuItem(
+                        text = "edit mode",
+                        isSelected = currentMode == "edit mode",
+                        onClick = {
+                            currentMode = "edit mode"
+                            showMenu = false
+                        }
+                    )
+                }
+            }
         }
 
         // Оверлей поиска
@@ -258,10 +293,7 @@ fun ChatBox(
 fun ChatHeader(
     onMenuClick: () -> Unit,
     onSearchClick: () -> Unit,
-    showMenu: Boolean,
-    currentMode: String,
-    onModeChange: (String) -> Unit,
-    onDismissMenu: () -> Unit
+    currentMode: String
 ) {
     Box(
         modifier = Modifier
@@ -276,52 +308,12 @@ fun ChatHeader(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // [☰] Меню
-            Box {
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Меню",
-                        tint = Color(0xFFE0E0E0)
-                    )
-                }
-
-                // Кастомное меню режимов
-                if (showMenu) {
-                    Column(
-                        modifier = Modifier
-                            .padding(top = 48.dp)
-                            .width(200.dp)
-                            .background(Color(0xFF3A3A3C), RoundedCornerShape(12.dp))
-                            .padding(12.dp)
-                            .pointerInput(Unit) {
-                                // Блокируем все события, чтобы они не проходили к родителю
-                                detectTapGestures(
-                                    onTap = { /* consume */ },
-                                    onLongPress = { /* consume */ },
-                                    onPress = { /* consume */ }
-                                )
-                            }
-                    ) {
-                        Text(
-                            text = "mode: $currentMode",
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-
-                        ModeMenuItem(
-                            text = "production",
-                            isSelected = currentMode == "production",
-                            onClick = { onModeChange("production") }
-                        )
-
-                        ModeMenuItem(
-                            text = "edit mode",
-                            isSelected = currentMode == "edit mode",
-                            onClick = { onModeChange("edit mode") }
-                        )
-                    }
-                }
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Меню",
+                    tint = Color(0xFFE0E0E0)
+                )
             }
 
             // Victor AI
