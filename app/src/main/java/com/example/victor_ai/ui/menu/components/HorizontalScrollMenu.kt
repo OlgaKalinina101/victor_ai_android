@@ -80,10 +80,10 @@ fun HorizontalScrollMenu(
                 onClick = { onMenuItemClick(MenuState.PLAYLIST) }
             )
 
-            // Дневник
+            // Среда
             MenuText(
-                text = "дневник",
-                onClick = { onMenuItemClick(MenuState.DIARY) }
+                text = "среда",
+                onClick = { onMenuItemClick(MenuState.ENVIRONMENT) }
             )
         }
     }

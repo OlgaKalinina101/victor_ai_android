@@ -1,0 +1,133 @@
+package com.example.victor_ai.logic
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+
+/**
+ * 📡 Менеджер для работы с WiFi сетями
+ *
+ * Функции:
+ * - Получение списка доступных WiFi сетей
+ * - Получение текущей подключенной сети
+ * - Проверка подключения к конкретной сети
+ */
+class WiFiNetworkManager(private val context: Context) {
+
+    private val wifiManager: WifiManager =
+        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+    private val connectivityManager: ConnectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    /**
+     * Получить информацию о текущей подключенной WiFi сети
+     * @return Pair<SSID, BSSID> или null если не подключен
+     */
+    fun getCurrentWiFi(): Pair<String, String>? {
+        if (!hasLocationPermission()) {
+            return null
+        }
+
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+
+                val network: Network? = connectivityManager.activeNetwork
+                val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
+
+                if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
+                    val wifiInfo = capabilities.transportInfo as? WifiInfo
+                    val ssid = wifiInfo?.ssid?.removeSurrounding("\"") ?: return null
+                    val bssid = wifiInfo.bssid ?: return null
+                    Pair(ssid, bssid)
+                } else {
+                    null
+                }
+            } else {
+                // Android 9 и ниже
+                @Suppress("DEPRECATION")
+                val wifiInfo = wifiManager.connectionInfo
+                if (wifiInfo != null && wifiInfo.networkId != -1) {
+                    val ssid = wifiInfo.ssid.removeSurrounding("\"")
+                    val bssid = wifiInfo.bssid
+                    if (ssid.isNotEmpty() && bssid != null) {
+                        Pair(ssid, bssid)
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Получить список доступных WiFi сетей
+     * @return List<Pair<SSID, BSSID>>
+     */
+    fun getAvailableNetworks(): List<Pair<String, String>> {
+        if (!hasLocationPermission()) {
+            return emptyList()
+        }
+
+        return try {
+            @Suppress("DEPRECATION")
+            val scanResults = wifiManager.scanResults
+            scanResults.mapNotNull { result ->
+                val ssid = result.SSID
+                val bssid = result.BSSID
+                if (ssid.isNotEmpty() && bssid != null) {
+                    Pair(ssid, bssid)
+                } else {
+                    null
+                }
+            }.distinctBy { it.first } // убираем дубликаты по SSID
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Запустить сканирование WiFi сетей
+     */
+    fun startScan(): Boolean {
+        if (!hasLocationPermission()) {
+            return false
+        }
+
+        return try {
+            @Suppress("DEPRECATION")
+            wifiManager.startScan()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Проверить, подключен ли к конкретной сети
+     */
+    fun isConnectedTo(ssid: String, bssid: String): Boolean {
+        val current = getCurrentWiFi() ?: return false
+        return current.first == ssid && current.second == bssid
+    }
+
+    /**
+     * Проверить, есть ли разрешение на доступ к местоположению
+     */
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+}

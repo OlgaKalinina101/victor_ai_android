@@ -8,6 +8,6 @@ enum class MenuState {
     CALENDAR,
     CHAT,
     PLAYLIST,
-    DIARY,
+    ENVIRONMENT,
     BROWSER
 }

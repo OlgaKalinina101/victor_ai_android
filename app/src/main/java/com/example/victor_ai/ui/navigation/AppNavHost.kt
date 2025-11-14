@@ -19,7 +19,7 @@ import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.screens.BrowserScreen
 import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
 import com.example.victor_ai.ui.screens.ChatScreen
-import com.example.victor_ai.ui.screens.DiaryScreen
+import com.example.victor_ai.ui.screens.EnvironmentScreen
 import com.example.victor_ai.ui.screens.MainScreen
 import com.example.victor_ai.ui.screens.system.SystemMenuScreen
 
@@ -96,8 +96,8 @@ fun AppNavHost(
             )
         }
 
-        composable("diary") {
-            DiaryScreen(
+        composable("environment") {
+            EnvironmentScreen(
                 modifier = Modifier
             )
         }
