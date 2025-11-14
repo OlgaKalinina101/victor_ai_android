@@ -14,8 +14,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -112,17 +116,36 @@ private fun HomeStatusSection(
     didactGothic: FontFamily,
     grayText: Color
 ) {
+    val greenColor = Color(0xFF4CAF50) // зелёный
+    val redColor = Color(0xFFFF6B6B) // красный
+
     val statusText = if (homeWiFi != null) {
         // Если подключены к домашнему WiFi ИЛИ расстояние == 0
         if (isAtHome || distanceToHome == 0) {
-            "[дома: ✓]"
+            buildAnnotatedString {
+                append("[дома: ")
+                withStyle(style = SpanStyle(color = greenColor)) {
+                    append("✓")
+                }
+                append("]")
+            }
         } else if (distanceToHome != null) {
-            "[дома: ✗ - $distanceToHome м]"
+            buildAnnotatedString {
+                append("[дома: ")
+                withStyle(style = SpanStyle(color = redColor)) {
+                    append("✗")
+                }
+                append(" - $distanceToHome м]")
+            }
         } else {
-            "[дома: ?]"
+            buildAnnotatedString {
+                append("[дома: ?]")
+            }
         }
     } else {
-        "[дома: Null]"
+        buildAnnotatedString {
+            append("[дома: Null]")
+        }
     }
 
     Text(
