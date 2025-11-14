@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.sp
 import com.example.victor_ai.R
 
 @Composable
-fun DiaryScreen(
+fun BrowserScreen(
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -24,7 +24,7 @@ fun DiaryScreen(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "/* TODO: Дневник в разработке */",
+            text = "/* TODO: Браузер в разработке */",
             color = Color(0xFFFFD700), // желтый
             fontSize = 24.sp,
             fontFamily = FontFamily(Font(R.font.didact_gothic))

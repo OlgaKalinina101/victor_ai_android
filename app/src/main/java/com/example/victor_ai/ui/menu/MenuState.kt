@@ -7,6 +7,7 @@ enum class MenuState {
     SYSTEM,
     CALENDAR,
     CHAT,
-
-    PLAYLIST
+    PLAYLIST,
+    DIARY,
+    BROWSER
 }

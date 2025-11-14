@@ -107,6 +107,14 @@ fun AssistantButtonArea(
                             navController.navigate("calendar")
                             showAssistantMenu = false
                         }
+                        MenuState.DIARY -> {
+                            navController.navigate("diary")
+                            showAssistantMenu = false
+                        }
+                        MenuState.BROWSER -> {
+                            navController.navigate("browser")
+                            showAssistantMenu = false
+                        }
                         else -> Unit
                     }
                 }

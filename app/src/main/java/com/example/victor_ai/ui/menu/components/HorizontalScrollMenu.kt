@@ -59,7 +59,7 @@ fun HorizontalScrollMenu(
             // Браузер
             MenuText(
                 text = "браузер",
-                onClick = { /* TODO: Браузер в разработке */ }
+                onClick = { onMenuItemClick(MenuState.BROWSER) }
             )
 
             // Системное
@@ -83,7 +83,7 @@ fun HorizontalScrollMenu(
             // Дневник
             MenuText(
                 text = "дневник",
-                onClick = { /* TODO: Дневник в разработке */ }
+                onClick = { onMenuItemClick(MenuState.DIARY) }
             )
         }
     }

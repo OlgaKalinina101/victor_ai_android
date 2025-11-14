@@ -16,8 +16,10 @@ import com.example.victor_ai.ui.places.PlacesMenu
 import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.playlist.PlaylistScreen
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
+import com.example.victor_ai.ui.screens.BrowserScreen
 import com.example.victor_ai.ui.screens.CalendarScreenWithReminders
 import com.example.victor_ai.ui.screens.ChatScreen
+import com.example.victor_ai.ui.screens.DiaryScreen
 import com.example.victor_ai.ui.screens.MainScreen
 import com.example.victor_ai.ui.screens.system.SystemMenuScreen
 
@@ -90,6 +92,18 @@ fun AppNavHost(
 
         composable("system") {
             SystemMenuScreen(
+                modifier = Modifier
+            )
+        }
+
+        composable("diary") {
+            DiaryScreen(
+                modifier = Modifier
+            )
+        }
+
+        composable("browser") {
+            BrowserScreen(
                 modifier = Modifier
             )
         }
