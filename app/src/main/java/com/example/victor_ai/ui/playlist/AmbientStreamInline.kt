@@ -51,7 +51,8 @@ fun AmbientThinkingRow(
                 VictorEyes(
                     state = EyeState.IDLE,
                     showTime = false,
-                    modifier = Modifier.size(48.dp) // поменьше, чтобы не вылезали
+                    alignCenter = true,
+                    modifier = Modifier.size(48.dp)
                 )
 
                 Text(
