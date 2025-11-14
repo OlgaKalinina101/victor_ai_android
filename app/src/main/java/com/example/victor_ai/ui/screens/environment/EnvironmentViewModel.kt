@@ -41,6 +41,7 @@ class EnvironmentViewModel @Inject constructor(
 
     init {
         loadData()
+        scanWiFiNetworks()
     }
 
     /**
@@ -85,8 +86,7 @@ class EnvironmentViewModel @Inject constructor(
             val networks = wifiManager.getAvailableNetworks()
             _state.value = _state.value.copy(
                 availableNetworks = networks,
-                isScanning = false,
-                showNetworkDropdown = true
+                isScanning = false
             )
         }
     }
@@ -109,8 +109,14 @@ class EnvironmentViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     homeWiFi = ssid,
                     homeBSSID = bssid,
-                    homeCoordinates = Pair(location.latitude, location.longitude),
-                    showNetworkDropdown = false
+                    homeCoordinates = Pair(location.latitude, location.longitude)
+                )
+
+                // Обновить текущий WiFi и статус дома
+                val currentWiFi = wifiManager.getCurrentWiFi()
+                _state.value = _state.value.copy(
+                    currentWiFi = currentWiFi?.first,
+                    currentBSSID = currentWiFi?.second
                 )
 
                 updateHomeStatus()
@@ -201,16 +207,6 @@ class EnvironmentViewModel @Inject constructor(
     }
 
     /**
-     * Переключить видимость выпадающего списка сетей
-     */
-    fun toggleNetworkDropdown() {
-        _state.value = _state.value.copy(
-            showNetworkDropdown = !_state.value.showNetworkDropdown,
-            currentPage = 0 // сброс на первую страницу при открытии
-        )
-    }
-
-    /**
      * Перейти на следующую страницу
      */
     fun nextPage() {
@@ -259,6 +255,5 @@ data class EnvironmentState(
     val isAtHome: Boolean = false,
     val distanceToHome: Int? = null, // в метрах
     val isScanning: Boolean = false,
-    val showNetworkDropdown: Boolean = false,
     val currentPage: Int = 0 // текущая страница для пагинации
 )
