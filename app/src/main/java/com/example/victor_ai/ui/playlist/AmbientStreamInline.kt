@@ -42,8 +42,8 @@ fun AmbientThinkingRow(
     ) {
         androidx.compose.animation.AnimatedVisibility(
             visible = show,
-            enter = fadeIn() + slideInHorizontally(initialOffsetX = { 20 }),
-            exit = fadeOut() + slideOutHorizontally(targetOffsetX = { 20 })
+            enter = fadeIn(),
+            exit = fadeOut()
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
