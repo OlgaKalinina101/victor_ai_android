@@ -64,7 +64,6 @@ fun EnvironmentScreen(
                 isAtHome = state.isAtHome,
                 distanceToHome = state.distanceToHome,
                 homeWiFi = state.homeWiFi,
-                onHomeNotSetClick = { viewModel.scanWiFiNetworks() },
                 didactGothic = didactGothic,
                 grayText = grayText
             )
@@ -81,38 +80,22 @@ fun EnvironmentScreen(
                 )
             }
 
-            // Выпадающий список WiFi сетей
-            if (state.showNetworkDropdown) {
-                WiFiNetworkList(
-                    networks = state.availableNetworks,
-                    currentHomeSSID = state.homeWiFi,
-                    currentPage = state.currentPage,
-                    isScanning = state.isScanning,
-                    onNetworkSelected = { ssid, bssid ->
-                        viewModel.setHomeWiFi(ssid, bssid)
-                    },
-                    onNextPage = { viewModel.nextPage() },
-                    onPreviousPage = { viewModel.previousPage() },
-                    onDismiss = { viewModel.toggleNetworkDropdown() },
-                    didactGothic = didactGothic,
-                    grayText = grayText
-                )
-            }
-
-            // Кнопка удаления домашнего WiFi (если установлен)
-            if (state.homeWiFi != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                TextButton(
-                    onClick = { viewModel.clearHomeWiFi() },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF6B6B))
-                ) {
-                    Text(
-                        text = "удалить домашний wifi",
-                        fontFamily = didactGothic,
-                        fontSize = 16.sp
-                    )
-                }
-            }
+            // Список WiFi сетей (всегда открыт)
+            WiFiNetworkList(
+                networks = state.availableNetworks,
+                currentHomeSSID = state.homeWiFi,
+                currentPage = state.currentPage,
+                isScanning = state.isScanning,
+                homeIsSet = state.homeWiFi != null,
+                onNetworkSelected = { ssid, bssid ->
+                    viewModel.setHomeWiFi(ssid, bssid)
+                },
+                onClearHome = { viewModel.clearHomeWiFi() },
+                onNextPage = { viewModel.nextPage() },
+                onPreviousPage = { viewModel.previousPage() },
+                didactGothic = didactGothic,
+                grayText = grayText
+            )
         }
     }
 }
@@ -122,38 +105,27 @@ private fun HomeStatusSection(
     isAtHome: Boolean,
     distanceToHome: Int?,
     homeWiFi: String?,
-    onHomeNotSetClick: () -> Unit,
     didactGothic: FontFamily,
     grayText: Color
 ) {
-    if (homeWiFi != null) {
-        val statusText = if (isAtHome) {
+    val statusText = if (homeWiFi != null) {
+        if (isAtHome) {
             "[дома: ✓]"
         } else if (distanceToHome != null) {
             "[дома: ✗ - $distanceToHome м]"
         } else {
             "[дома: ?]"
         }
-
-        Text(
-            text = statusText,
-            color = grayText,
-            fontSize = 22.sp,
-            fontFamily = didactGothic
-        )
     } else {
-        Text(
-            text = "[дом не установлен]",
-            color = grayText,
-            fontSize = 18.sp,
-            fontFamily = didactGothic,
-            modifier = Modifier.clickable(
-                onClick = onHomeNotSetClick,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
-        )
+        "[дома: Null]"
     }
+
+    Text(
+        text = statusText,
+        color = grayText,
+        fontSize = 22.sp,
+        fontFamily = didactGothic
+    )
 }
 
 @Composable
@@ -162,10 +134,11 @@ private fun WiFiNetworkList(
     currentHomeSSID: String?,
     currentPage: Int,
     isScanning: Boolean,
+    homeIsSet: Boolean,
     onNetworkSelected: (String, String) -> Unit,
+    onClearHome: () -> Unit,
     onNextPage: () -> Unit,
     onPreviousPage: () -> Unit,
-    onDismiss: () -> Unit,
     didactGothic: FontFamily,
     grayText: Color
 ) {
@@ -180,6 +153,27 @@ private fun WiFiNetworkList(
             .fillMaxWidth(0.9f)
             .padding(vertical = 8.dp)
     ) {
+        // Первая строка: "> select home wifi" или "удалить домашний wifi"
+        if (homeIsSet) {
+            WiFiMenuItem(
+                text = "удалить домашний wifi",
+                isSelected = false,
+                onClick = onClearHome,
+                didactGothic = didactGothic,
+                grayText = grayText
+            )
+        } else {
+            WiFiMenuItem(
+                text = "select home wifi",
+                isSelected = true,
+                onClick = { },
+                didactGothic = didactGothic,
+                grayText = grayText
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         if (isScanning) {
             CircularProgressIndicator(
                 color = grayText,
@@ -229,34 +223,6 @@ private fun WiFiNetworkList(
                     grayText = grayText
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Кнопка "закрыть"
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onDismiss() }
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "  ",
-                fontSize = 14.sp,
-                color = grayText,
-                modifier = Modifier.width(20.dp),
-                fontFamily = didactGothic
-            )
-            Text(
-                text = "закрыть",
-                fontSize = 14.sp,
-                color = grayText,
-                fontFamily = didactGothic
-            )
         }
     }
 }
