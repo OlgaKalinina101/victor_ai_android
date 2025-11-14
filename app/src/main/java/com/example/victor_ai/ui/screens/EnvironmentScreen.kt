@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.victor_ai.R
 import com.example.victor_ai.ui.screens.environment.EnvironmentViewModel
+import kotlin.math.min
 
 @Composable
 fun EnvironmentScreen(
@@ -85,10 +86,13 @@ fun EnvironmentScreen(
                 WiFiNetworkList(
                     networks = state.availableNetworks,
                     currentHomeSSID = state.homeWiFi,
+                    currentPage = state.currentPage,
                     isScanning = state.isScanning,
                     onNetworkSelected = { ssid, bssid ->
                         viewModel.setHomeWiFi(ssid, bssid)
                     },
+                    onNextPage = { viewModel.nextPage() },
+                    onPreviousPage = { viewModel.previousPage() },
                     onDismiss = { viewModel.toggleNetworkDropdown() },
                     didactGothic = didactGothic,
                     grayText = grayText
@@ -156,26 +160,26 @@ private fun HomeStatusSection(
 private fun WiFiNetworkList(
     networks: List<Pair<String, String>>,
     currentHomeSSID: String?,
+    currentPage: Int,
     isScanning: Boolean,
     onNetworkSelected: (String, String) -> Unit,
+    onNextPage: () -> Unit,
+    onPreviousPage: () -> Unit,
     onDismiss: () -> Unit,
     didactGothic: FontFamily,
     grayText: Color
 ) {
+    val itemsPerPage = 5
+    val totalPages = (networks.size + itemsPerPage - 1) / itemsPerPage
+    val startIndex = currentPage * itemsPerPage
+    val endIndex = minOf(startIndex + itemsPerPage, networks.size)
+    val currentPageNetworks = networks.subList(startIndex, endIndex)
+
     Column(
         modifier = Modifier
             .fillMaxWidth(0.9f)
-            .background(Color(0xFF3F4650))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(vertical = 8.dp)
     ) {
-        Text(
-            text = "доступные сети:",
-            color = grayText,
-            fontSize = 18.sp,
-            fontFamily = didactGothic
-        )
-
         if (isScanning) {
             CircularProgressIndicator(
                 color = grayText,
@@ -185,42 +189,108 @@ private fun WiFiNetworkList(
             )
         } else if (networks.isEmpty()) {
             Text(
-                text = "сети не найдены",
+                text = "  сети не найдены",
                 color = grayText.copy(alpha = 0.6f),
-                fontSize = 16.sp,
-                fontFamily = didactGothic
+                fontSize = 14.sp,
+                fontFamily = didactGothic,
+                modifier = Modifier.padding(vertical = 8.dp)
             )
         } else {
-            networks.forEach { (ssid, bssid) ->
+            // Кнопка "предыдущие 5"
+            if (currentPage > 0) {
+                WiFiMenuItem(
+                    text = "---- предыдущие 5 ----",
+                    isSelected = false,
+                    onClick = onPreviousPage,
+                    didactGothic = didactGothic,
+                    grayText = grayText
+                )
+            }
+
+            // Список сетей на текущей странице
+            currentPageNetworks.forEach { (ssid, bssid) ->
                 val isCurrentHome = ssid == currentHomeSSID
-                Text(
-                    text = if (isCurrentHome) "→ $ssid (дом)" else "  $ssid",
-                    color = if (isCurrentHome) Color(0xFFFFD700) else grayText,
-                    fontSize = 16.sp,
-                    fontFamily = didactGothic,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            onClick = { onNetworkSelected(ssid, bssid) },
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        )
-                        .padding(vertical = 8.dp, horizontal = 4.dp)
+                WiFiMenuItem(
+                    text = if (isCurrentHome) "$ssid (дом)" else ssid,
+                    isSelected = isCurrentHome,
+                    onClick = { onNetworkSelected(ssid, bssid) },
+                    didactGothic = didactGothic,
+                    grayText = grayText
+                )
+            }
+
+            // Кнопка "следующие 5"
+            if (currentPage < totalPages - 1) {
+                WiFiMenuItem(
+                    text = "---- следующие 5 ----",
+                    isSelected = false,
+                    onClick = onNextPage,
+                    didactGothic = didactGothic,
+                    grayText = grayText
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(
-            onClick = onDismiss,
-            colors = ButtonDefaults.textButtonColors(contentColor = grayText)
+        // Кнопка "закрыть"
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { onDismiss() }
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
+                text = "  ",
+                fontSize = 14.sp,
+                color = grayText,
+                modifier = Modifier.width(20.dp),
+                fontFamily = didactGothic
+            )
+            Text(
                 text = "закрыть",
-                fontFamily = didactGothic,
-                fontSize = 16.sp
+                fontSize = 14.sp,
+                color = grayText,
+                fontFamily = didactGothic
             )
         }
+    }
+}
+
+@Composable
+private fun WiFiMenuItem(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    didactGothic: FontFamily,
+    grayText: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onClick() }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (isSelected) "> " else "  ",
+            fontSize = 14.sp,
+            color = if (isSelected) Color(0xFFFFD700) else grayText,
+            modifier = Modifier.width(20.dp),
+            fontFamily = didactGothic
+        )
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            color = if (isSelected) Color(0xFFFFD700) else grayText,
+            fontFamily = didactGothic
+        )
     }
 }

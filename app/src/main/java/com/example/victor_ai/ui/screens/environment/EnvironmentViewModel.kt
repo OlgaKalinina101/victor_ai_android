@@ -205,8 +205,30 @@ class EnvironmentViewModel @Inject constructor(
      */
     fun toggleNetworkDropdown() {
         _state.value = _state.value.copy(
-            showNetworkDropdown = !_state.value.showNetworkDropdown
+            showNetworkDropdown = !_state.value.showNetworkDropdown,
+            currentPage = 0 // сброс на первую страницу при открытии
         )
+    }
+
+    /**
+     * Перейти на следующую страницу
+     */
+    fun nextPage() {
+        val totalPages = (_state.value.availableNetworks.size + 4) / 5 // округление вверх
+        val currentPage = _state.value.currentPage
+        if (currentPage < totalPages - 1) {
+            _state.value = _state.value.copy(currentPage = currentPage + 1)
+        }
+    }
+
+    /**
+     * Перейти на предыдущую страницу
+     */
+    fun previousPage() {
+        val currentPage = _state.value.currentPage
+        if (currentPage > 0) {
+            _state.value = _state.value.copy(currentPage = currentPage - 1)
+        }
     }
 
     /**
@@ -237,5 +259,6 @@ data class EnvironmentState(
     val isAtHome: Boolean = false,
     val distanceToHome: Int? = null, // в метрах
     val isScanning: Boolean = false,
-    val showNetworkDropdown: Boolean = false
+    val showNetworkDropdown: Boolean = false,
+    val currentPage: Int = 0 // текущая страница для пагинации
 )
