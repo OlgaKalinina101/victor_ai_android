@@ -42,3 +42,19 @@ data class TopTrack(
     val artist: String,
     val plays: Int
 )
+
+data class WaveTrack(
+    val id: Int,
+    val title: String,
+    val artist: String?,
+    val duration: Float,
+    @Json(name = "energy_description") val energyDescription: String?,
+    @Json(name = "temperature_description") val temperatureDescription: String?,
+    @Json(name = "stream_url") val streamUrl: String
+)
+
+data class WaveResponse(
+    val tracks: List<WaveTrack>,
+    val energy: String?,
+    val temperature: String?
+)

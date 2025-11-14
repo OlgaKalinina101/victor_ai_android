@@ -27,6 +27,7 @@ import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.domain.model.TrackDescriptionUpdate
 import com.example.victor_ai.domain.model.TrackStats
+import com.example.victor_ai.domain.model.WaveResponse
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Response
@@ -121,6 +122,14 @@ interface ApiService {
         @Query("account_id") accountId: String,
         @Query("extra_context") extraContext: String? = null
     ): Map<String, Any>
+
+    @POST("tracks/run_playlist_wave")
+    suspend fun runPlaylistWave(
+        @Query("account_id") accountId: String,
+        @Query("energy") energy: String? = null,
+        @Query("temperature") temperature: String? = null
+    ): WaveResponse
+
 
     @GET("/")
     suspend fun checkConnection(): Response<Unit>

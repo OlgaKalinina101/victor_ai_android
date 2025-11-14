@@ -1,10 +1,15 @@
 package com.example.victor_ai.ui.playlist
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import com.example.victor_ai.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -62,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -78,6 +84,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.victor_ai.domain.model.Track
+import com.example.victor_ai.ui.components.EyeState
+import com.example.victor_ai.ui.components.VictorEyes
 import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 import com.example.victor_ai.ui.playlist.components.EditTrackMetadataSheet
 import com.example.victor_ai.ui.playlist.components.TrackItemCompact
@@ -118,7 +126,7 @@ fun PlaylistScreen(
 
     // Состояние для анимации печати
     var typedText by remember { mutableStateOf("") }
-    val fullText = "👀 > думаю о музыке..."
+    val fullText = "> думаю о музыке..."
 
     // Запоминаем предыдущий ID трека для отслеживания запуска
     var previousTrackId by remember { mutableStateOf<Int?>(null) }
@@ -263,7 +271,10 @@ fun PlaylistScreen(
                     fontSize = 18.sp,
                     fontFamily = didactGothic,
                     modifier = Modifier.clickable {
-                        /* TODO: запуск волны по треку недели */
+                        viewModel.runWave(
+                            energy = stats?.top_energy,
+                            temperature = stats?.top_temperature
+                        )
                     }
                 )
 
@@ -281,24 +292,17 @@ fun PlaylistScreen(
                         fontFamily = didactGothic,
                         modifier = Modifier.clickable {
                             showAmbientStream = !showAmbientStream
-                            if (showAmbientStream) viewModel.runPlaylistWave(manual = true)
                         }
                     )
 
-                    // Стрим логов рядом с кнопкой
-                    AnimatedVisibility(
-                        visible = showAmbientStream,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Text(
-                            text = typedText,
-                            color = Color(0xFF666666),
-                            fontSize = 18.sp,
-                            fontFamily = didactGothic,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
-                    }
+                    // отступ между кнопкой и глазками: ставь 0.dp если хочешь вообще вплотную
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    AmbientThinkingRow(
+                        show = showAmbientStream,
+                        typedText = typedText,
+                        fontFamily = didactGothic
+                    )
                 }
             }
         }

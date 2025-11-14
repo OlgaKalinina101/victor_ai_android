@@ -16,6 +16,7 @@ import com.example.victor_ai.logic.MusicPlaybackService
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.domain.model.TrackDescriptionUpdate
 import com.example.victor_ai.domain.model.TrackStats
+import com.example.victor_ai.domain.model.WaveTrack
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -56,6 +57,12 @@ class PlaylistViewModel(
     private val audioPlayer = AudioPlayer(applicationContext)  // ✅ Передаём Application Context
     private val _stats = MutableStateFlow<TrackStats?>(null)
     val stats: StateFlow<TrackStats?> = _stats.asStateFlow()
+    private val _waveTracks = MutableStateFlow<List<WaveTrack>>(emptyList())
+    val waveTracks: StateFlow<List<WaveTrack>> = _waveTracks.asStateFlow()
+
+    private fun buildStreamUrl(trackId: Int): String {
+        return "${RetrofitInstance.BASE_URL.trimEnd('/')}/assistant/stream/$trackId?account_id=$accountId"
+    }
 
     // 🔥 BroadcastReceiver для обработки команд из уведомления
     private val mediaCommandReceiver = object : BroadcastReceiver() {
@@ -114,6 +121,7 @@ class PlaylistViewModel(
     /**
      * 🔥 Регистрация BroadcastReceiver для обработки команд из уведомления
      */
+    @Suppress("UnspecifiedRegisterReceiverFlag")
     private fun registerMediaCommandReceiver() {
         val filter = IntentFilter().apply {
             addAction(MusicPlaybackService.ACTION_PLAY)
@@ -123,13 +131,16 @@ class PlaylistViewModel(
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            applicationContext.registerReceiver(mediaCommandReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            applicationContext.registerReceiver(
+                mediaCommandReceiver,
+                filter,
+                Context.RECEIVER_NOT_EXPORTED
+            )
         } else {
             applicationContext.registerReceiver(mediaCommandReceiver, filter)
         }
-
-        Log.d("PlaylistViewModel", "✅ MediaCommandReceiver registered")
     }
+
 
     fun loadTracks() {
         viewModelScope.launch {
@@ -195,8 +206,7 @@ class PlaylistViewModel(
             return
         }
 
-        // ПРАВИЛЬНО: слэш между частями, & перед параметрами
-        val streamUrl = "${RetrofitInstance.BASE_URL.trimEnd('/')}/assistant/stream/$trackId?account_id=$accountId"
+        val streamUrl = buildStreamUrl(trackId)
 
         Log.d("PlaylistViewModel", "Stream URL: $streamUrl")
 
@@ -426,7 +436,7 @@ class PlaylistViewModel(
         }
     }
 
-    fun runPlaylistWave(manual: Boolean = false) {
+    fun runAssistantWave(manual: Boolean = false) {
         viewModelScope.launch {
             try {
                 val response = api.runPlaylistChain(
@@ -453,6 +463,50 @@ class PlaylistViewModel(
                 Log.e("Playlist", "Ошибка запуска волны", e)
             }
         }
+    }
+
+    fun runWave(energy: String?, temperature: String?) {
+        viewModelScope.launch {
+            try {
+                println("🔥 Запуск волны: energy=$energy, temp=$temperature")
+
+                val response = api.runPlaylistWave(
+                    accountId = accountId,
+                    energy = energy,
+                    temperature = temperature
+                )
+
+                val tracks = response.tracks
+
+                if (tracks.isNotEmpty()) {
+                    _waveTracks.value = tracks
+
+                    val first = tracks.first()
+                    playWaveTrack(first)
+                }
+
+                println("🔥 Ответ бэкенда: $response")
+
+            } catch (e: Exception) {
+                println("❌ Ошибка запуска волны: $e")
+            }
+        }
+    }
+
+    private fun playWaveTrack(track: WaveTrack) {
+        val streamUrl = buildStreamUrl(track.id)
+
+        audioPlayer.updateTrackMetadata(
+            title = track.title,
+            artist = track.artist ?: "Victor AI",
+            duration = (track.duration * 1000).toLong()
+        )
+
+        audioPlayer.playFromUrl(streamUrl)
+
+        _currentPlayingTrackId.value = track.id
+        _isPlaying.value = true
+        _currentPosition.value = 0f
     }
 }
 
