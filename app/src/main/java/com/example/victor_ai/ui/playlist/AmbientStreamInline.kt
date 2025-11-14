@@ -32,14 +32,13 @@ fun AmbientThinkingRow(
     fontFamily: FontFamily
 ) {
     // фиксированная высота — чтобы кнопка не прыгала
-    val rowHeight = 28.dp
+    val rowHeight = 48.dp
 
     Box(
         modifier = Modifier
             .height(rowHeight)
             .padding(start = 8.dp)
             .wrapContentWidth()
-            .clipToBounds()   // ←←← ВОТ ЭТО ГЛАВНОЕ!
     ) {
         androidx.compose.animation.AnimatedVisibility(
             visible = show,
