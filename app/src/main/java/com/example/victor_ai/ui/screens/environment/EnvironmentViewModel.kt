@@ -41,7 +41,6 @@ class EnvironmentViewModel @Inject constructor(
 
     init {
         loadData()
-        scanWiFiNetworks()
     }
 
     /**
@@ -77,7 +76,7 @@ class EnvironmentViewModel @Inject constructor(
      */
     fun scanWiFiNetworks() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isScanning = true)
+            _state.value = _state.value.copy(isScanning = true, showNetworkDropdown = true)
 
             wifiManager.startScan()
             // Небольшая задержка для завершения сканирования
@@ -87,6 +86,22 @@ class EnvironmentViewModel @Inject constructor(
             _state.value = _state.value.copy(
                 availableNetworks = networks,
                 isScanning = false
+            )
+        }
+    }
+
+    /**
+     * Переключить видимость выпадающего списка сетей
+     */
+    fun toggleNetworkDropdown() {
+        if (!_state.value.showNetworkDropdown) {
+            // Открываем - сканируем сети
+            scanWiFiNetworks()
+        } else {
+            // Закрываем
+            _state.value = _state.value.copy(
+                showNetworkDropdown = false,
+                currentPage = 0
             )
         }
     }
@@ -106,20 +121,21 @@ class EnvironmentViewModel @Inject constructor(
                     longitude = location.longitude
                 )
 
+                // Обновить текущий WiFi сразу
+                val currentWiFi = wifiManager.getCurrentWiFi()
+
+                // Проверяем, подключены ли мы к только что выбранной сети
+                val isAtHome = currentWiFi?.first == ssid && currentWiFi?.second == bssid
+
                 _state.value = _state.value.copy(
                     homeWiFi = ssid,
                     homeBSSID = bssid,
-                    homeCoordinates = Pair(location.latitude, location.longitude)
-                )
-
-                // Обновить текущий WiFi и статус дома
-                val currentWiFi = wifiManager.getCurrentWiFi()
-                _state.value = _state.value.copy(
+                    homeCoordinates = Pair(location.latitude, location.longitude),
                     currentWiFi = currentWiFi?.first,
-                    currentBSSID = currentWiFi?.second
+                    currentBSSID = currentWiFi?.second,
+                    isAtHome = isAtHome,
+                    distanceToHome = if (isAtHome) null else 0
                 )
-
-                updateHomeStatus()
             }
         }
     }
@@ -255,5 +271,6 @@ data class EnvironmentState(
     val isAtHome: Boolean = false,
     val distanceToHome: Int? = null, // в метрах
     val isScanning: Boolean = false,
+    val showNetworkDropdown: Boolean = false,
     val currentPage: Int = 0 // текущая страница для пагинации
 )
