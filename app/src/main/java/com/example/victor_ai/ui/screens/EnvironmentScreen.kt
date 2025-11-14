@@ -80,22 +80,42 @@ fun EnvironmentScreen(
                 )
             }
 
-            // Список WiFi сетей (всегда открыт)
-            WiFiNetworkList(
-                networks = state.availableNetworks,
-                currentHomeSSID = state.homeWiFi,
-                currentPage = state.currentPage,
-                isScanning = state.isScanning,
-                homeIsSet = state.homeWiFi != null,
-                onNetworkSelected = { ssid, bssid ->
-                    viewModel.setHomeWiFi(ssid, bssid)
-                },
-                onClearHome = { viewModel.clearHomeWiFi() },
-                onNextPage = { viewModel.nextPage() },
-                onPreviousPage = { viewModel.previousPage() },
-                didactGothic = didactGothic,
-                grayText = grayText
-            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Кнопка для открытия/закрытия списка WiFi
+            Button(
+                onClick = { viewModel.toggleNetworkDropdown() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF3F4650),
+                    contentColor = grayText
+                ),
+                modifier = Modifier.fillMaxWidth(0.8f)
+            ) {
+                Text(
+                    text = if (state.showNetworkDropdown) "закрыть список wifi" else if (state.homeWiFi == null) "выбрать домашний wifi" else "сменить домашний wifi",
+                    fontFamily = didactGothic,
+                    fontSize = 18.sp
+                )
+            }
+
+            // Выпадающий список WiFi сетей
+            if (state.showNetworkDropdown) {
+                WiFiNetworkList(
+                    networks = state.availableNetworks,
+                    currentHomeSSID = state.homeWiFi,
+                    currentPage = state.currentPage,
+                    isScanning = state.isScanning,
+                    homeIsSet = state.homeWiFi != null,
+                    onNetworkSelected = { ssid, bssid ->
+                        viewModel.setHomeWiFi(ssid, bssid)
+                    },
+                    onClearHome = { viewModel.clearHomeWiFi() },
+                    onNextPage = { viewModel.nextPage() },
+                    onPreviousPage = { viewModel.previousPage() },
+                    didactGothic = didactGothic,
+                    grayText = grayText
+                )
+            }
         }
     }
 }
@@ -153,27 +173,6 @@ private fun WiFiNetworkList(
             .fillMaxWidth(0.9f)
             .padding(vertical = 8.dp)
     ) {
-        // Первая строка: "> select home wifi" или "удалить домашний wifi"
-        if (homeIsSet) {
-            WiFiMenuItem(
-                text = "удалить домашний wifi",
-                isSelected = false,
-                onClick = onClearHome,
-                didactGothic = didactGothic,
-                grayText = grayText
-            )
-        } else {
-            WiFiMenuItem(
-                text = "select home wifi",
-                isSelected = true,
-                onClick = { },
-                didactGothic = didactGothic,
-                grayText = grayText
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         if (isScanning) {
             CircularProgressIndicator(
                 color = grayText,
@@ -219,6 +218,18 @@ private fun WiFiNetworkList(
                     text = "---- следующие 5 ----",
                     isSelected = false,
                     onClick = onNextPage,
+                    didactGothic = didactGothic,
+                    grayText = grayText
+                )
+            }
+
+            // Кнопка "удалить домашний wifi" в конце списка (если установлен)
+            if (homeIsSet) {
+                Spacer(modifier = Modifier.height(8.dp))
+                WiFiMenuItem(
+                    text = "удалить домашний wifi",
+                    isSelected = false,
+                    onClick = onClearHome,
                     didactGothic = didactGothic,
                     grayText = grayText
                 )
