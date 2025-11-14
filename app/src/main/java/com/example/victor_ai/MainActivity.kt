@@ -142,6 +142,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setTheme(R.style.Theme_Victor_AI)
 
         // 🔹 1. Инициализация голосового ввода
         voiceRecognizer = VoiceRecognizer(
