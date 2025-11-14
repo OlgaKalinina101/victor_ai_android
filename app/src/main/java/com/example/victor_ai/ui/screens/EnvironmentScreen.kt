@@ -59,11 +59,12 @@ fun EnvironmentScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Статус "дома"
+            // Статус "дома" (кликабельный - открывает список)
             HomeStatusSection(
                 isAtHome = state.isAtHome,
                 distanceToHome = state.distanceToHome,
                 homeWiFi = state.homeWiFi,
+                onClick = { viewModel.toggleNetworkDropdown() },
                 didactGothic = didactGothic,
                 grayText = grayText
             )
@@ -77,24 +78,6 @@ fun EnvironmentScreen(
                     color = grayText,
                     fontSize = 18.sp,
                     fontFamily = didactGothic
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Кнопка для открытия/закрытия списка WiFi
-            Button(
-                onClick = { viewModel.toggleNetworkDropdown() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF3F4650),
-                    contentColor = grayText
-                ),
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                Text(
-                    text = if (state.showNetworkDropdown) "закрыть список wifi" else if (state.homeWiFi == null) "выбрать домашний wifi" else "сменить домашний wifi",
-                    fontFamily = didactGothic,
-                    fontSize = 18.sp
                 )
             }
 
@@ -125,11 +108,13 @@ private fun HomeStatusSection(
     isAtHome: Boolean,
     distanceToHome: Int?,
     homeWiFi: String?,
+    onClick: () -> Unit,
     didactGothic: FontFamily,
     grayText: Color
 ) {
     val statusText = if (homeWiFi != null) {
-        if (isAtHome) {
+        // Если подключены к домашнему WiFi ИЛИ расстояние == 0
+        if (isAtHome || distanceToHome == 0) {
             "[дома: ✓]"
         } else if (distanceToHome != null) {
             "[дома: ✗ - $distanceToHome м]"
@@ -144,7 +129,12 @@ private fun HomeStatusSection(
         text = statusText,
         color = grayText,
         fontSize = 22.sp,
-        fontFamily = didactGothic
+        fontFamily = didactGothic,
+        modifier = Modifier.clickable(
+            onClick = onClick,
+            indication = null,
+            interactionSource = remember { MutableInteractionSource() }
+        )
     )
 }
 
