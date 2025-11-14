@@ -2,6 +2,7 @@ package com.example.victor_ai.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,6 +63,7 @@ fun EnvironmentScreen(
                 isAtHome = state.isAtHome,
                 distanceToHome = state.distanceToHome,
                 homeWiFi = state.homeWiFi,
+                onHomeNotSetClick = { viewModel.scanWiFiNetworks() },
                 didactGothic = didactGothic,
                 grayText = grayText
             )
@@ -74,24 +77,6 @@ fun EnvironmentScreen(
                     color = grayText,
                     fontSize = 18.sp,
                     fontFamily = didactGothic
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Кнопка выбора домашнего WiFi
-            Button(
-                onClick = { viewModel.scanWiFiNetworks() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF3F4650),
-                    contentColor = grayText
-                ),
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                Text(
-                    text = if (state.homeWiFi == null) "выбрать домашний wifi" else "сменить домашний wifi",
-                    fontFamily = didactGothic,
-                    fontSize = 18.sp
                 )
             }
 
@@ -133,6 +118,7 @@ private fun HomeStatusSection(
     isAtHome: Boolean,
     distanceToHome: Int?,
     homeWiFi: String?,
+    onHomeNotSetClick: () -> Unit,
     didactGothic: FontFamily,
     grayText: Color
 ) {
@@ -153,10 +139,15 @@ private fun HomeStatusSection(
         )
     } else {
         Text(
-            text = "[домашний wifi не установлен]",
+            text = "[дом не установлен]",
             color = grayText,
             fontSize = 18.sp,
-            fontFamily = didactGothic
+            fontFamily = didactGothic,
+            modifier = Modifier.clickable(
+                onClick = onHomeNotSetClick,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            )
         )
     }
 }
@@ -209,7 +200,11 @@ private fun WiFiNetworkList(
                     fontFamily = didactGothic,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onNetworkSelected(ssid, bssid) }
+                        .clickable(
+                            onClick = { onNetworkSelected(ssid, bssid) },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        )
                         .padding(vertical = 8.dp, horizontal = 4.dp)
                 )
             }
