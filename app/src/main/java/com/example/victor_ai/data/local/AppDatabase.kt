@@ -19,7 +19,7 @@ import com.example.victor_ai.data.local.entity.ReminderEntity
         ChatMessageEntity::class,
         MemoryEntity::class
     ],
-    version = 1,
+    version = 2,  // Увеличена версия для добавления backendId в ChatMessageEntity
     exportSchema = false
 )
 @TypeConverters(MetadataConverter::class)

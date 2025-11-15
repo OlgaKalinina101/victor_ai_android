@@ -137,12 +137,14 @@ class ChatRepository @Inject constructor(
 private fun ChatMessage.toEntity() = ChatMessageEntity(
     text = text,
     isUser = isUser,
-    timestamp = timestamp
+    timestamp = timestamp,
+    backendId = id  // Сохраняем backend ID
 )
 
 // Маппер Entity -> ChatMessage
 private fun ChatMessageEntity.toChatMessage() = ChatMessage(
     text = text,
     isUser = isUser,
-    timestamp = timestamp
+    timestamp = timestamp,
+    id = backendId  // Восстанавливаем backend ID
 )
