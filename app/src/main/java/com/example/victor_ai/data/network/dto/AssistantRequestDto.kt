@@ -37,6 +37,7 @@ data class DeleteRequest(
     val record_ids: List<String>
 )
 
+@JsonClass(generateAdapter = true)
 data class ChatHistoryResponse(
     val messages: List<ChatMessage>,
     @Json(name = "has_more") val hasMore: Boolean,
