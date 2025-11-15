@@ -8,7 +8,6 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
-import android.os.Build
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 
@@ -41,85 +40,49 @@ class WiFiNetworkManager(private val context: Context) {
         }
 
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                println("DEBUG: Android 10+")
-                getCurrentWiFiQ()
-            } else {
-                // Android 9 и ниже
-                println("DEBUG: Android 9-")
-                @Suppress("DEPRECATION")
-                val wifiInfo = wifiManager.connectionInfo
-                if (wifiInfo != null && wifiInfo.networkId != -1) {
-                    val ssid = wifiInfo.ssid.removeSurrounding("\"")
-                    val bssid = wifiInfo.bssid
-                    if (ssid.isNotEmpty() && bssid != null) {
-                        Pair(ssid, bssid)
-                    } else {
-                        null
+            val network: Network? = connectivityManager.activeNetwork
+            println("DEBUG: network = $network")
+            val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
+            println("DEBUG: capabilities = $capabilities")
+
+            if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
+                println("DEBUG: Has WIFI transport")
+                val wifiInfo = capabilities.transportInfo as? WifiInfo
+
+                // Если wifiInfo == null (VPN активен), пробуем получить из underlying network
+                val actualWifiInfo = if (wifiInfo == null) {
+                    // Ищем WiFi среди underlying networks
+                    val underlyingNetworks = capabilities.underlyingNetworks
+                    println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
+
+                    underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
+                        val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
+                        underlyingCaps?.transportInfo as? WifiInfo
                     }
                 } else {
-                    null
+                    wifiInfo
                 }
+
+                println("DEBUG: actualWifiInfo = $actualWifiInfo")
+
+                val ssid = actualWifiInfo?.ssid?.removeSurrounding("\"")
+                val bssid = actualWifiInfo?.bssid
+
+                if (ssid == null || bssid == null) {
+                    println("DEBUG: ssid or bssid is null")
+                    return null
+                }
+
+                println("DEBUG: ssid = $ssid, bssid = $bssid")
+                Pair(ssid, bssid)
+            } else {
+                println("DEBUG: No WIFI transport")
+                null
             }
         } catch (e: Exception) {
             println("DEBUG: Exception! ${e.message}")
             e.printStackTrace()
             null
-        }
-    }
-
-    /**
-     * Получить WiFi для Android 10+
-     */
-    @androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
-    private fun getCurrentWiFiQ(): Pair<String, String>? {
-        val network: Network? = connectivityManager.activeNetwork
-        println("DEBUG: network = $network")
-        val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
-        println("DEBUG: capabilities = $capabilities")
-
-        if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
-            println("DEBUG: Has WIFI transport")
-            val wifiInfo = capabilities.transportInfo as? WifiInfo
-
-            // Если wifiInfo == null (VPN активен), пробуем получить из underlying network
-            val actualWifiInfo = if (wifiInfo == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                getWiFiFromVPN(capabilities)
-            } else {
-                wifiInfo
-            }
-
-            println("DEBUG: actualWifiInfo = $actualWifiInfo")
-
-            val ssid = actualWifiInfo?.ssid?.removeSurrounding("\"")
-            val bssid = actualWifiInfo?.bssid
-
-            if (ssid == null || bssid == null) {
-                println("DEBUG: ssid or bssid is null")
-                return null
-            }
-
-            println("DEBUG: ssid = $ssid, bssid = $bssid")
-            return Pair(ssid, bssid)
-        } else {
-            println("DEBUG: No WIFI transport")
-            return null
-        }
-    }
-
-    /**
-     * Получить WiFi из-под VPN (Android 12+)
-     */
-    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
-    private fun getWiFiFromVPN(capabilities: NetworkCapabilities): WifiInfo? {
-        // Android 12+ - underlyingNetworks доступны
-        val underlyingNetworks = capabilities.underlyingNetworks
-        println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
-
-        // Ищем WiFi среди underlying
-        return underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
-            val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
-            underlyingCaps?.transportInfo as? WifiInfo
         }
     }
 
