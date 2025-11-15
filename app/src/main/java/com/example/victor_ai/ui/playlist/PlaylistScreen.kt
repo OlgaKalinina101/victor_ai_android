@@ -292,6 +292,7 @@ fun PlaylistScreen(
                         fontFamily = didactGothic,
                         modifier = Modifier.clickable {
                             showAmbientStream = !showAmbientStream
+                            if (showAmbientStream) viewModel.runAssistantWave(manual = true)
                         }
                     )
 

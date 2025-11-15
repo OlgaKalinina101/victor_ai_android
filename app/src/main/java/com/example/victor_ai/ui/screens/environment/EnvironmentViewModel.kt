@@ -50,23 +50,22 @@ class EnvironmentViewModel @Inject constructor(
         viewModelScope.launch {
             // Загрузить текущий WiFi
             val currentWiFi = wifiManager.getCurrentWiFi()
-            _state.value = _state.value.copy(
-                currentWiFi = currentWiFi?.first,
-                currentBSSID = currentWiFi?.second
-            )
 
             // Загрузить домашний WiFi
             val homeSSID = homeWiFiRepository.getHomeSSID()
             val homeBSSID = homeWiFiRepository.getHomeBSSID()
             val homeCoords = homeWiFiRepository.getHomeCoordinates()
 
+            // СНАЧАЛА обновляем state
             _state.value = _state.value.copy(
+                currentWiFi = currentWiFi?.first,
+                currentBSSID = currentWiFi?.second,
                 homeWiFi = homeSSID,
                 homeBSSID = homeBSSID,
                 homeCoordinates = homeCoords
             )
 
-            // Обновить статус дома
+            // ПОТОМ вызываем updateHomeStatus
             updateHomeStatus()
         }
     }
@@ -149,9 +148,18 @@ class EnvironmentViewModel @Inject constructor(
         val currentWiFi = _state.value.currentWiFi
         val currentBSSID = _state.value.currentBSSID
 
+        // ДЕБАГ
+        println("=== DEBUG updateHomeStatus ===")
+        println("homeSSID: $homeSSID")
+        println("homeBSSID: $homeBSSID")
+        println("currentWiFi: $currentWiFi")
+        println("currentBSSID: $currentBSSID")
+
         if (homeSSID != null && homeBSSID != null) {
             // Проверяем подключение к домашнему WiFi
             val isAtHome = currentWiFi == homeSSID && currentBSSID == homeBSSID
+
+            println("isAtHome: $isAtHome") // ДЕБАГ
 
             if (isAtHome) {
                 _state.value = _state.value.copy(
@@ -170,6 +178,7 @@ class EnvironmentViewModel @Inject constructor(
                             homeCoords.first,
                             homeCoords.second
                         )
+                        println("distance: $distance") // ДЕБАГ
                         _state.value = _state.value.copy(
                             isAtHome = false,
                             distanceToHome = distance.toInt()
@@ -178,6 +187,7 @@ class EnvironmentViewModel @Inject constructor(
                 }
             }
         }
+        println("=== END DEBUG ===")
     }
 
     /**

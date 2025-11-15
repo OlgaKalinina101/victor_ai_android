@@ -9,6 +9,7 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 
 /**
@@ -32,26 +33,35 @@ class WiFiNetworkManager(private val context: Context) {
      * @return Pair<SSID, BSSID> или null если не подключен
      */
     fun getCurrentWiFi(): Pair<String, String>? {
+        println("DEBUG: hasLocationPermission = ${hasLocationPermission()}")
         if (!hasLocationPermission()) {
+            println("DEBUG: No location permission!")
             return null
         }
 
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                println("DEBUG: Android 10+")
                 // Android 10+
                 val network: Network? = connectivityManager.activeNetwork
+                println("DEBUG: network = $network")
                 val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
-
+                println("DEBUG: capabilities = $capabilities")
                 if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
+                    println("DEBUG: Has WIFI transport")
                     val wifiInfo = capabilities.transportInfo as? WifiInfo
+                    println("DEBUG: wifiInfo = $wifiInfo")
                     val ssid = wifiInfo?.ssid?.removeSurrounding("\"") ?: return null
                     val bssid = wifiInfo.bssid ?: return null
+                    println("DEBUG: ssid = $ssid, bssid = $bssid")
                     Pair(ssid, bssid)
                 } else {
+                    println("DEBUG: No WIFI transport")
                     null
                 }
             } else {
                 // Android 9 и ниже
+                println("DEBUG: Android 9-")
                 @Suppress("DEPRECATION")
                 val wifiInfo = wifiManager.connectionInfo
                 if (wifiInfo != null && wifiInfo.networkId != -1) {
@@ -67,6 +77,7 @@ class WiFiNetworkManager(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
+            println("DEBUG: Exception! ${e.message}")
             null
         }
     }
@@ -75,6 +86,7 @@ class WiFiNetworkManager(private val context: Context) {
      * Получить список доступных WiFi сетей
      * @return List<Pair<SSID, BSSID>>
      */
+    @RequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION)
     fun getAvailableNetworks(): List<Pair<String, String>> {
         if (!hasLocationPermission()) {
             return emptyList()

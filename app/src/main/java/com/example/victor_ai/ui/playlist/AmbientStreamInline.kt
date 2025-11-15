@@ -60,7 +60,7 @@ fun AmbientThinkingRow(
                     color = Color(0xFF666666),
                     fontSize = 18.sp,
                     fontFamily = fontFamily,
-                    modifier = Modifier.offset(x = (-24).dp) // расстояние между глазками и текстом
+                    modifier = Modifier.offset(x = (0).dp) // расстояние между глазками и текстом
                 )
             }
         }

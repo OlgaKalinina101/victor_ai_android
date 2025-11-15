@@ -120,8 +120,8 @@ private fun HomeStatusSection(
     val redColor = Color(0xFFFF6B6B) // красный
 
     val statusText = if (homeWiFi != null) {
-        // Если подключены к домашнему WiFi ИЛИ расстояние == 0
-        if (isAtHome || distanceToHome == 0) {
+        if (isAtHome) {
+            // Подключены к домашнему WiFi - точно дома
             buildAnnotatedString {
                 append("[дома: ")
                 withStyle(style = SpanStyle(color = greenColor)) {
@@ -129,7 +129,17 @@ private fun HomeStatusSection(
                 }
                 append("]")
             }
+        } else if (distanceToHome == 0) {
+            // GPS говорит дома, но WiFi другой
+            buildAnnotatedString {
+                append("[дома: ")
+                withStyle(style = SpanStyle(color = greenColor)) {
+                    append("✓")
+                }
+                append(" (GPS)]")
+            }
         } else if (distanceToHome != null) {
+            // Не дома
             buildAnnotatedString {
                 append("[дома: ")
                 withStyle(style = SpanStyle(color = redColor)) {
@@ -138,8 +148,13 @@ private fun HomeStatusSection(
                 append(" - $distanceToHome м]")
             }
         } else {
+            // distanceToHome == null
             buildAnnotatedString {
-                append("[дома: ?]")
+                append("[дома: ")
+                withStyle(style = SpanStyle(color = redColor)) {
+                    append("✗")
+                }
+                append(" - ? м]")
             }
         }
     } else {
