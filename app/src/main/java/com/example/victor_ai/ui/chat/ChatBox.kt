@@ -54,6 +54,7 @@ import com.example.victor_ai.ui.common.LongClickableText
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.snapshotFlow
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -102,30 +103,33 @@ fun ChatBox(
     }
 
     // Отслеживание скролла для загрузки истории
-    LaunchedEffect(listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index) {
-        val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
-        val totalItems = listState.layoutInfo.totalItemsCount
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                if (lastVisibleIndex == null || isLoadingMore || !hasMoreHistory) return@collect
 
-        // Если прокрутили близко к концу списка (который в reverse = начало истории)
-        if (lastVisibleItem != null &&
-            totalItems > 0 &&
-            lastVisibleItem.index >= totalItems - 3 &&
-            !isLoadingMore &&
-            hasMoreHistory
-        ) {
-            isLoadingMore = true
-            try {
-                // Получаем timestamp самого старого сообщения для использования как beforeId
-                val oldestTimestamp = messages.lastOrNull()?.timestamp?.toInt()
-                if (oldestTimestamp != null) {
-                    hasMoreHistory = onLoadMoreHistory(oldestTimestamp)
+                val totalItems = listState.layoutInfo.totalItemsCount
+
+                // Если прокрутили близко к концу списка (который в reverse = начало истории)
+                if (totalItems > 0 && lastVisibleIndex >= totalItems - 3) {
+                    isLoadingMore = true
+                    try {
+                        // Получаем timestamp самого старого сообщения для использования как beforeId
+                        val oldestTimestamp = messages.lastOrNull()?.timestamp?.toInt()
+                        if (oldestTimestamp != null) {
+                            val stillHasMore = onLoadMoreHistory(oldestTimestamp)
+                            hasMoreHistory = stillHasMore
+                        } else {
+                            hasMoreHistory = false
+                        }
+                    } catch (e: Exception) {
+                        Log.e("Chat", "Ошибка загрузки истории", e)
+                        hasMoreHistory = false
+                    } finally {
+                        isLoadingMore = false
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("Chat", "Ошибка загрузки истории", e)
-            } finally {
-                isLoadingMore = false
             }
-        }
     }
 
     AnimatedVisibility(

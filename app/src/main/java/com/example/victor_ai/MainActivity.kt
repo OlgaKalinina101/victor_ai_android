@@ -96,6 +96,8 @@ class MainActivity : ComponentActivity() {
 
     // Пагинация чата
     private var oldestMessageId: Int? = null
+    // SessionContext - всегда показывается первым (внизу чата)
+    private var sessionContextMessages: List<ChatMessage> = emptyList()
 
     private lateinit var permissionManager: PermissionManager
 
@@ -264,7 +266,14 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onInitHistory = { history ->
-                                _chatMessages.value = history.toMutableList()
+                                // Разделяем SessionContext (без ID) и DB сообщения (с ID)
+                                sessionContextMessages = history.filter { it.id == null }
+                                val dbMessages = history.filter { it.id != null }
+
+                                Log.d("Chat", "📦 Инициализация: SessionContext=${sessionContextMessages.size}, DB=${dbMessages.size}")
+
+                                // Отображаем: SessionContext (всегда первый) + DB сообщения
+                                _chatMessages.value = (sessionContextMessages + dbMessages).toMutableList()
                             },
                             onPaginationInfo = { oldestId, hasMore ->
                                 oldestMessageId = oldestId
@@ -512,37 +521,50 @@ class MainActivity : ComponentActivity() {
 
     // ✅ Загрузка дополнительной истории чата (пагинация)
     private suspend fun loadMoreChatHistory(): Boolean {
-        return try {
-            // Если нет oldestId, используем timestamp самого старого сообщения
-            val beforeId = oldestMessageId ?: run {
-                Log.w("Chat", "⚠️ oldestId не установлен, загрузка истории невозможна")
-                return false
+        return withContext(Dispatchers.Main) {
+            try {
+                // Если нет oldestId, используем timestamp самого старого сообщения
+                val beforeId = oldestMessageId ?: run {
+                    Log.w("Chat", "⚠️ oldestId не установлен, загрузка истории невозможна")
+                    return@withContext false
+                }
+
+                Log.d("Chat", "📥 Загрузка истории: beforeId=$beforeId")
+
+                val result = withContext(Dispatchers.IO) {
+                    ChatHistoryHelper.repository.loadMoreHistory(beforeId)
+                }
+
+                result.onSuccess { response ->
+                    Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}")
+
+                    if (response.messages.isNotEmpty()) {
+                        // Получаем текущие DB сообщения (без SessionContext)
+                        val currentDbMessages = _chatMessages.value.filter { it.id != null }.toMutableList()
+
+                        // Добавляем новые старые сообщения
+                        currentDbMessages.addAll(response.messages)
+
+                        // Собираем итоговый список: SessionContext (всегда первый) + все DB сообщения
+                        _chatMessages.value = (sessionContextMessages + currentDbMessages).toMutableList()
+
+                        // Обновляем oldestId для следующей загрузки
+                        oldestMessageId = response.oldestId
+
+                        Log.d("Chat", "📦 Обновлено: SessionContext=${sessionContextMessages.size}, DB=${currentDbMessages.size}, всего=${_chatMessages.value.size}")
+                    }
+
+                    return@withContext response.hasMore
+                }.onFailure { error ->
+                    Log.e("Chat", "❌ Ошибка загрузки истории: ${error.message}")
+                    return@withContext false
+                }
+
+                false
+            } catch (e: Exception) {
+                Log.e("Chat", "❌ Ошибка загрузки истории", e)
+                false
             }
-
-            Log.d("Chat", "📥 Загрузка истории: beforeId=$beforeId")
-
-            val result = ChatHistoryHelper.repository.loadMoreHistory(beforeId)
-            result.onSuccess { response ->
-                Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}")
-
-                // Добавляем новые сообщения в начало списка (старые сообщения)
-                val currentMessages = _chatMessages.value.toMutableList()
-                currentMessages.addAll(response.messages)
-                _chatMessages.value = currentMessages
-
-                // Обновляем oldestId для следующей загрузки
-                oldestMessageId = response.oldestId
-
-                return response.hasMore
-            }.onFailure { error ->
-                Log.e("Chat", "❌ Ошибка загрузки истории: ${error.message}")
-                return false
-            }
-
-            false
-        } catch (e: Exception) {
-            Log.e("Chat", "❌ Ошибка загрузки истории", e)
-            false
         }
     }
 

@@ -35,14 +35,18 @@ class ChatRepository @Inject constructor(
             Log.d(TAG, "Синхронизация истории чата с бэкендом...")
             val response = chatApi.getChatHistory(accountId, limit = 25, beforeId = null)
 
-            // Конвертируем в Entity
-            val entities = response.messages.map { it.toEntity() }
+            // Разделяем SessionContext и DB сообщения
+            val sessionContextMessages = response.messages.filter { it.id == null }
+            val dbMessages = response.messages.filter { it.id != null }
 
-            // Очищаем старую историю и сохраняем новую
+            Log.d(TAG, "📦 SessionContext: ${sessionContextMessages.size}, DB: ${dbMessages.size}")
+
+            // Сохраняем ТОЛЬКО сообщения из БД (не SessionContext!)
+            val entities = dbMessages.map { it.toEntity() }
             chatMessageDao.clearAll()
             chatMessageDao.insertMessages(entities)
 
-            Log.d(TAG, "✅ Синхронизация завершена: ${entities.size} сообщений, has_more=${response.hasMore}, oldest_id=${response.oldestId}")
+            Log.d(TAG, "✅ Синхронизация завершена: ${response.messages.size} всего (${sessionContextMessages.size} SessionContext + ${dbMessages.size} DB), has_more=${response.hasMore}, oldest_id=${response.oldestId}")
             Result.success(response)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Ошибка синхронизации", e)
