@@ -8,6 +8,8 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 
@@ -51,14 +53,7 @@ class WiFiNetworkManager(private val context: Context) {
 
                 // Если wifiInfo == null (VPN активен), пробуем получить из underlying network
                 val actualWifiInfo = if (wifiInfo == null) {
-                    // Ищем WiFi среди underlying networks
-                    val underlyingNetworks = capabilities.getUnderlyingNetworks()
-                    println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
-
-                    underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
-                        val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
-                        underlyingCaps?.transportInfo as? WifiInfo
-                    }
+                    getWiFiFromVPN(capabilities)
                 } else {
                     wifiInfo
                 }
@@ -83,6 +78,21 @@ class WiFiNetworkManager(private val context: Context) {
             println("DEBUG: Exception! ${e.message}")
             e.printStackTrace()
             null
+        }
+    }
+
+    /**
+     * Получить WiFi из-под VPN (Android 12+)
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    @Suppress("NewApi")
+    private fun getWiFiFromVPN(capabilities: NetworkCapabilities): WifiInfo? {
+        val underlyingNetworks = capabilities.underlyingNetworks
+        println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
+
+        return underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
+            val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
+            underlyingCaps?.transportInfo as? WifiInfo
         }
     }
 
