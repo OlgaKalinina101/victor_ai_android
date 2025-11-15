@@ -40,6 +40,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.text.ClickableText
+import android.content.Intent
+import android.net.Uri
 import com.example.victor_ai.R
 import com.example.victor_ai.data.network.sendToDiaryEntry
 import com.example.victor_ai.logic.fetchChatHistory
@@ -363,6 +366,7 @@ fun MessageItem(
     onCopy: () -> Unit
 ) {
     val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+    val context = LocalContext.current
 
     // User-сообщения справа и светлее фона
     val alignment = if (message.isUser) Alignment.End else Alignment.Start
@@ -445,14 +449,43 @@ fun MessageItem(
                         )
                     )
                 } else {
-                    // В production mode просто отображаем текст
-                    Text(
-                        text = parseMarkdown(message.text),
+                    // В production mode отображаем текст с кликабельными ссылками
+                    ClickableText(
+                        text = annotatedText,
                         style = TextStyle(
                             fontSize = 15.sp,
                             color = Color(0xFFE0E0E0),
                             fontFamily = didactGothicFont
-                        )
+                        ),
+                        onClick = { offset ->
+                            // Проверяем, есть ли аннотация URL в месте клика
+                            annotatedText.getStringAnnotations(
+                                tag = "URL",
+                                start = offset,
+                                end = offset
+                            ).firstOrNull()?.let { annotation ->
+                                val url = annotation.item
+                                val intent = if (url.contains("openstreetmap.org")) {
+                                    // Извлекаем координаты из OpenStreetMap URL
+                                    val latRegex = """mlat=([-\d.]+)""".toRegex()
+                                    val lonRegex = """mlon=([-\d.]+)""".toRegex()
+
+                                    val lat = latRegex.find(url)?.groupValues?.get(1)
+                                    val lon = lonRegex.find(url)?.groupValues?.get(1)
+
+                                    if (lat != null && lon != null) {
+                                        // Открываем Google Maps с координатами
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lon?q=$lat,$lon"))
+                                    } else {
+                                        // Если не смогли извлечь координаты, открываем как обычную ссылку
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    }
+                                } else {
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                }
+                                context.startActivity(intent)
+                            }
+                        }
                     )
                 }
 
