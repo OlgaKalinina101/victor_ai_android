@@ -52,7 +52,7 @@ class WiFiNetworkManager(private val context: Context) {
                 // Если wifiInfo == null (VPN активен), пробуем получить из underlying network
                 val actualWifiInfo = if (wifiInfo == null) {
                     // Ищем WiFi среди underlying networks
-                    val underlyingNetworks = capabilities.underlyingNetworks
+                    val underlyingNetworks = capabilities.getUnderlyingNetworks()
                     println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
 
                     underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
