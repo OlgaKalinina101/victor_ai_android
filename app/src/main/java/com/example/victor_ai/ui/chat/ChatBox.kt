@@ -212,8 +212,10 @@ fun ChatBox(
                 }
 
                 // Сообщения
-                items(messages.reversed()) { message ->
-                    val actualIndex = messages.size - 1 - messages.reversed().indexOf(message)
+                // reverseLayout=true показывает index=0 внизу, index=last вверху
+                // Порядок: SessionContext (свежие, внизу) → DB новые → DB старые (вверху)
+                items(messages) { message ->
+                    val actualIndex = messages.indexOf(message)
                     val isEditing = editingMessageIndex == actualIndex
 
                     MessageItem(

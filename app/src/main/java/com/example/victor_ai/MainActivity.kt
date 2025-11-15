@@ -269,10 +269,14 @@ class MainActivity : ComponentActivity() {
                                 // Разделяем SessionContext (без ID) и DB сообщения (с ID)
                                 sessionContextMessages = history.filter { it.id == null }
                                 val dbMessages = history.filter { it.id != null }
+                                    .sortedByDescending { it.id ?: 0 }  // Сортируем: от новых (больший ID) к старым
 
                                 Log.d("Chat", "📦 Инициализация: SessionContext=${sessionContextMessages.size}, DB=${dbMessages.size}")
+                                if (dbMessages.isNotEmpty()) {
+                                    Log.d("Chat", "📊 DB IDs: ${dbMessages.take(5).map { it.id }}...${dbMessages.takeLast(5).map { it.id }}")
+                                }
 
-                                // Отображаем: SessionContext (всегда первый) + DB сообщения
+                                // Отображаем: SessionContext (самые свежие, внизу) → DB новые → DB старые (вверху)
                                 _chatMessages.value = (sessionContextMessages + dbMessages).toMutableList()
                             },
                             onPaginationInfo = { oldestId, hasMore ->
@@ -545,13 +549,19 @@ class MainActivity : ComponentActivity() {
                         // Добавляем новые старые сообщения
                         currentDbMessages.addAll(response.messages)
 
-                        // Собираем итоговый список: SessionContext (всегда первый) + все DB сообщения
-                        _chatMessages.value = (sessionContextMessages + currentDbMessages).toMutableList()
+                        // Сортируем все DB сообщения: от новых (больший ID) к старым
+                        val sortedDbMessages = currentDbMessages.sortedByDescending { it.id ?: 0 }
+
+                        // Собираем итоговый список: SessionContext (свежие, внизу) → DB новые → DB старые (вверху)
+                        _chatMessages.value = (sessionContextMessages + sortedDbMessages).toMutableList()
 
                         // Обновляем oldestId для следующей загрузки
                         oldestMessageId = response.oldestId
 
-                        Log.d("Chat", "📦 Обновлено: SessionContext=${sessionContextMessages.size}, DB=${currentDbMessages.size}, всего=${_chatMessages.value.size}")
+                        Log.d("Chat", "📦 Обновлено: SessionContext=${sessionContextMessages.size}, DB=${sortedDbMessages.size}, всего=${_chatMessages.value.size}")
+                        if (sortedDbMessages.isNotEmpty()) {
+                            Log.d("Chat", "📊 DB IDs после сортировки: ${sortedDbMessages.take(5).map { it.id }}...${sortedDbMessages.takeLast(5).map { it.id }}")
+                        }
                     }
 
                     return@withContext response.hasMore
