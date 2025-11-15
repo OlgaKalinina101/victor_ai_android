@@ -87,12 +87,20 @@ class WiFiNetworkManager(private val context: Context) {
     @RequiresApi(Build.VERSION_CODES.S)
     @Suppress("NewApi")
     private fun getWiFiFromVPN(capabilities: NetworkCapabilities): WifiInfo? {
-        val underlyingNetworks = capabilities.underlyingNetworks
-        println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
+        return try {
+            // Используем рефлексию для доступа к underlyingNetworks
+            val method = NetworkCapabilities::class.java.getMethod("getUnderlyingNetworks")
+            @Suppress("UNCHECKED_CAST")
+            val underlyingNetworks = method.invoke(capabilities) as? Array<Network>
+            println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
 
-        return underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
-            val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
-            underlyingCaps?.transportInfo as? WifiInfo
+            underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
+                val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
+                underlyingCaps?.transportInfo as? WifiInfo
+            }
+        } catch (e: Exception) {
+            println("DEBUG: Failed to get underlying networks: ${e.message}")
+            null
         }
     }
 
