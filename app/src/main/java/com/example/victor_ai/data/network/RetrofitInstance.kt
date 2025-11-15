@@ -1,6 +1,7 @@
 package com.example.victor_ai.data.network
 
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -25,8 +26,11 @@ object RetrofitInstance {
         .build()
 
 
-    // ✅ 3. Создаём Moshi-инстанс для кодогенерированных адаптеров
+    // ✅ 3. Создаём Moshi-инстанс
+    // Кодогенерированные адаптеры (для @JsonClass) имеют приоритет автоматически
+    // KotlinJsonAdapterFactory служит fallback для классов без @JsonClass
     private val moshi: Moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())  // Fallback для классов без @JsonClass
         .build()
 
     // ✅ 4. Retrofit + Moshi
