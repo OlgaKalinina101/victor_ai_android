@@ -9,5 +9,6 @@ data class ChatMessageEntity(
     val id: Long = 0,
     val text: String,
     val isUser: Boolean,
-    val timestamp: Long
+    val timestamp: Long,
+    val backendId: Int? = null  // ID from backend (null for SessionContext messages)
 )
