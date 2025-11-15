@@ -41,7 +41,25 @@ fun LongClickableText(
 
                         annotations.firstOrNull()?.let { annotation ->
                             // Клик по ссылке
-                            val intent = Intent(Intent.ACTION_VIEW, annotation.item.toUri())
+                            val url = annotation.item
+                            val intent = if (url.contains("openstreetmap.org")) {
+                                // Извлекаем координаты из OpenStreetMap URL
+                                val latRegex = """mlat=([-\d.]+)""".toRegex()
+                                val lonRegex = """mlon=([-\d.]+)""".toRegex()
+
+                                val lat = latRegex.find(url)?.groupValues?.get(1)
+                                val lon = lonRegex.find(url)?.groupValues?.get(1)
+
+                                if (lat != null && lon != null) {
+                                    // Открываем Google Maps с координатами
+                                    Intent(Intent.ACTION_VIEW, "geo:$lat,$lon?q=$lat,$lon".toUri())
+                                } else {
+                                    // Если не смогли извлечь координаты, открываем как обычную ссылку
+                                    Intent(Intent.ACTION_VIEW, url.toUri())
+                                }
+                            } else {
+                                Intent(Intent.ACTION_VIEW, url.toUri())
+                            }
                             context.startActivity(intent)
                         }
                     }
