@@ -268,7 +268,9 @@ class MainActivity : ComponentActivity() {
                             onInitHistory = { history ->
                                 // Разделяем SessionContext (без ID) и DB сообщения (с ID)
                                 // SessionContext получает виртуальные ID для правильной сортировки
+                                // Реверсируем SessionContext, чтобы самое новое сообщение получило самый большой ID
                                 sessionContextMessages = history.filter { it.id == null }
+                                    .reversed()  // Инвертируем порядок: от новых к старым
                                     .mapIndexed { index, msg ->
                                         msg.copy(id = Int.MAX_VALUE - index)  // Виртуальные ID: очень большие числа
                                     }
