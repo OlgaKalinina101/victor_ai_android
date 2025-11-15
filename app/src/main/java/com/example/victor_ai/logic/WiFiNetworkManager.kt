@@ -34,6 +34,7 @@ class WiFiNetworkManager(private val context: Context) {
      */
     fun getCurrentWiFi(): Pair<String, String>? {
         println("DEBUG: hasLocationPermission = ${hasLocationPermission()}")
+
         if (!hasLocationPermission()) {
             println("DEBUG: No location permission!")
             return null
@@ -47,12 +48,36 @@ class WiFiNetworkManager(private val context: Context) {
                 println("DEBUG: network = $network")
                 val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
                 println("DEBUG: capabilities = $capabilities")
+
                 if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
                     println("DEBUG: Has WIFI transport")
                     val wifiInfo = capabilities.transportInfo as? WifiInfo
-                    println("DEBUG: wifiInfo = $wifiInfo")
-                    val ssid = wifiInfo?.ssid?.removeSurrounding("\"") ?: return null
-                    val bssid = wifiInfo.bssid ?: return null
+
+                    // Если wifiInfo == null (VPN активен), пробуем получить из underlying network
+                    val actualWifiInfo = if (wifiInfo == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        // Android 12+ - underlyingNetworks доступны
+                        val underlyingNetworks = capabilities.underlyingNetworks
+                        println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
+
+                        // Ищем WiFi среди underlying
+                        underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
+                            val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
+                            underlyingCaps?.transportInfo as? WifiInfo
+                        }
+                    } else {
+                        wifiInfo
+                    }
+
+                    println("DEBUG: actualWifiInfo = $actualWifiInfo")
+
+                    val ssid = actualWifiInfo?.ssid?.removeSurrounding("\"")
+                    val bssid = actualWifiInfo?.bssid
+
+                    if (ssid == null || bssid == null) {
+                        println("DEBUG: ssid or bssid is null")
+                        return null
+                    }
+
                     println("DEBUG: ssid = $ssid, bssid = $bssid")
                     Pair(ssid, bssid)
                 } else {
@@ -78,6 +103,7 @@ class WiFiNetworkManager(private val context: Context) {
             }
         } catch (e: Exception) {
             println("DEBUG: Exception! ${e.message}")
+            e.printStackTrace()
             null
         }
     }
