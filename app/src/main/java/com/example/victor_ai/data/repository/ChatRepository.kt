@@ -29,23 +29,66 @@ class ChatRepository @Inject constructor(
         return chatMessageDao.getAllMessagesOnce()
     }
 
-    // Синхронизация с бэкендом (загрузка истории)
-    suspend fun syncWithBackend(accountId: String = UserProvider.getCurrentUserId()): Result<Unit> {
+    // Синхронизация с бэкендом (загрузка истории) - возвращает информацию о пагинации
+    suspend fun syncWithBackendPaginated(accountId: String = UserProvider.getCurrentUserId()): Result<com.example.victor_ai.data.network.dto.ChatHistoryResponse> {
         return try {
             Log.d(TAG, "Синхронизация истории чата с бэкендом...")
-            val messages = chatApi.getChatHistory(accountId)
+            val response = chatApi.getChatHistory(accountId, limit = 25, beforeId = null)
 
             // Конвертируем в Entity
-            val entities = messages.map { it.toEntity() }
+            val entities = response.messages.map { it.toEntity() }
 
             // Очищаем старую историю и сохраняем новую
             chatMessageDao.clearAll()
             chatMessageDao.insertMessages(entities)
 
-            Log.d(TAG, "✅ Синхронизация завершена: ${entities.size} сообщений")
+            Log.d(TAG, "✅ Синхронизация завершена: ${entities.size} сообщений, has_more=${response.hasMore}, oldest_id=${response.oldestId}")
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Ошибка синхронизации", e)
+            Result.failure(e)
+        }
+    }
+
+    // Синхронизация с бэкендом (загрузка истории)
+    suspend fun syncWithBackend(accountId: String = UserProvider.getCurrentUserId()): Result<Unit> {
+        return try {
+            Log.d(TAG, "Синхронизация истории чата с бэкендом...")
+            val response = chatApi.getChatHistory(accountId, limit = 25, beforeId = null)
+
+            // Конвертируем в Entity
+            val entities = response.messages.map { it.toEntity() }
+
+            // Очищаем старую историю и сохраняем новую
+            chatMessageDao.clearAll()
+            chatMessageDao.insertMessages(entities)
+
+            Log.d(TAG, "✅ Синхронизация завершена: ${entities.size} сообщений, has_more=${response.hasMore}")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Ошибка синхронизации", e)
+            Result.failure(e)
+        }
+    }
+
+    // Загрузка истории с пагинацией (для скролла вверх)
+    suspend fun loadMoreHistory(
+        beforeId: Int,
+        limit: Int = 25,
+        accountId: String = UserProvider.getCurrentUserId()
+    ): Result<com.example.victor_ai.data.network.dto.ChatHistoryResponse> {
+        return try {
+            Log.d(TAG, "Загрузка истории: beforeId=$beforeId, limit=$limit")
+            val response = chatApi.getChatHistory(accountId, limit, beforeId)
+
+            // Конвертируем в Entity и добавляем к существующим
+            val entities = response.messages.map { it.toEntity() }
+            chatMessageDao.insertMessages(entities)
+
+            Log.d(TAG, "✅ Загружено ${entities.size} сообщений, has_more=${response.hasMore}")
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Ошибка загрузки истории", e)
             Result.failure(e)
         }
     }

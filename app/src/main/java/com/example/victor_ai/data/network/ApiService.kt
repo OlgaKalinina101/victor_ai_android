@@ -139,8 +139,10 @@ interface ApiService {
 interface ChatApi {
     @GET("assistant/chat/history")
     suspend fun getChatHistory(
-        @Query("account_id") accountId: String = UserProvider.getCurrentUserId()
-    ): List<ChatMessage>
+        @Query("account_id") accountId: String = UserProvider.getCurrentUserId(),
+        @Query("limit") limit: Int = 25,
+        @Query("before_id") beforeId: Int? = null
+    ): com.example.victor_ai.data.network.dto.ChatHistoryResponse
 
     @PUT("assistant/chat/update_history")
     @Headers("Content-Type: application/json")

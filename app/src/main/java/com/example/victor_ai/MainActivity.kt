@@ -94,6 +94,9 @@ class MainActivity : ComponentActivity() {
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage
 
+    // Пагинация чата
+    private var oldestMessageId: Int? = null
+
     private lateinit var permissionManager: PermissionManager
 
     private var latestGeo: GeoLocation? = null
@@ -262,6 +265,13 @@ class MainActivity : ComponentActivity() {
                             },
                             onInitHistory = { history ->
                                 _chatMessages.value = history.toMutableList()
+                            },
+                            onPaginationInfo = { oldestId, hasMore ->
+                                oldestMessageId = oldestId
+                                Log.d("Chat", "📋 Пагинация: oldestId=$oldestId, hasMore=$hasMore")
+                            },
+                            onLoadMoreHistory = { beforeId ->
+                                loadMoreChatHistory()
                             },
                             onStartVoiceRecognition = { startVoiceRecognition() },
                             onRequestMicrophone = {
@@ -500,6 +510,41 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // ✅ Загрузка дополнительной истории чата (пагинация)
+    private suspend fun loadMoreChatHistory(): Boolean {
+        return try {
+            // Если нет oldestId, используем timestamp самого старого сообщения
+            val beforeId = oldestMessageId ?: run {
+                Log.w("Chat", "⚠️ oldestId не установлен, загрузка истории невозможна")
+                return false
+            }
+
+            Log.d("Chat", "📥 Загрузка истории: beforeId=$beforeId")
+
+            val result = ChatHistoryHelper.repository.loadMoreHistory(beforeId)
+            result.onSuccess { response ->
+                Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}")
+
+                // Добавляем новые сообщения в начало списка (старые сообщения)
+                val currentMessages = _chatMessages.value.toMutableList()
+                currentMessages.addAll(response.messages)
+                _chatMessages.value = currentMessages
+
+                // Обновляем oldestId для следующей загрузки
+                oldestMessageId = response.oldestId
+
+                return response.hasMore
+            }.onFailure { error ->
+                Log.e("Chat", "❌ Ошибка загрузки истории: ${error.message}")
+                return false
+            }
+
+            false
+        } catch (e: Exception) {
+            Log.e("Chat", "❌ Ошибка загрузки истории", e)
+            false
+        }
+    }
 
 
     override fun onDestroy() {

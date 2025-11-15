@@ -37,3 +37,10 @@ data class DeleteRequest(
     val record_ids: List<String>
 )
 
+data class ChatHistoryResponse(
+    val messages: List<ChatMessage>,
+    @Json(name = "has_more") val hasMore: Boolean,
+    @Json(name = "oldest_id") val oldestId: Int?,
+    @Json(name = "newest_id") val newestId: Int?
+)
+
