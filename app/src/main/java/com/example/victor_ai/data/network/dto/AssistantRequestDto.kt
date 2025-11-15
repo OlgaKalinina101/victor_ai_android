@@ -18,21 +18,25 @@ data class AssistantRequest(
     val geo: GeoLocation? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class UpdateHistoryRequest(
     val messages: List<ChatMessage>
 )
 
+@JsonClass(generateAdapter = true)
 data class MemoryResponse(
     val id: String,
     val text: String,
     val metadata: Map<String, Any>
 )
 
+@JsonClass(generateAdapter = true)
 data class UpdateMemoryRequest(
     val text: String,
     val metadata: Map<String, Any>? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class DeleteRequest(
     val record_ids: List<String>
 )
