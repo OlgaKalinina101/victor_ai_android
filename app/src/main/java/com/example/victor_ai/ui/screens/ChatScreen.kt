@@ -24,7 +24,7 @@ fun ChatScreen(
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit,
-    onLoadMoreHistory: suspend (Int) -> Boolean,
+    onLoadMoreHistory: suspend (Int) -> Pair<Boolean, Int?>,
     onClose: () -> Unit,
     permissionManager: PermissionManager,
     isListeningState: State<Boolean>,
