@@ -266,28 +266,23 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onInitHistory = { history ->
-                                // Разделяем SessionContext (без ID) и DB сообщения (с ID)
-                                // SessionContext получает виртуальные ID для правильной сортировки
-                                // Реверсируем SessionContext, чтобы самое новое сообщение получило самый большой ID
-                                sessionContextMessages = history.filter { it.id == null }
-                                    .reversed()  // Инвертируем порядок: от новых к старым
-                                    .mapIndexed { index, msg ->
-                                        msg.copy(id = Int.MAX_VALUE - index)  // Виртуальные ID: очень большие числа
-                                    }
-                                val dbMessages = history.filter { it.id != null && it.id!! < Int.MAX_VALUE - 1000 }
-                                    .sortedByDescending { it.id ?: 0 }  // Сортируем: от новых (больший ID) к старым
+                                // Бэкенд теперь присваивает ID всем сообщениям:
+                                // - SessionContext: огромные ID (1_000_000_000+)
+                                // - DB сообщения: реальные ID из БД
+                                // Просто сортируем по ID descending (от новых к старым)
 
-                                Log.d("Chat", "📦 Инициализация: SessionContext=${sessionContextMessages.size}, DB=${dbMessages.size}")
-                                if (sessionContextMessages.isNotEmpty()) {
-                                    Log.d("Chat", "📊 SessionContext IDs: ${sessionContextMessages.take(3).map { it.id }}...${sessionContextMessages.takeLast(3).map { it.id }}")
-                                }
-                                if (dbMessages.isNotEmpty()) {
-                                    Log.d("Chat", "📊 DB IDs: ${dbMessages.take(5).map { it.id }}...${dbMessages.takeLast(5).map { it.id }}")
-                                }
-
-                                // Собираем всё вместе и сортируем по ID (от больших к меньшим)
-                                val allMessages = (sessionContextMessages + dbMessages).sortedByDescending { it.id ?: 0 }
+                                val allMessages = history.sortedByDescending { it.id ?: 0 }
                                 _chatMessages.value = allMessages.toMutableList()
+
+                                // Сохраняем SessionContext отдельно для использования в loadMoreHistory
+                                sessionContextMessages = allMessages.filter {
+                                    it.id != null && it.id!! >= 1_000_000_000
+                                }
+
+                                Log.d("Chat", "📦 Инициализация: всего ${allMessages.size} сообщений (SessionContext=${sessionContextMessages.size})")
+                                if (allMessages.isNotEmpty()) {
+                                    Log.d("Chat", "📊 IDs: ${allMessages.take(5).map { it.id }}...${allMessages.takeLast(5).map { it.id }}")
+                                }
                             },
                             onPaginationInfo = { oldestId, hasMore ->
                                 oldestMessageId = oldestId
@@ -547,23 +542,16 @@ class MainActivity : ComponentActivity() {
                     Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}, newOldestId=${response.oldestId}")
 
                     if (response.messages.isNotEmpty()) {
-                        // Получаем текущие DB сообщения (исключая виртуальные ID SessionContext)
-                        val currentDbMessages = _chatMessages.value
-                            .filter { it.id != null && it.id!! < Int.MAX_VALUE - 1000 }
-                            .toMutableList()
+                        // Добавляем новые сообщения к существующим
+                        val currentMessages = _chatMessages.value.toMutableList()
+                        currentMessages.addAll(response.messages)
 
-                        // Добавляем новые старые сообщения
-                        currentDbMessages.addAll(response.messages)
+                        // Сортируем все по ID (от новых к старым)
+                        val allMessages = currentMessages.sortedByDescending { it.id ?: 0 }
+                        _chatMessages.value = allMessages
 
-                        // Собираем всё вместе: SessionContext (виртуальные ID) + DB сообщения
-                        // Сортируем по ID: виртуальные ID SessionContext первые, потом DB по убыванию
-                        val allMessages = (sessionContextMessages + currentDbMessages).sortedByDescending { it.id ?: 0 }
-                        _chatMessages.value = allMessages.toMutableList()
-
-                        Log.d("Chat", "📦 Обновлено: SessionContext=${sessionContextMessages.size}, DB=${currentDbMessages.size}, всего=${_chatMessages.value.size}")
-                        if (currentDbMessages.isNotEmpty()) {
-                            Log.d("Chat", "📊 DB IDs: ${currentDbMessages.sortedByDescending { it.id }.take(5).map { it.id }}...${currentDbMessages.sortedByDescending { it.id }.takeLast(5).map { it.id }}")
-                        }
+                        Log.d("Chat", "📦 Обновлено: всего ${allMessages.size} сообщений")
+                        Log.d("Chat", "📊 IDs: ${allMessages.take(5).map { it.id }}...${allMessages.takeLast(5).map { it.id }}")
                     }
 
                     return@withContext (response.hasMore to response.oldestId)
