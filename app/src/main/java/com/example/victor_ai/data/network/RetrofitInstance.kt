@@ -1,7 +1,6 @@
 package com.example.victor_ai.data.network
 
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -26,9 +25,8 @@ object RetrofitInstance {
         .build()
 
 
-    // ✅ 3. Создаём Moshi-инстанс с поддержкой Kotlin
+    // ✅ 3. Создаём Moshi-инстанс для кодогенерированных адаптеров
     private val moshi: Moshi = Moshi.Builder()
-        .add(KotlinJsonAdapterFactory())
         .build()
 
     // ✅ 4. Retrofit + Moshi
