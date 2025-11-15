@@ -1,6 +1,7 @@
 package com.example.victor_ai.logic
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -108,6 +109,7 @@ class WiFiNetworkManager(private val context: Context) {
      * Получить список доступных WiFi сетей
      * @return List<Pair<SSID, BSSID>>
      */
+    @SuppressLint("MissingPermission")
     @RequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION)
     fun getAvailableNetworks(): List<Pair<String, String>> {
         if (!hasLocationPermission()) {
