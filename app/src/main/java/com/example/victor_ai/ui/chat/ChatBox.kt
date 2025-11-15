@@ -716,14 +716,19 @@ fun parseMarkdown(text: String): AnnotatedString {
             Log.d("ChatBox", "Парсим строку: '$line'")
 
             // Регулярки (порядок важен!)
-            val linkRegex = """\[([^\]]+)\]\(([^\)]+)\)""".toRegex()  // Изменен regex для более надежного парсинга
-            val boldRegex = """\*\*(.+?)\*\*""".toRegex()
-            val italicRegex = """\*([^*]+?)\*""".toRegex() // ← изменила на [^*] чтобы не захватывать **
+            val boldLinkRegex = """\*\*\[([^\]]+)\]\(([^\)]+)\)\*\*""".toRegex()  // **[text](url)**
+            val linkRegex = """\[([^\]]+)\]\(([^\)]+)\)""".toRegex()  // [text](url)
+            val boldRegex = """\*\*(.+?)\*\*""".toRegex()  // **text**
+            val italicRegex = """\*([^*]+?)\*""".toRegex()  // *text*
 
             // Находим все совпадения
             val matches = mutableListOf<Triple<IntRange, String, MatchResult>>()
 
-            // Важно: сначала ссылки, потом жирный, потом курсив
+            // Важно: сначала bold+link, потом просто ссылки, потом жирный, потом курсив
+            boldLinkRegex.findAll(line).forEach {
+                Log.d("ChatBox", "✓ Найдена жирная ссылка: '${it.value}', label: '${it.groupValues[1]}', url: '${it.groupValues[2]}'")
+                matches.add(Triple(it.range, "boldlink", it))
+            }
             linkRegex.findAll(line).forEach {
                 Log.d("ChatBox", "✓ Найдена ссылка: '${it.value}', label: '${it.groupValues[1]}', url: '${it.groupValues[2]}'")
                 matches.add(Triple(it.range, "link", it))
@@ -756,6 +761,27 @@ fun parseMarkdown(text: String): AnnotatedString {
                 }
 
                 when (type) {
+                    "boldlink" -> {
+                        // **[text](url)** - жирная ссылка
+                        val label = match.groupValues[1]
+                        val url = match.groupValues[2]
+                        val start = length
+
+                        withStyle(SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFBB86FC),
+                            textDecoration = TextDecoration.Underline
+                        )) {
+                            append(label)
+                        }
+
+                        addStringAnnotation(
+                            tag = "URL",
+                            annotation = url,
+                            start = start,
+                            end = start + label.length
+                        )
+                    }
                     "bold" -> {
                         val innerText = match.groupValues[1]
                         withStyle(SpanStyle(
