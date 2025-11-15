@@ -713,8 +713,10 @@ fun parseMarkdown(text: String): AnnotatedString {
         val lines = text.split("\n")
 
         lines.forEachIndexed { lineIndex, line ->
+            Log.d("ChatBox", "Парсим строку: '$line'")
+
             // Регулярки (порядок важен!)
-            val linkRegex = """\[(.+?)\]\((.+?)\)""".toRegex()
+            val linkRegex = """\[([^\]]+)\]\(([^\)]+)\)""".toRegex()  // Изменен regex для более надежного парсинга
             val boldRegex = """\*\*(.+?)\*\*""".toRegex()
             val italicRegex = """\*([^*]+?)\*""".toRegex() // ← изменила на [^*] чтобы не захватывать **
 
@@ -722,9 +724,16 @@ fun parseMarkdown(text: String): AnnotatedString {
             val matches = mutableListOf<Triple<IntRange, String, MatchResult>>()
 
             // Важно: сначала ссылки, потом жирный, потом курсив
-            linkRegex.findAll(line).forEach { matches.add(Triple(it.range, "link", it)) }
+            linkRegex.findAll(line).forEach {
+                Log.d("ChatBox", "✓ Найдена ссылка: '${it.value}', label: '${it.groupValues[1]}', url: '${it.groupValues[2]}'")
+                matches.add(Triple(it.range, "link", it))
+            }
             boldRegex.findAll(line).forEach { matches.add(Triple(it.range, "bold", it)) }
             italicRegex.findAll(line).forEach { matches.add(Triple(it.range, "italic", it)) }
+
+            if (matches.isEmpty() && line.contains("[") && line.contains("]")) {
+                Log.d("ChatBox", "⚠️ Строка содержит скобки, но ссылки не найдены!")
+            }
 
             // Убираем пересекающиеся совпадения
             val filteredMatches = mutableListOf<Triple<IntRange, String, MatchResult>>()
