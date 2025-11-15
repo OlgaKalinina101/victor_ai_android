@@ -367,6 +367,7 @@ fun MessageItem(
     // User-сообщения справа и светлее фона
     val alignment = if (message.isUser) Alignment.End else Alignment.Start
     val backgroundColor = if (message.isUser) Color(0xFF3A3838) else Color.Transparent
+    val annotatedText = parseMarkdown(message.text)
 
     Column(
         modifier = Modifier
@@ -676,28 +677,35 @@ fun formatTimestamp(timestamp: Long): String {
 
 fun parseMarkdown(text: String): AnnotatedString {
     return buildAnnotatedString {
-        var currentIndex = 0
-        val lines = text.split("\\n")
+        val lines = text.split("\n")
 
         lines.forEachIndexed { lineIndex, line ->
-            var lineIndex = 0
-
-            // Регулярки для разных элементов markdown
-            val boldRegex = """\*\*(.+?)\*\*""".toRegex()
-            val italicRegex = """\*(.+?)\*""".toRegex()
+            // Регулярки (порядок важен!)
             val linkRegex = """\[(.+?)\]\((.+?)\)""".toRegex()
+            val boldRegex = """\*\*(.+?)\*\*""".toRegex()
+            val italicRegex = """\*([^*]+?)\*""".toRegex() // ← изменила на [^*] чтобы не захватывать **
 
             // Находим все совпадения
-            val matches = mutableListOf<Pair<IntRange, MatchResult>>()
-            boldRegex.findAll(line).forEach { matches.add(it.range to it) }
-            italicRegex.findAll(line).forEach { matches.add(it.range to it) }
-            linkRegex.findAll(line).forEach { matches.add(it.range to it) }
+            val matches = mutableListOf<Triple<IntRange, String, MatchResult>>()
 
-            // Сортируем по позиции
-            matches.sortBy { it.first.first }
+            // Важно: сначала ссылки, потом жирный, потом курсив
+            linkRegex.findAll(line).forEach { matches.add(Triple(it.range, "link", it)) }
+            boldRegex.findAll(line).forEach { matches.add(Triple(it.range, "bold", it)) }
+            italicRegex.findAll(line).forEach { matches.add(Triple(it.range, "italic", it)) }
+
+            // Убираем пересекающиеся совпадения
+            val filteredMatches = mutableListOf<Triple<IntRange, String, MatchResult>>()
+            matches.sortedBy { it.first.first }.forEach { current ->
+                val hasOverlap = filteredMatches.any { existing ->
+                    current.first.first < existing.first.last && current.first.last > existing.first.first
+                }
+                if (!hasOverlap) {
+                    filteredMatches.add(current)
+                }
+            }
 
             var lastIndex = 0
-            matches.forEach { (range, match) ->
+            filteredMatches.forEach { (range, type, match) ->
                 // Добавляем текст до совпадения
                 if (lastIndex < range.first) {
                     withStyle(SpanStyle(color = Color(0xFFE0E0E0))) {
@@ -705,9 +713,8 @@ fun parseMarkdown(text: String): AnnotatedString {
                     }
                 }
 
-                when {
-                    // Жирный текст
-                    match.value.startsWith("**") -> {
+                when (type) {
+                    "bold" -> {
                         val innerText = match.groupValues[1]
                         withStyle(SpanStyle(
                             fontWeight = FontWeight.Bold,
@@ -716,8 +723,7 @@ fun parseMarkdown(text: String): AnnotatedString {
                             append(innerText)
                         }
                     }
-                    // Курсив
-                    match.value.startsWith("*") && !match.value.startsWith("**") -> {
+                    "italic" -> {
                         val innerText = match.groupValues[1]
                         withStyle(SpanStyle(
                             fontStyle = FontStyle.Italic,
@@ -726,8 +732,7 @@ fun parseMarkdown(text: String): AnnotatedString {
                             append(innerText)
                         }
                     }
-                    // Ссылки
-                    match.value.startsWith("[") -> {
+                    "link" -> {
                         val label = match.groupValues[1]
                         val url = match.groupValues[2]
                         val start = length
@@ -765,7 +770,6 @@ fun parseMarkdown(text: String): AnnotatedString {
         }
     }
 }
-
 // ═══════════════════════════════════════════════
 // Конец файла
 // ═══════════════════════════════════════════════

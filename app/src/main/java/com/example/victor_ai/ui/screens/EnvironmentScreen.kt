@@ -129,8 +129,8 @@ private fun HomeStatusSection(
                 }
                 append("]")
             }
-        } else if (distanceToHome == 0) {
-            // GPS говорит дома, но WiFi другой
+        } else if (distanceToHome != null && distanceToHome <= 40) {
+            // GPS говорит что в пределах 40 метров - считаем что дома
             buildAnnotatedString {
                 append("[дома: ")
                 withStyle(style = SpanStyle(color = greenColor)) {
@@ -139,7 +139,7 @@ private fun HomeStatusSection(
                 append(" (GPS)]")
             }
         } else if (distanceToHome != null) {
-            // Не дома
+            // Не дома - дальше 40м
             buildAnnotatedString {
                 append("[дома: ")
                 withStyle(style = SpanStyle(color = redColor)) {
