@@ -267,24 +267,32 @@ class MainActivity : ComponentActivity() {
                             },
                             onInitHistory = { history ->
                                 // Разделяем SessionContext (без ID) и DB сообщения (с ID)
+                                // SessionContext получает виртуальные ID для правильной сортировки
                                 sessionContextMessages = history.filter { it.id == null }
-                                val dbMessages = history.filter { it.id != null }
+                                    .mapIndexed { index, msg ->
+                                        msg.copy(id = Int.MAX_VALUE - index)  // Виртуальные ID: очень большие числа
+                                    }
+                                val dbMessages = history.filter { it.id != null && it.id!! < Int.MAX_VALUE - 1000 }
                                     .sortedByDescending { it.id ?: 0 }  // Сортируем: от новых (больший ID) к старым
 
                                 Log.d("Chat", "📦 Инициализация: SessionContext=${sessionContextMessages.size}, DB=${dbMessages.size}")
+                                if (sessionContextMessages.isNotEmpty()) {
+                                    Log.d("Chat", "📊 SessionContext IDs: ${sessionContextMessages.take(3).map { it.id }}...${sessionContextMessages.takeLast(3).map { it.id }}")
+                                }
                                 if (dbMessages.isNotEmpty()) {
                                     Log.d("Chat", "📊 DB IDs: ${dbMessages.take(5).map { it.id }}...${dbMessages.takeLast(5).map { it.id }}")
                                 }
 
-                                // Отображаем: SessionContext (самые свежие, внизу) → DB новые → DB старые (вверху)
-                                _chatMessages.value = (sessionContextMessages + dbMessages).toMutableList()
+                                // Собираем всё вместе и сортируем по ID (от больших к меньшим)
+                                val allMessages = (sessionContextMessages + dbMessages).sortedByDescending { it.id ?: 0 }
+                                _chatMessages.value = allMessages.toMutableList()
                             },
                             onPaginationInfo = { oldestId, hasMore ->
                                 oldestMessageId = oldestId
                                 Log.d("Chat", "📋 Пагинация: oldestId=$oldestId, hasMore=$hasMore")
                             },
                             onLoadMoreHistory = { beforeId ->
-                                loadMoreChatHistory()
+                                loadMoreChatHistory(beforeId)
                             },
                             onStartVoiceRecognition = { startVoiceRecognition() },
                             onRequestMicrophone = {
@@ -524,15 +532,9 @@ class MainActivity : ComponentActivity() {
     }
 
     // ✅ Загрузка дополнительной истории чата (пагинация)
-    private suspend fun loadMoreChatHistory(): Boolean {
+    private suspend fun loadMoreChatHistory(beforeId: Int): Pair<Boolean, Int?> {
         return withContext(Dispatchers.Main) {
             try {
-                // Если нет oldestId, используем timestamp самого старого сообщения
-                val beforeId = oldestMessageId ?: run {
-                    Log.w("Chat", "⚠️ oldestId не установлен, загрузка истории невозможна")
-                    return@withContext false
-                }
-
                 Log.d("Chat", "📥 Загрузка истории: beforeId=$beforeId")
 
                 val result = withContext(Dispatchers.IO) {
@@ -540,40 +542,38 @@ class MainActivity : ComponentActivity() {
                 }
 
                 result.onSuccess { response ->
-                    Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}")
+                    Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}, newOldestId=${response.oldestId}")
 
                     if (response.messages.isNotEmpty()) {
-                        // Получаем текущие DB сообщения (без SessionContext)
-                        val currentDbMessages = _chatMessages.value.filter { it.id != null }.toMutableList()
+                        // Получаем текущие DB сообщения (исключая виртуальные ID SessionContext)
+                        val currentDbMessages = _chatMessages.value
+                            .filter { it.id != null && it.id!! < Int.MAX_VALUE - 1000 }
+                            .toMutableList()
 
                         // Добавляем новые старые сообщения
                         currentDbMessages.addAll(response.messages)
 
-                        // Сортируем все DB сообщения: от новых (больший ID) к старым
-                        val sortedDbMessages = currentDbMessages.sortedByDescending { it.id ?: 0 }
+                        // Собираем всё вместе: SessionContext (виртуальные ID) + DB сообщения
+                        // Сортируем по ID: виртуальные ID SessionContext первые, потом DB по убыванию
+                        val allMessages = (sessionContextMessages + currentDbMessages).sortedByDescending { it.id ?: 0 }
+                        _chatMessages.value = allMessages.toMutableList()
 
-                        // Собираем итоговый список: SessionContext (свежие, внизу) → DB новые → DB старые (вверху)
-                        _chatMessages.value = (sessionContextMessages + sortedDbMessages).toMutableList()
-
-                        // Обновляем oldestId для следующей загрузки
-                        oldestMessageId = response.oldestId
-
-                        Log.d("Chat", "📦 Обновлено: SessionContext=${sessionContextMessages.size}, DB=${sortedDbMessages.size}, всего=${_chatMessages.value.size}")
-                        if (sortedDbMessages.isNotEmpty()) {
-                            Log.d("Chat", "📊 DB IDs после сортировки: ${sortedDbMessages.take(5).map { it.id }}...${sortedDbMessages.takeLast(5).map { it.id }}")
+                        Log.d("Chat", "📦 Обновлено: SessionContext=${sessionContextMessages.size}, DB=${currentDbMessages.size}, всего=${_chatMessages.value.size}")
+                        if (currentDbMessages.isNotEmpty()) {
+                            Log.d("Chat", "📊 DB IDs: ${currentDbMessages.sortedByDescending { it.id }.take(5).map { it.id }}...${currentDbMessages.sortedByDescending { it.id }.takeLast(5).map { it.id }}")
                         }
                     }
 
-                    return@withContext response.hasMore
+                    return@withContext (response.hasMore to response.oldestId)
                 }.onFailure { error ->
                     Log.e("Chat", "❌ Ошибка загрузки истории: ${error.message}")
-                    return@withContext false
+                    return@withContext (false to null)
                 }
 
-                false
+                false to null
             } catch (e: Exception) {
                 Log.e("Chat", "❌ Ошибка загрузки истории", e)
-                false
+                false to null
             }
         }
     }

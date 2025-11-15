@@ -34,7 +34,7 @@ fun AppNavHost(
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit,
-    onLoadMoreHistory: suspend (Int) -> Boolean,
+    onLoadMoreHistory: suspend (Int) -> Pair<Boolean, Int?>,
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
     isListeningState: State<Boolean>,

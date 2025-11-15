@@ -65,7 +65,7 @@ fun ChatBox(
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit = { _, _ -> },
-    onLoadMoreHistory: suspend (Int) -> Boolean = { false },
+    onLoadMoreHistory: suspend (Int) -> Pair<Boolean, Int?> = { false to null },  // returns (hasMore, newOldestId)
     visible: Boolean,
     isTyping: Boolean = false,
     onClose: () -> Unit = {},
@@ -86,6 +86,7 @@ fun ChatBox(
     val listState = rememberLazyListState()
     var isLoadingMore by remember { mutableStateOf(false) }
     var hasMoreHistory by remember { mutableStateOf(true) }
+    var oldestId by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
         try {
@@ -94,6 +95,7 @@ fun ChatBox(
                 onInitHistory(response.messages)
                 onPaginationInfo(response.oldestId, response.hasMore)
                 hasMoreHistory = response.hasMore
+                oldestId = response.oldestId
             }.onFailure { e ->
                 Log.e("Chat", "Ошибка загрузки истории", e)
             }
@@ -112,16 +114,20 @@ fun ChatBox(
 
                 // Если прокрутили близко к концу списка (который в reverse = начало истории)
                 if (totalItems > 0 && lastVisibleIndex >= totalItems - 3) {
+                    val currentOldestId = oldestId
+                    if (currentOldestId == null) {
+                        Log.w("Chat", "⚠️ oldestId == null, загрузка невозможна")
+                        hasMoreHistory = false
+                        return@collect
+                    }
+
                     isLoadingMore = true
                     try {
-                        // Получаем timestamp самого старого сообщения для использования как beforeId
-                        val oldestTimestamp = messages.lastOrNull()?.timestamp?.toInt()
-                        if (oldestTimestamp != null) {
-                            val stillHasMore = onLoadMoreHistory(oldestTimestamp)
-                            hasMoreHistory = stillHasMore
-                        } else {
-                            hasMoreHistory = false
-                        }
+                        Log.d("Chat", "📥 Триггер загрузки: oldestId=$currentOldestId")
+                        val (stillHasMore, newOldestId) = onLoadMoreHistory(currentOldestId)
+                        hasMoreHistory = stillHasMore
+                        oldestId = newOldestId  // Обновляем для следующей загрузки
+                        Log.d("Chat", "✅ Обновлен oldestId: $newOldestId, hasMore=$stillHasMore")
                     } catch (e: Exception) {
                         Log.e("Chat", "Ошибка загрузки истории", e)
                         hasMoreHistory = false
