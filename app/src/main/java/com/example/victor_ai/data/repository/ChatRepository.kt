@@ -41,9 +41,9 @@ class ChatRepository @Inject constructor(
                 Log.d(TAG, "  [$index] id=${msg.id}, text=${msg.text.take(30)}..., isUser=${msg.isUser}")
             }
 
-            // Разделяем SessionContext и DB сообщения
-            val sessionContextMessages = response.messages.filter { it.id == null }
-            val dbMessages = response.messages.filter { it.id != null }
+            // Разделяем SessionContext (ID >= 1_000_000_000) и DB сообщения (ID < 1_000_000_000)
+            val sessionContextMessages = response.messages.filter { it.id != null && it.id!! >= 1_000_000_000 }
+            val dbMessages = response.messages.filter { it.id != null && it.id!! < 1_000_000_000 }
 
             Log.d(TAG, "📦 SessionContext: ${sessionContextMessages.size}, DB: ${dbMessages.size}")
             if (dbMessages.isNotEmpty()) {
