@@ -46,10 +46,14 @@ import android.net.Uri
 import com.example.victor_ai.R
 import com.example.victor_ai.data.network.sendToDiaryEntry
 import com.example.victor_ai.logic.fetchChatHistory
+import com.example.victor_ai.logic.ChatHistoryHelper
 import com.example.victor_ai.domain.model.ChatMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.victor_ai.ui.common.LongClickableText
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.CircularProgressIndicator
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -59,6 +63,8 @@ fun ChatBox(
     onSendMessage: (String) -> Unit,
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
+    onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit = { _, _ -> },
+    onLoadMoreHistory: suspend (Int) -> Boolean = { false },
     visible: Boolean,
     isTyping: Boolean = false,
     onClose: () -> Unit = {},
@@ -76,13 +82,49 @@ fun ChatBox(
     var currentMode by remember { mutableStateOf("production") }
     var showSearchOverlay by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var hasMoreHistory by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         try {
-            val history = fetchChatHistory()
-            onInitHistory(history)
+            val result = ChatHistoryHelper.repository.syncWithBackendPaginated()
+            result.onSuccess { response ->
+                onInitHistory(response.messages)
+                onPaginationInfo(response.oldestId, response.hasMore)
+                hasMoreHistory = response.hasMore
+            }.onFailure { e ->
+                Log.e("Chat", "Ошибка загрузки истории", e)
+            }
         } catch (e: Exception) {
             Log.e("Chat", "Ошибка загрузки истории", e)
+        }
+    }
+
+    // Отслеживание скролла для загрузки истории
+    LaunchedEffect(listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index) {
+        val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+        val totalItems = listState.layoutInfo.totalItemsCount
+
+        // Если прокрутили близко к концу списка (который в reverse = начало истории)
+        if (lastVisibleItem != null &&
+            totalItems > 0 &&
+            lastVisibleItem.index >= totalItems - 3 &&
+            !isLoadingMore &&
+            hasMoreHistory
+        ) {
+            isLoadingMore = true
+            try {
+                // Получаем timestamp самого старого сообщения для использования как beforeId
+                val oldestTimestamp = messages.lastOrNull()?.timestamp?.toInt()
+                if (oldestTimestamp != null) {
+                    hasMoreHistory = onLoadMoreHistory(oldestTimestamp)
+                }
+            } catch (e: Exception) {
+                Log.e("Chat", "Ошибка загрузки истории", e)
+            } finally {
+                isLoadingMore = false
+            }
         }
     }
 
@@ -137,6 +179,7 @@ fun ChatBox(
             // │ Сообщения
             // └─────────────────────────────┘
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -194,6 +237,24 @@ fun ChatBox(
                             clipboardManager.setText(AnnotatedString(message.text))
                         }
                     )
+                }
+
+                // Индикатор загрузки истории
+                if (isLoadingMore) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color(0xFFBB86FC),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
                 }
             }
 
