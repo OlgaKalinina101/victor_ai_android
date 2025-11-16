@@ -33,7 +33,6 @@ fun parseMarkdown(text: String): AnnotatedString {
         val lines = text.split("\n")
 
         lines.forEachIndexed { lineIndex, line ->
-            Log.d("ChatBox", "Парсим строку: '$line'")
 
             // Регулярки (порядок важен!)
             val boldLinkRegex = """\*\*\[([^\]]+)\]\(([^\)]+)\)\*\*""".toRegex()  // **[text](url)**
