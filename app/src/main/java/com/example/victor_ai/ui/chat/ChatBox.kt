@@ -195,7 +195,7 @@ fun ChatBox(
                 // Фильтруем по флагу isSynced вместо манипуляций с ID
                 val unsyncedMessages = messages
                     .filter { !it.isSynced }  // 🔥 Используем флаг вместо ID
-                    .sortedBy { it.timestamp }  // ⚠️ По возрастанию! reverseLayout перевернёт в правильный порядок
+                    .sortedByDescending { it.timestamp }  // ⚠️ По убыванию! Новые (index 0) → внизу, старые (index 1+) → вверху
 
                 Log.d("ChatBox", "🔍 Несинхронизированных найдено: ${unsyncedMessages.size}")
                 unsyncedMessages.forEach { Log.d("ChatBox", "  id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}, isSynced=${it.isSynced}, text=${it.text.take(20)}") }
