@@ -241,14 +241,16 @@ class MainActivity : ComponentActivity() {
                             reminderManager = reminderManager,
                             chatMessages = chatMessages.collectAsState().value,
                             onSendMessage = { userText ->
+                                val timestamp = System.currentTimeMillis() / 1000
                                 val newMessage = ChatMessage(
-                                    userText,
+                                    text = userText,
                                     isUser = true,
-                                    timestamp = System.currentTimeMillis() / 1000
+                                    timestamp = timestamp,
+                                    id = 10_000_000_000 + timestamp.toInt()  // Временный огромный ID
                                 )
                                 _chatMessages.value += newMessage
-                                Log.d("Chat", "➕ Добавлено user сообщение: id=${newMessage.id}, text=${newMessage.text.take(50)}")
-                                Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}, несинхронизированных: ${_chatMessages.value.count { it.id == null }}")
+                                Log.d("Chat", "➕ Добавлено user сообщение: ВРЕМЕННЫЙ id=${newMessage.id}, text=${newMessage.text.take(50)}")
+                                Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}")
                                 sendTextToAssistant(userText)
                             },
                             onEditMessage = { index, newText ->
@@ -269,27 +271,17 @@ class MainActivity : ComponentActivity() {
                             onInitHistory = { history ->
                                 Log.d("Chat", "🔄 onInitHistory вызван: получено ${history.size} сообщений с бэкенда")
                                 val currentMessages = _chatMessages.value
-                                Log.d("Chat", "📊 ПЕРЕД фильтрацией: всего ${currentMessages.size} сообщений")
+                                Log.d("Chat", "📊 Текущих сообщений: ${currentMessages.size}")
 
-                                // Сохраняем несинхронизированные сообщения (без ID с бэкенда)
-                                val unsyncedMessages = currentMessages.filter { it.id == null }
-                                Log.d("Chat", "🔍 Найдено ${unsyncedMessages.size} несинхронизированных сообщений:")
-                                unsyncedMessages.forEachIndexed { idx, msg ->
-                                    Log.d("Chat", "  [$idx] id=${msg.id}, isUser=${msg.isUser}, text=${msg.text.take(30)}")
-                                }
+                                // Объединяем текущие (с временными огромными ID) и с бэкенда
+                                // Сортируем по ID: reverseLayout=true, меньший ID = старше = будет вверху
+                                val allMessages = (currentMessages + history).sortedBy { it.id ?: 0 }
 
-                                // Бэкенд отправляет сообщения в правильном порядке
-                                val newMessages = history.toMutableList()
+                                _chatMessages.value = allMessages
 
-                                // ✅ ПРАВИЛЬНО: Добавляем несинхронизированные сообщения в НАЧАЛО (они самые новые)
-                                // reverseLayout=true в LazyColumn: начало массива показывается ВНИЗУ экрана
-                                newMessages.addAll(0, unsyncedMessages)
-
-                                _chatMessages.value = newMessages
-
-                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений с бэкенда, ${unsyncedMessages.size} несинхронизированных добавлено в начало")
-                                Log.d("Chat", "✅ ИТОГО в _chatMessages: ${_chatMessages.value.size} сообщений")
-                                Log.d("Chat", "📝 Первые 3 (самые новые, будут ВНИЗУ): ${_chatMessages.value.take(3).map { "id=${it.id}, isUser=${it.isUser}, text=${it.text.take(20)}" }}")
+                                Log.d("Chat", "✅ ИТОГО после сортировки: ${allMessages.size} сообщений")
+                                Log.d("Chat", "📝 Первые 3 (старые, вверху): ${allMessages.take(3).map { "id=${it.id}, text=${it.text.take(20)}" }}")
+                                Log.d("Chat", "📝 Последние 3 (новые, внизу): ${allMessages.takeLast(3).map { "id=${it.id}, text=${it.text.take(20)}" }}")
                             },
                             onPaginationInfo = { oldestId, hasMore ->
                                 oldestMessageId = oldestId
@@ -458,10 +450,12 @@ class MainActivity : ComponentActivity() {
                 val userMessage = _chatMessages.value.last() // последнее сообщение - это user message
                 ChatHistoryHelper.repository.addMessage(userMessage.toEntity())
 
+                val timestamp = System.currentTimeMillis() / 1000
                 val assistantMessage = ChatMessage(
                     text = "",
                     isUser = false,
-                    timestamp = System.currentTimeMillis() / 1000
+                    timestamp = timestamp,
+                    id = 10_000_000_000 + timestamp.toInt()  // Временный огромный ID
                 )
 
                 val currentMessages = _chatMessages.value.toMutableList()
@@ -469,8 +463,8 @@ class MainActivity : ComponentActivity() {
                 val messageIndex = currentMessages.size - 1
                 _chatMessages.value = currentMessages
 
-                Log.d("Chat", "➕ Добавлено assistant сообщение (пустое): id=${assistantMessage.id}")
-                Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}, несинхронизированных: ${_chatMessages.value.count { it.id == null }}")
+                Log.d("Chat", "➕ Добавлено assistant сообщение (пустое): ВРЕМЕННЫЙ id=${assistantMessage.id}")
+                Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}")
 
                 val charQueue = Channel<Char>(Channel.UNLIMITED)
 
@@ -530,8 +524,8 @@ class MainActivity : ComponentActivity() {
                 val finalAssistantMessage = _chatMessages.value[messageIndex]
                 ChatHistoryHelper.repository.addMessage(finalAssistantMessage.toEntity())
                 Log.d("Assistant", "✅ Сообщения сохранены в локальную БД")
-                Log.d("Chat", "📊 Итого сообщений: ${_chatMessages.value.size}, несинхронизированных: ${_chatMessages.value.count { it.id == null }}")
-                Log.d("Chat", "💬 Последние 3 сообщения: ${_chatMessages.value.take(3).map { "id=${it.id}, isUser=${it.isUser}, text=${it.text.take(20)}" }}")
+                Log.d("Chat", "📊 Итого сообщений: ${_chatMessages.value.size}")
+                Log.d("Chat", "💬 Последние 3 сообщения: ${_chatMessages.value.takeLast(3).map { "id=${it.id}, isUser=${it.isUser}, text=${it.text.take(20)}" }}")
 
             } catch (e: Exception) {
                 Log.e("Assistant", "❌ Ошибка отправки: ${e.message}")
@@ -554,25 +548,15 @@ class MainActivity : ComponentActivity() {
                     Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}, newOldestId=${response.oldestId}")
 
                     if (response.messages.isNotEmpty()) {
-                        val currentMessages = _chatMessages.value.toMutableList()
-                        // Сохраняем несинхронизированные сообщения (они всегда в начале)
-                        val unsyncedMessages = currentMessages.filter { it.id == null }
-                        // Убираем несинхронизированные из текущего списка
-                        val syncedMessages = currentMessages.filter { it.id != null }.toMutableList()
+                        val currentMessages = _chatMessages.value
 
-                        // Бэкенд отправляет старые сообщения в правильном порядке
-                        // Добавляем их В КОНЕЦ синхронизированных (они старше, reverseLayout покажет их ВВЕРХУ)
-                        syncedMessages.addAll(response.messages)
+                        // Объединяем текущие и загруженные старые, сортируем по ID
+                        val allMessages = (currentMessages + response.messages).sortedBy { it.id ?: 0 }
 
-                        // Объединяем: несинхронизированные в начале + синхронизированные
-                        val newMessages = mutableListOf<ChatMessage>()
-                        newMessages.addAll(unsyncedMessages)
-                        newMessages.addAll(syncedMessages)
+                        _chatMessages.value = allMessages
 
-                        _chatMessages.value = newMessages
-
-                        Log.d("Chat", "📦 Обновлено: всего ${newMessages.size} сообщений (${unsyncedMessages.size} несинхронизированных в начале)")
-                        Log.d("Chat", "📊 Загруженные старые IDs (будут ВВЕРХУ): ${response.messages.take(3).map { it.id }}...${response.messages.takeLast(3).map { it.id }}")
+                        Log.d("Chat", "📦 Обновлено: всего ${allMessages.size} сообщений")
+                        Log.d("Chat", "📊 Загруженные старые IDs: ${response.messages.take(3).map { it.id }}...${response.messages.takeLast(3).map { it.id }}")
                     }
 
                     return@withContext (response.hasMore to response.oldestId)
