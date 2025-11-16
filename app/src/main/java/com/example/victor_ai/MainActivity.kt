@@ -544,7 +544,7 @@ class MainActivity : ComponentActivity() {
                         // Сохраняем несинхронизированные сообщения (они всегда в начале)
                         val unsyncedMessages = currentMessages.filter { it.id == null }
                         // Убираем несинхронизированные из текущего списка
-                        val syncedMessages = currentMessages.filter { it.id != null }
+                        val syncedMessages = currentMessages.filter { it.id != null }.toMutableList()
 
                         // Бэкенд отправляет старые сообщения в правильном порядке
                         // Добавляем их в конец синхронизированных (они старше текущих)

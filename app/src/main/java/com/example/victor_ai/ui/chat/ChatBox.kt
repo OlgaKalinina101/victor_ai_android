@@ -214,6 +214,18 @@ fun ChatBox(
                         },
                         onCopy = {
                             clipboardManager.setText(AnnotatedString(message.text))
+                        },
+                        onTapOutsideLink = {
+                            if (currentMode == "production") {
+                                Log.d("ChatBox", "❌ TAP вне ссылки -> закрываем чат")
+                                onClose()
+                            }
+                        },
+                        onLongPressOutsideLink = {
+                            if (currentMode == "production") {
+                                Log.d("ChatBox", "🎤 LONG TAP -> микрофон")
+                                onStartVoiceRecognition()
+                            }
                         }
                     )
                 }
