@@ -197,7 +197,7 @@ fun ChatBox(
                     .filter { !it.isSynced }  // 🔥 Используем флаг вместо ID
                     .sortedWith(
                         compareByDescending<ChatMessage> { it.timestamp }
-                            .thenBy { if (it.isUser) 0 else 1 }  // При равных timestamp: user первым (0 < 1)
+                            .thenBy { if (it.isUser) 1 else 0 }  // При равных timestamp: assistant первым → внизу, user вторым → вверху
                     )
 
                 Log.d("ChatBox", "🔍 Несинхронизированных найдено: ${unsyncedMessages.size}")
