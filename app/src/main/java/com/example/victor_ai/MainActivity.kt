@@ -246,7 +246,7 @@ class MainActivity : ComponentActivity() {
                                     text = userText,
                                     isUser = true,
                                     timestamp = timestamp,
-                                    id = 1_000_001_000 + timestamp.toInt()  // Временный огромный ID
+                                    id = Int.MAX_VALUE - timestamp.toInt()  // Временный огромный ID (избегаем overflow)
                                 )
                                 _chatMessages.value += newMessage
                                 Log.d("Chat", "➕ Добавлено user сообщение: ВРЕМЕННЫЙ id=${newMessage.id}, text=${newMessage.text.take(50)}")
@@ -274,8 +274,8 @@ class MainActivity : ComponentActivity() {
                                 Log.d("Chat", "📊 Текущих сообщений: ${currentMessages.size}")
 
                                 // Объединяем текущие (с временными огромными ID) и с бэкенда
-                                // Сортируем по ID: reverseLayout=true, меньший ID = старше = будет вверху
-                                val allMessages = (currentMessages + history).sortedBy { it.id ?: 0 }
+                                // Сортируем по убыванию ID: reverseLayout=true покажет конец списка (маленькие ID) вверху
+                                val allMessages = (currentMessages + history).sortedByDescending { it.id ?: 0 }
 
                                 _chatMessages.value = allMessages
 
@@ -455,7 +455,7 @@ class MainActivity : ComponentActivity() {
                     text = "",
                     isUser = false,
                     timestamp = timestamp,
-                    id = 1_000_001_000 + timestamp.toInt()  // Временный огромный ID
+                    id = Int.MAX_VALUE - timestamp.toInt()  // Временный огромный ID (избегаем overflow)
                 )
 
                 val currentMessages = _chatMessages.value.toMutableList()
@@ -550,8 +550,8 @@ class MainActivity : ComponentActivity() {
                     if (response.messages.isNotEmpty()) {
                         val currentMessages = _chatMessages.value
 
-                        // Объединяем текущие и загруженные старые, сортируем по ID
-                        val allMessages = (currentMessages + response.messages).sortedBy { it.id ?: 0 }
+                        // Объединяем текущие и загруженные старые, сортируем по убыванию ID
+                        val allMessages = (currentMessages + response.messages).sortedByDescending { it.id ?: 0 }
 
                         _chatMessages.value = allMessages
 
