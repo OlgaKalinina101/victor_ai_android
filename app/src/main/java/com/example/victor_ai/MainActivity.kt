@@ -151,7 +151,14 @@ class MainActivity : ComponentActivity() {
         voiceRecognizer = VoiceRecognizer(
             context = this,
             onTextRecognized = { recognizedText ->
-                _chatMessages.value += ChatMessage(text = recognizedText, isUser = true, timestamp = System.currentTimeMillis())
+                val timestamp = System.currentTimeMillis() / 1000
+                _chatMessages.value += ChatMessage(
+                    text = recognizedText,
+                    isUser = true,
+                    timestamp = timestamp,
+                    id = Int.MAX_VALUE - timestamp.toInt(),
+                    isSynced = false
+                )
                 sendTextToAssistant(recognizedText)
             },
             onListeningStateChanged = { isListening ->
@@ -246,10 +253,11 @@ class MainActivity : ComponentActivity() {
                                     text = userText,
                                     isUser = true,
                                     timestamp = timestamp,
-                                    id = Int.MAX_VALUE - timestamp.toInt()  // Временный огромный ID (избегаем overflow)
+                                    id = Int.MAX_VALUE - timestamp.toInt(),  // Временный огромный ID (избегаем overflow)
+                                    isSynced = false  // 🔥 Флаг: сообщение ещё не синхронизировано с бэкендом
                                 )
                                 _chatMessages.value += newMessage
-                                Log.d("Chat", "➕ Добавлено user сообщение: ВРЕМЕННЫЙ id=${newMessage.id}, text=${newMessage.text.take(50)}")
+                                Log.d("Chat", "➕ Добавлено user сообщение: ВРЕМЕННЫЙ id=${newMessage.id}, isSynced=false, text=${newMessage.text.take(50)}")
                                 Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}")
                                 sendTextToAssistant(userText)
                             },
@@ -279,11 +287,11 @@ class MainActivity : ComponentActivity() {
                                 _chatMessages.value = allMessages
 
                                 Log.d("Chat", "✅ ИТОГО: ${allMessages.size} сообщений")
-                                val unsynced = allMessages.filter { (it.id ?: 0) > 2_000_000_000 }
-                                val synced = allMessages.filter { (it.id ?: 0) <= 2_000_000_000 }
+                                val unsynced = allMessages.filter { !it.isSynced }
+                                val synced = allMessages.filter { it.isSynced }
                                 Log.d("Chat", "📊 Несинхронизированных: ${unsynced.size}, синхронизированных: ${synced.size}")
                                 if (unsynced.isNotEmpty()) {
-                                    Log.d("Chat", "🔥 Несинхронизированные IDs и timestamps: ${unsynced.map { "id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}" }}")
+                                    Log.d("Chat", "🔥 Несинхронизированные: ${unsynced.map { "id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}, isSynced=${it.isSynced}" }}")
                                 }
                             },
                             onPaginationInfo = { oldestId, hasMore ->
@@ -458,7 +466,8 @@ class MainActivity : ComponentActivity() {
                     text = "",
                     isUser = false,
                     timestamp = timestamp,
-                    id = Int.MAX_VALUE - timestamp.toInt()  // Временный огромный ID (избегаем overflow)
+                    id = Int.MAX_VALUE - timestamp.toInt(),  // Временный огромный ID (избегаем overflow)
+                    isSynced = false  // 🔥 Флаг: сообщение ещё не синхронизировано с бэкендом
                 )
 
                 val currentMessages = _chatMessages.value.toMutableList()
@@ -466,7 +475,7 @@ class MainActivity : ComponentActivity() {
                 val messageIndex = currentMessages.size - 1
                 _chatMessages.value = currentMessages
 
-                Log.d("Chat", "➕ Добавлено assistant сообщение (пустое): ВРЕМЕННЫЙ id=${assistantMessage.id}")
+                Log.d("Chat", "➕ Добавлено assistant сообщение (пустое): ВРЕМЕННЫЙ id=${assistantMessage.id}, isSynced=false")
                 Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}")
 
                 val charQueue = Channel<Char>(Channel.UNLIMITED)

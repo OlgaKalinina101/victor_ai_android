@@ -171,10 +171,13 @@ fun ChatBox(
                 reverseLayout = true
             ) {
                 // 🔥 НЕСИНХРОНИЗИРОВАННЫЕ сообщения - показываются ПЕРВЫМИ (внизу с reverseLayout)
-                // Это сообщения с огромными временными ID (Int.MAX_VALUE - timestamp ≈ 2млрд)
+                // Фильтруем по флагу isSynced вместо манипуляций с ID
                 val unsyncedMessages = messages
-                    .filter { (it.id ?: 0) > 2_000_000_000 }  // Временные ID > 2 млрд
+                    .filter { !it.isSynced }  // 🔥 Используем флаг вместо ID
                     .sortedByDescending { it.timestamp }  // ⚠️ По убыванию! reverseLayout перевернёт обратно
+
+                Log.d("ChatBox", "🔍 Несинхронизированных найдено: ${unsyncedMessages.size}")
+                unsyncedMessages.forEach { Log.d("ChatBox", "  id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}, isSynced=${it.isSynced}, text=${it.text.take(20)}") }
 
                 items(unsyncedMessages) { message ->
                     val actualIndex = messages.indexOf(message)
@@ -243,9 +246,9 @@ fun ChatBox(
                 }
 
                 // 🔥 СИНХРОНИЗИРОВАННЫЕ сообщения с бэкенда - показываются ПОСЛЕ (вверху с reverseLayout)
-                // Это сообщения с обычными ID с бэкенда (< 2 млрд)
+                // Фильтруем по флагу isSynced вместо манипуляций с ID
                 val syncedMessages = messages
-                    .filter { (it.id ?: 0) <= 2_000_000_000 }  // ID с бэкенда < 2 млрд
+                    .filter { it.isSynced }  // 🔥 Используем флаг вместо ID
                     .sortedByDescending { it.id }  // По убыванию: новые первыми, старые в конце = вверху
 
                 items(syncedMessages) { message ->
