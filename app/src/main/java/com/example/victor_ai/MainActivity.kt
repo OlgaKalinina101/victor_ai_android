@@ -279,9 +279,12 @@ class MainActivity : ComponentActivity() {
                                 _chatMessages.value = allMessages
 
                                 Log.d("Chat", "✅ ИТОГО: ${allMessages.size} сообщений")
-                                val unsynced = allMessages.filter { (it.id ?: 0) > 1_000_000_000 }
-                                val synced = allMessages.filter { (it.id ?: 0) <= 1_000_000_000 }
+                                val unsynced = allMessages.filter { (it.id ?: 0) > 100_000_000 }
+                                val synced = allMessages.filter { (it.id ?: 0) <= 100_000_000 }
                                 Log.d("Chat", "📊 Несинхронизированных: ${unsynced.size}, синхронизированных: ${synced.size}")
+                                if (unsynced.isNotEmpty()) {
+                                    Log.d("Chat", "🔥 Несинхронизированные IDs: ${unsynced.map { it.id }}")
+                                }
                             },
                             onPaginationInfo = { oldestId, hasMore ->
                                 oldestMessageId = oldestId
