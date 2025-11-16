@@ -246,7 +246,7 @@ class MainActivity : ComponentActivity() {
                                     text = userText,
                                     isUser = true,
                                     timestamp = timestamp,
-                                    id = 10_000_000_000 + timestamp.toInt()  // Временный огромный ID
+                                    id = 1_000_001_000 + timestamp.toInt()  // Временный огромный ID
                                 )
                                 _chatMessages.value += newMessage
                                 Log.d("Chat", "➕ Добавлено user сообщение: ВРЕМЕННЫЙ id=${newMessage.id}, text=${newMessage.text.take(50)}")
@@ -455,7 +455,7 @@ class MainActivity : ComponentActivity() {
                     text = "",
                     isUser = false,
                     timestamp = timestamp,
-                    id = 10_000_000_000 + timestamp.toInt()  // Временный огромный ID
+                    id = 1_000_001_000 + timestamp.toInt()  // Временный огромный ID
                 )
 
                 val currentMessages = _chatMessages.value.toMutableList()
