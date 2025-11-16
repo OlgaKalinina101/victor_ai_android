@@ -47,6 +47,11 @@ fun ChatBox(
     isListeningState: Boolean = false,
     onStopListening: () -> Unit = {}
 ) {
+    // Логируем сколько сообщений получает ChatBox
+    Log.d("ChatBox", "🔵 ChatBox recompose: получено ${messages.size} сообщений, isTyping=$isTyping")
+    if (messages.isNotEmpty()) {
+        Log.d("ChatBox", "📝 Первые 3 сообщения: ${messages.take(3).map { "id=${it.id}, isUser=${it.isUser}, text=${it.text.take(20)}" }}")
+    }
     var userInput by remember { mutableStateOf("") }
     var editingMessageIndex by remember { mutableStateOf<Int?>(null) }
     var editingText by remember { mutableStateOf("") }
@@ -190,6 +195,8 @@ fun ChatBox(
                 items(messages) { message ->
                     val actualIndex = messages.indexOf(message)
                     val isEditing = editingMessageIndex == actualIndex
+
+                    Log.d("ChatBox", "🎨 Рендерим сообщение [$actualIndex]: id=${message.id}, isUser=${message.isUser}, text=${message.text.take(30)}")
 
                     MessageItem(
                         message = message,
