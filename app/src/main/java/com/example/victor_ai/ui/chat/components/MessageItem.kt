@@ -1,18 +1,26 @@
 package com.example.victor_ai.ui.chat.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -37,7 +45,9 @@ fun MessageItem(
     onStartEdit: () -> Unit,
     onCancelEdit: () -> Unit,
     onSaveEdit: () -> Unit,
-    onCopy: () -> Unit
+    onCopy: () -> Unit,
+    onTapOutsideLink: () -> Unit = {},
+    onLongPressOutsideLink: () -> Unit = {}
 ) {
     val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
     val context = LocalContext.current
@@ -123,15 +133,58 @@ fun MessageItem(
                             )
                         )
                     } else {
-                        // В production mode используем обычный Text без обработки событий
-                        // Это позволяет жестам ChatBox (тап для закрытия, долгий тап для микрофона) работать
-                        Text(
+                        // В production mode: ссылки кликабельны + жесты ChatBox работают
+                        val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
+
+                        BasicText(
                             text = annotatedText,
                             style = TextStyle(
                                 fontSize = 15.sp,
                                 color = Color(0xFFE0E0E0),
                                 fontFamily = didactGothicFont
-                            )
+                            ),
+                            onTextLayout = { layoutResult.value = it },
+                            modifier = Modifier.pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { offset ->
+                                        layoutResult.value?.let { layout ->
+                                            val position = layout.getOffsetForPosition(offset)
+                                            val annotations = annotatedText.getStringAnnotations(
+                                                tag = "URL",
+                                                start = position,
+                                                end = position
+                                            )
+
+                                            if (annotations.isNotEmpty()) {
+                                                // Клик на ссылку - открываем URL
+                                                val url = annotations.first().item
+                                                val intent = if (url.contains("openstreetmap.org")) {
+                                                    val latRegex = """mlat=([-\d.]+)""".toRegex()
+                                                    val lonRegex = """mlon=([-\d.]+)""".toRegex()
+                                                    val lat = latRegex.find(url)?.groupValues?.get(1)
+                                                    val lon = lonRegex.find(url)?.groupValues?.get(1)
+
+                                                    if (lat != null && lon != null) {
+                                                        Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lon?q=$lat,$lon"))
+                                                    } else {
+                                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                    }
+                                                } else {
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                }
+                                                context.startActivity(intent)
+                                            } else {
+                                                // Клик вне ссылки - закрываем чат
+                                                onTapOutsideLink()
+                                            }
+                                        }
+                                    },
+                                    onLongPress = {
+                                        // Долгий тап - включаем микрофон
+                                        onLongPressOutsideLink()
+                                    }
+                                )
+                            }
                         )
                     }
 
