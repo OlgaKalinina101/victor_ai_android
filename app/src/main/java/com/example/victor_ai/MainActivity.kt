@@ -264,11 +264,19 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onInitHistory = { history ->
-                                // Бэкенд отправляет сообщения в правильном порядке
-                                // Просто используем их как есть, без сортировки и манипуляций
-                                _chatMessages.value = history.toMutableList()
+                                val currentMessages = _chatMessages.value
+                                // Сохраняем несинхронизированные сообщения (без ID с бэкенда)
+                                val unsyncedMessages = currentMessages.filter { it.id == null }
 
-                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений")
+                                // Бэкенд отправляет сообщения в правильном порядке
+                                val newMessages = history.toMutableList()
+
+                                // Добавляем несинхронизированные сообщения в начало (они самые новые)
+                                newMessages.addAll(0, unsyncedMessages)
+
+                                _chatMessages.value = newMessages
+
+                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений, ${unsyncedMessages.size} несинхронизированных")
                                 if (history.isNotEmpty()) {
                                     Log.d("Chat", "📊 Первые 5 IDs: ${history.take(5).map { it.id }}")
                                     Log.d("Chat", "📊 Последние 5 IDs: ${history.takeLast(5).map { it.id }}")
@@ -532,13 +540,24 @@ class MainActivity : ComponentActivity() {
                     Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}, newOldestId=${response.oldestId}")
 
                     if (response.messages.isNotEmpty()) {
-                        // Бэкенд отправляет старые сообщения в правильном порядке
-                        // Просто добавляем их в конец списка (они старше текущих)
                         val currentMessages = _chatMessages.value.toMutableList()
-                        currentMessages.addAll(response.messages)
-                        _chatMessages.value = currentMessages
+                        // Сохраняем несинхронизированные сообщения (они всегда в начале)
+                        val unsyncedMessages = currentMessages.filter { it.id == null }
+                        // Убираем несинхронизированные из текущего списка
+                        val syncedMessages = currentMessages.filter { it.id != null }
 
-                        Log.d("Chat", "📦 Обновлено: всего ${currentMessages.size} сообщений")
+                        // Бэкенд отправляет старые сообщения в правильном порядке
+                        // Добавляем их в конец синхронизированных (они старше текущих)
+                        syncedMessages.addAll(response.messages)
+
+                        // Объединяем: несинхронизированные в начале + синхронизированные
+                        val newMessages = mutableListOf<ChatMessage>()
+                        newMessages.addAll(unsyncedMessages)
+                        newMessages.addAll(syncedMessages)
+
+                        _chatMessages.value = newMessages
+
+                        Log.d("Chat", "📦 Обновлено: всего ${newMessages.size} сообщений (${unsyncedMessages.size} несинхронизированных)")
                         Log.d("Chat", "📊 Новые IDs: ${response.messages.take(3).map { it.id }}...${response.messages.takeLast(3).map { it.id }}")
                     }
 
