@@ -170,11 +170,32 @@ fun ChatBox(
                     .padding(horizontal = 12.dp),
                 reverseLayout = true
             ) {
-                // 🔥 НЕСИНХРОНИЗИРОВАННЫЕ сообщения - показываются ПЕРВЫМИ (внизу с reverseLayout)
+                // 🔥 Индикатор печати - ПЕРВЫЙ в списке = в самом конце чата (внизу)
+                if (isTyping) {
+                    item {
+                        val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Text(
+                                "~ набирает ответ ~",
+                                fontSize = 14.sp,
+                                color = Color(0xFF888888),
+                                fontStyle = FontStyle.Italic,
+                                fontFamily = didactGothicFont
+                            )
+                        }
+                    }
+                }
+
+                // 🔥 НЕСИНХРОНИЗИРОВАННЫЕ сообщения - показываются ВТОРЫМИ (внизу с reverseLayout)
                 // Фильтруем по флагу isSynced вместо манипуляций с ID
                 val unsyncedMessages = messages
                     .filter { !it.isSynced }  // 🔥 Используем флаг вместо ID
-                    .sortedByDescending { it.timestamp }  // ⚠️ По убыванию! reverseLayout перевернёт обратно
+                    .sortedBy { it.timestamp }  // ⚠️ По возрастанию! reverseLayout перевернёт в правильный порядок
 
                 Log.d("ChatBox", "🔍 Несинхронизированных найдено: ${unsyncedMessages.size}")
                 unsyncedMessages.forEach { Log.d("ChatBox", "  id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}, isSynced=${it.isSynced}, text=${it.text.take(20)}") }
@@ -222,27 +243,6 @@ fun ChatBox(
                             }
                         }
                     )
-                }
-
-                // Индикатор печати - между несинхронизированными и синхронизированными
-                if (isTyping) {
-                    item {
-                        val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Text(
-                                "~ набирает ответ ~",
-                                fontSize = 14.sp,
-                                color = Color(0xFF888888),
-                                fontStyle = FontStyle.Italic,
-                                fontFamily = didactGothicFont
-                            )
-                        }
-                    }
                 }
 
                 // 🔥 СИНХРОНИЗИРОВАННЫЕ сообщения с бэкенда - показываются ПОСЛЕ (вверху с reverseLayout)
