@@ -1,13 +1,10 @@
 package com.example.victor_ai.ui.chat.components
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.*
@@ -16,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -127,43 +123,15 @@ fun MessageItem(
                             )
                         )
                     } else {
-                        // В production mode отображаем текст с кликабельными ссылками
-                        ClickableText(
+                        // В production mode используем обычный Text без обработки событий
+                        // Это позволяет жестам ChatBox (тап для закрытия, долгий тап для микрофона) работать
+                        Text(
                             text = annotatedText,
                             style = TextStyle(
                                 fontSize = 15.sp,
                                 color = Color(0xFFE0E0E0),
                                 fontFamily = didactGothicFont
-                            ),
-                            onClick = { offset ->
-                                // Проверяем, есть ли аннотация URL в месте клика
-                                annotatedText.getStringAnnotations(
-                                    tag = "URL",
-                                    start = offset,
-                                    end = offset
-                                ).firstOrNull()?.let { annotation ->
-                                    val url = annotation.item
-                                    val intent = if (url.contains("openstreetmap.org")) {
-                                        // Извлекаем координаты из OpenStreetMap URL
-                                        val latRegex = """mlat=([-\d.]+)""".toRegex()
-                                        val lonRegex = """mlon=([-\d.]+)""".toRegex()
-
-                                        val lat = latRegex.find(url)?.groupValues?.get(1)
-                                        val lon = lonRegex.find(url)?.groupValues?.get(1)
-
-                                        if (lat != null && lon != null) {
-                                            // Открываем Google Maps с координатами
-                                            Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lon?q=$lat,$lon"))
-                                        } else {
-                                            // Если не смогли извлечь координаты, открываем как обычную ссылку
-                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                        }
-                                    } else {
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                    }
-                                    context.startActivity(intent)
-                                }
-                            }
+                            )
                         )
                     }
 

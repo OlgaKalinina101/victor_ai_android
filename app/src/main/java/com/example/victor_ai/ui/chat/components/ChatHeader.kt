@@ -1,6 +1,7 @@
 package com.example.victor_ai.ui.chat.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +36,14 @@ fun ChatHeader(
             .height(56.dp)
             .background(Color(0xFF2B2929))
             .padding(horizontal = 12.dp)
+            .pointerInput(Unit) {
+                // Блокируем жесты ChatBox на области header
+                detectTapGestures(
+                    onTap = { /* consume */ },
+                    onLongPress = { /* consume */ },
+                    onPress = { /* consume */ }
+                )
+            }
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
