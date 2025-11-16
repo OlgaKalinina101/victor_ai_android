@@ -281,15 +281,15 @@ class MainActivity : ComponentActivity() {
                                 // Бэкенд отправляет сообщения в правильном порядке
                                 val newMessages = history.toMutableList()
 
-                                // ✅ ИСПРАВЛЕНО: Добавляем несинхронизированные сообщения в КОНЕЦ (они самые новые)
-                                // reverseLayout=true в LazyColumn показывает конец списка сверху
-                                newMessages.addAll(unsyncedMessages)
+                                // ✅ ПРАВИЛЬНО: Добавляем несинхронизированные сообщения в НАЧАЛО (они самые новые)
+                                // reverseLayout=true в LazyColumn: начало массива показывается ВНИЗУ экрана
+                                newMessages.addAll(0, unsyncedMessages)
 
                                 _chatMessages.value = newMessages
 
-                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений с бэкенда, ${unsyncedMessages.size} несинхронизированных добавлено в конец")
+                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений с бэкенда, ${unsyncedMessages.size} несинхронизированных добавлено в начало")
                                 Log.d("Chat", "✅ ИТОГО в _chatMessages: ${_chatMessages.value.size} сообщений")
-                                Log.d("Chat", "📝 Последние 3 (самые новые): ${_chatMessages.value.takeLast(3).map { "id=${it.id}, isUser=${it.isUser}, text=${it.text.take(20)}" }}")
+                                Log.d("Chat", "📝 Первые 3 (самые новые, будут ВНИЗУ): ${_chatMessages.value.take(3).map { "id=${it.id}, isUser=${it.isUser}, text=${it.text.take(20)}" }}")
                             },
                             onPaginationInfo = { oldestId, hasMore ->
                                 oldestMessageId = oldestId
@@ -555,24 +555,24 @@ class MainActivity : ComponentActivity() {
 
                     if (response.messages.isNotEmpty()) {
                         val currentMessages = _chatMessages.value.toMutableList()
-                        // Сохраняем несинхронизированные сообщения (они всегда в конце)
+                        // Сохраняем несинхронизированные сообщения (они всегда в начале)
                         val unsyncedMessages = currentMessages.filter { it.id == null }
                         // Убираем несинхронизированные из текущего списка
                         val syncedMessages = currentMessages.filter { it.id != null }.toMutableList()
 
                         // Бэкенд отправляет старые сообщения в правильном порядке
-                        // Добавляем их В НАЧАЛО синхронизированных (они старше текущих, reverseLayout покажет их внизу)
-                        syncedMessages.addAll(0, response.messages)
+                        // Добавляем их В КОНЕЦ синхронизированных (они старше, reverseLayout покажет их ВВЕРХУ)
+                        syncedMessages.addAll(response.messages)
 
-                        // Объединяем: синхронизированные + несинхронизированные в конце
+                        // Объединяем: несинхронизированные в начале + синхронизированные
                         val newMessages = mutableListOf<ChatMessage>()
-                        newMessages.addAll(syncedMessages)
                         newMessages.addAll(unsyncedMessages)
+                        newMessages.addAll(syncedMessages)
 
                         _chatMessages.value = newMessages
 
-                        Log.d("Chat", "📦 Обновлено: всего ${newMessages.size} сообщений (${unsyncedMessages.size} несинхронизированных в конце)")
-                        Log.d("Chat", "📊 Загруженные старые IDs: ${response.messages.take(3).map { it.id }}...${response.messages.takeLast(3).map { it.id }}")
+                        Log.d("Chat", "📦 Обновлено: всего ${newMessages.size} сообщений (${unsyncedMessages.size} несинхронизированных в начале)")
+                        Log.d("Chat", "📊 Загруженные старые IDs (будут ВВЕРХУ): ${response.messages.take(3).map { it.id }}...${response.messages.takeLast(3).map { it.id }}")
                     }
 
                     return@withContext (response.hasMore to response.oldestId)
