@@ -171,7 +171,11 @@ fun ChatBox(
                 reverseLayout = true
             ) {
                 // 🔥 НЕСИНХРОНИЗИРОВАННЫЕ сообщения - показываются ПЕРВЫМИ (внизу с reverseLayout)
-                val unsyncedMessages = messages.filter { (it.id ?: 0) > 1_000_000_000 }
+                // Это сообщения с огромными временными ID (Int.MAX_VALUE - timestamp)
+                val unsyncedMessages = messages
+                    .filter { (it.id ?: 0) > 100_000_000 }  // Временные ID ~400млн+
+                    .sortedBy { it.timestamp }  // Сортируем по времени: старые первыми в массиве = внизу
+
                 items(unsyncedMessages) { message ->
                     val actualIndex = messages.indexOf(message)
                     val isEditing = editingMessageIndex == actualIndex
@@ -239,7 +243,11 @@ fun ChatBox(
                 }
 
                 // 🔥 СИНХРОНИЗИРОВАННЫЕ сообщения с бэкенда - показываются ПОСЛЕ (вверху с reverseLayout)
-                val syncedMessages = messages.filter { (it.id ?: 0) <= 1_000_000_000 }
+                // Это сообщения с обычными ID с бэкенда (маленькие числа)
+                val syncedMessages = messages
+                    .filter { (it.id ?: 0) <= 100_000_000 }  // ID с бэкенда обычно < 100млн
+                    .sortedByDescending { it.id }  // Сортируем по убыванию: новые первыми, старые в конце = вверху
+
                 items(syncedMessages) { message ->
                     val actualIndex = messages.indexOf(message)
                     val isEditing = editingMessageIndex == actualIndex
