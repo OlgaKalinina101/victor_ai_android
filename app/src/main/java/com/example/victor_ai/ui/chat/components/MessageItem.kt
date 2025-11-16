@@ -149,10 +149,16 @@ fun MessageItem(
                                     onTap = { offset ->
                                         layoutResult.value?.let { layout ->
                                             val position = layout.getOffsetForPosition(offset)
+
+                                            // Расширяем область поиска ссылки - проверяем ±8 символов вокруг клика
+                                            val searchRange = 8
+                                            val startPos = (position - searchRange).coerceAtLeast(0)
+                                            val endPos = (position + searchRange).coerceAtMost(annotatedText.length)
+
                                             val annotations = annotatedText.getStringAnnotations(
                                                 tag = "URL",
-                                                start = position,
-                                                end = position
+                                                start = startPos,
+                                                end = endPos
                                             )
 
                                             if (annotations.isNotEmpty()) {

@@ -241,11 +241,14 @@ class MainActivity : ComponentActivity() {
                             reminderManager = reminderManager,
                             chatMessages = chatMessages.collectAsState().value,
                             onSendMessage = { userText ->
-                                _chatMessages.value += ChatMessage(
+                                val newMessage = ChatMessage(
                                     userText,
                                     isUser = true,
                                     timestamp = System.currentTimeMillis() / 1000
                                 )
+                                _chatMessages.value += newMessage
+                                Log.d("Chat", "➕ Добавлено user сообщение: id=${newMessage.id}, text=${newMessage.text.take(50)}")
+                                Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}, несинхронизированных: ${_chatMessages.value.count { it.id == null }}")
                                 sendTextToAssistant(userText)
                             },
                             onEditMessage = { index, newText ->
@@ -264,9 +267,16 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onInitHistory = { history ->
+                                Log.d("Chat", "🔄 onInitHistory вызван: получено ${history.size} сообщений с бэкенда")
                                 val currentMessages = _chatMessages.value
+                                Log.d("Chat", "📊 ПЕРЕД фильтрацией: всего ${currentMessages.size} сообщений")
+
                                 // Сохраняем несинхронизированные сообщения (без ID с бэкенда)
                                 val unsyncedMessages = currentMessages.filter { it.id == null }
+                                Log.d("Chat", "🔍 Найдено ${unsyncedMessages.size} несинхронизированных сообщений:")
+                                unsyncedMessages.forEachIndexed { idx, msg ->
+                                    Log.d("Chat", "  [$idx] id=${msg.id}, isUser=${msg.isUser}, text=${msg.text.take(30)}")
+                                }
 
                                 // Бэкенд отправляет сообщения в правильном порядке
                                 val newMessages = history.toMutableList()
@@ -276,7 +286,8 @@ class MainActivity : ComponentActivity() {
 
                                 _chatMessages.value = newMessages
 
-                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений, ${unsyncedMessages.size} несинхронизированных")
+                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений с бэкенда, ${unsyncedMessages.size} несинхронизированных добавлено")
+                                Log.d("Chat", "✅ ИТОГО в _chatMessages: ${_chatMessages.value.size} сообщений")
                                 if (history.isNotEmpty()) {
                                     Log.d("Chat", "📊 Первые 5 IDs: ${history.take(5).map { it.id }}")
                                     Log.d("Chat", "📊 Последние 5 IDs: ${history.takeLast(5).map { it.id }}")
@@ -460,6 +471,9 @@ class MainActivity : ComponentActivity() {
                 val messageIndex = currentMessages.size - 1
                 _chatMessages.value = currentMessages
 
+                Log.d("Chat", "➕ Добавлено assistant сообщение (пустое): id=${assistantMessage.id}")
+                Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}, несинхронизированных: ${_chatMessages.value.count { it.id == null }}")
+
                 val charQueue = Channel<Char>(Channel.UNLIMITED)
 
                 // Корутина для печати
@@ -518,6 +532,8 @@ class MainActivity : ComponentActivity() {
                 val finalAssistantMessage = _chatMessages.value[messageIndex]
                 ChatHistoryHelper.repository.addMessage(finalAssistantMessage.toEntity())
                 Log.d("Assistant", "✅ Сообщения сохранены в локальную БД")
+                Log.d("Chat", "📊 Итого сообщений: ${_chatMessages.value.size}, несинхронизированных: ${_chatMessages.value.count { it.id == null }}")
+                Log.d("Chat", "💬 Последние 3 сообщения: ${_chatMessages.value.take(3).map { "id=${it.id}, isUser=${it.isUser}, text=${it.text.take(20)}" }}")
 
             } catch (e: Exception) {
                 Log.e("Assistant", "❌ Ошибка отправки: ${e.message}")
