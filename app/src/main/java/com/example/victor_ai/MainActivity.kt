@@ -273,15 +273,15 @@ class MainActivity : ComponentActivity() {
                                 val currentMessages = _chatMessages.value
                                 Log.d("Chat", "📊 Текущих сообщений: ${currentMessages.size}")
 
-                                // Объединяем текущие (с временными огромными ID) и с бэкенда
-                                // Сортируем по убыванию ID: reverseLayout=true покажет конец списка (маленькие ID) вверху
-                                val allMessages = (currentMessages + history).sortedByDescending { it.id ?: 0 }
+                                // Просто объединяем - ChatBox сам фильтрует на синхронизированные и несинхронизированные
+                                val allMessages = currentMessages + history
 
                                 _chatMessages.value = allMessages
 
-                                Log.d("Chat", "✅ ИТОГО после сортировки: ${allMessages.size} сообщений")
-                                Log.d("Chat", "📝 Первые 3 (старые, вверху): ${allMessages.take(3).map { "id=${it.id}, text=${it.text.take(20)}" }}")
-                                Log.d("Chat", "📝 Последние 3 (новые, внизу): ${allMessages.takeLast(3).map { "id=${it.id}, text=${it.text.take(20)}" }}")
+                                Log.d("Chat", "✅ ИТОГО: ${allMessages.size} сообщений")
+                                val unsynced = allMessages.filter { (it.id ?: 0) > 1_000_000_000 }
+                                val synced = allMessages.filter { (it.id ?: 0) <= 1_000_000_000 }
+                                Log.d("Chat", "📊 Несинхронизированных: ${unsynced.size}, синхронизированных: ${synced.size}")
                             },
                             onPaginationInfo = { oldestId, hasMore ->
                                 oldestMessageId = oldestId
@@ -550,8 +550,8 @@ class MainActivity : ComponentActivity() {
                     if (response.messages.isNotEmpty()) {
                         val currentMessages = _chatMessages.value
 
-                        // Объединяем текущие и загруженные старые, сортируем по убыванию ID
-                        val allMessages = (currentMessages + response.messages).sortedByDescending { it.id ?: 0 }
+                        // Просто объединяем - ChatBox сам фильтрует
+                        val allMessages = currentMessages + response.messages
 
                         _chatMessages.value = allMessages
 

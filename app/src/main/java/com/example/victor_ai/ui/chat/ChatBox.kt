@@ -170,7 +170,54 @@ fun ChatBox(
                     .padding(horizontal = 12.dp),
                 reverseLayout = true
             ) {
-                // Индикатор печати
+                // 🔥 НЕСИНХРОНИЗИРОВАННЫЕ сообщения - показываются ПЕРВЫМИ (внизу с reverseLayout)
+                val unsyncedMessages = messages.filter { (it.id ?: 0) > 1_000_000_000 }
+                items(unsyncedMessages) { message ->
+                    val actualIndex = messages.indexOf(message)
+                    val isEditing = editingMessageIndex == actualIndex
+
+                    Log.d("ChatBox", "🎨 Рендерим НЕСИНХРОНИЗИРОВАННОЕ сообщение: id=${message.id}, isUser=${message.isUser}, text=${message.text.take(30)}")
+
+                    MessageItem(
+                        message = message,
+                        isEditing = isEditing,
+                        editingText = editingText,
+                        currentMode = currentMode,
+                        onEditingTextChange = { editingText = it },
+                        onStartEdit = {
+                            editingMessageIndex = actualIndex
+                            editingText = message.text
+                        },
+                        onCancelEdit = {
+                            editingMessageIndex = null
+                            editingText = ""
+                        },
+                        onSaveEdit = {
+                            if (editingText.isNotBlank()) {
+                                onEditMessage(actualIndex, editingText)
+                                editingMessageIndex = null
+                                editingText = ""
+                            }
+                        },
+                        onCopy = {
+                            clipboardManager.setText(AnnotatedString(message.text))
+                        },
+                        onTapOutsideLink = {
+                            if (currentMode == "production") {
+                                Log.d("ChatBox", "❌ TAP вне ссылки -> закрываем чат")
+                                onClose()
+                            }
+                        },
+                        onLongPressOutsideLink = {
+                            if (currentMode == "production") {
+                                Log.d("ChatBox", "🎤 LONG TAP -> микрофон")
+                                onStartVoiceRecognition()
+                            }
+                        }
+                    )
+                }
+
+                // Индикатор печати - между несинхронизированными и синхронизированными
                 if (isTyping) {
                     item {
                         val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
@@ -191,8 +238,9 @@ fun ChatBox(
                     }
                 }
 
-                // Сообщения
-                items(messages) { message ->
+                // 🔥 СИНХРОНИЗИРОВАННЫЕ сообщения с бэкенда - показываются ПОСЛЕ (вверху с reverseLayout)
+                val syncedMessages = messages.filter { (it.id ?: 0) <= 1_000_000_000 }
+                items(syncedMessages) { message ->
                     val actualIndex = messages.indexOf(message)
                     val isEditing = editingMessageIndex == actualIndex
 
