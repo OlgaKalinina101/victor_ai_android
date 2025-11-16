@@ -46,19 +46,13 @@ fun parseMarkdown(text: String): AnnotatedString {
 
             // Важно: сначала bold+link, потом просто ссылки, потом жирный, потом курсив
             boldLinkRegex.findAll(line).forEach {
-                Log.d("ChatBox", "✓ Найдена жирная ссылка: '${it.value}', label: '${it.groupValues[1]}', url: '${it.groupValues[2]}'")
                 matches.add(Triple(it.range, "boldlink", it))
             }
             linkRegex.findAll(line).forEach {
-                Log.d("ChatBox", "✓ Найдена ссылка: '${it.value}', label: '${it.groupValues[1]}', url: '${it.groupValues[2]}'")
                 matches.add(Triple(it.range, "link", it))
             }
             boldRegex.findAll(line).forEach { matches.add(Triple(it.range, "bold", it)) }
             italicRegex.findAll(line).forEach { matches.add(Triple(it.range, "italic", it)) }
-
-            if (matches.isEmpty() && line.contains("[") && line.contains("]")) {
-                Log.d("ChatBox", "⚠️ Строка содержит скобки, но ссылки не найдены!")
-            }
 
             // Убираем пересекающиеся совпадения
             val filteredMatches = mutableListOf<Triple<IntRange, String, MatchResult>>()
