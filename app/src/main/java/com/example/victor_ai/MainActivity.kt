@@ -96,8 +96,6 @@ class MainActivity : ComponentActivity() {
 
     // Пагинация чата
     private var oldestMessageId: Int? = null
-    // SessionContext - всегда показывается первым (внизу чата)
-    private var sessionContextMessages: List<ChatMessage> = emptyList()
 
     private lateinit var permissionManager: PermissionManager
 
@@ -266,22 +264,14 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onInitHistory = { history ->
-                                // Бэкенд теперь присваивает ID всем сообщениям:
-                                // - SessionContext: огромные ID (1_000_000_000+)
-                                // - DB сообщения: реальные ID из БД
-                                // Просто сортируем по ID descending (от новых к старым)
+                                // Бэкенд отправляет сообщения в правильном порядке
+                                // Просто используем их как есть, без сортировки и манипуляций
+                                _chatMessages.value = history.toMutableList()
 
-                                val allMessages = history.sortedByDescending { it.id ?: 0 }
-                                _chatMessages.value = allMessages.toMutableList()
-
-                                // Сохраняем SessionContext отдельно для использования в loadMoreHistory
-                                sessionContextMessages = allMessages.filter {
-                                    it.id != null && it.id!! >= 1_000_000_000
-                                }
-
-                                Log.d("Chat", "📦 Инициализация: всего ${allMessages.size} сообщений (SessionContext=${sessionContextMessages.size})")
-                                if (allMessages.isNotEmpty()) {
-                                    Log.d("Chat", "📊 IDs: ${allMessages.take(5).map { it.id }}...${allMessages.takeLast(5).map { it.id }}")
+                                Log.d("Chat", "📦 Инициализация: всего ${history.size} сообщений")
+                                if (history.isNotEmpty()) {
+                                    Log.d("Chat", "📊 Первые 5 IDs: ${history.take(5).map { it.id }}")
+                                    Log.d("Chat", "📊 Последние 5 IDs: ${history.takeLast(5).map { it.id }}")
                                 }
                             },
                             onPaginationInfo = { oldestId, hasMore ->
@@ -542,16 +532,14 @@ class MainActivity : ComponentActivity() {
                     Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}, newOldestId=${response.oldestId}")
 
                     if (response.messages.isNotEmpty()) {
-                        // Добавляем новые сообщения к существующим
+                        // Бэкенд отправляет старые сообщения в правильном порядке
+                        // Просто добавляем их в конец списка (они старше текущих)
                         val currentMessages = _chatMessages.value.toMutableList()
                         currentMessages.addAll(response.messages)
+                        _chatMessages.value = currentMessages
 
-                        // Сортируем все по ID (от новых к старым)
-                        val allMessages = currentMessages.sortedByDescending { it.id ?: 0 }
-                        _chatMessages.value = allMessages
-
-                        Log.d("Chat", "📦 Обновлено: всего ${allMessages.size} сообщений")
-                        Log.d("Chat", "📊 IDs: ${allMessages.take(5).map { it.id }}...${allMessages.takeLast(5).map { it.id }}")
+                        Log.d("Chat", "📦 Обновлено: всего ${currentMessages.size} сообщений")
+                        Log.d("Chat", "📊 Новые IDs: ${response.messages.take(3).map { it.id }}...${response.messages.takeLast(3).map { it.id }}")
                     }
 
                     return@withContext (response.hasMore to response.oldestId)

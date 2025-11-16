@@ -35,27 +35,15 @@ class ChatRepository @Inject constructor(
             Log.d(TAG, "Синхронизация истории чата с бэкендом...")
             val response = chatApi.getChatHistory(accountId, limit = 25, beforeId = null)
 
-            // Логируем первые несколько сообщений для отладки
+            // Логируем для отладки
             Log.d(TAG, "🔍 Первые 3 сообщения с бэкенда:")
             response.messages.take(3).forEachIndexed { index, msg ->
                 Log.d(TAG, "  [$index] id=${msg.id}, text=${msg.text.take(30)}..., isUser=${msg.isUser}")
             }
 
-            // Разделяем SessionContext (ID >= 1_000_000_000) и DB сообщения (ID < 1_000_000_000)
-            val sessionContextMessages = response.messages.filter { it.id != null && it.id!! >= 1_000_000_000 }
-            val dbMessages = response.messages.filter { it.id != null && it.id!! < 1_000_000_000 }
+            Log.d(TAG, "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}, oldest_id=${response.oldestId}")
 
-            Log.d(TAG, "📦 SessionContext: ${sessionContextMessages.size}, DB: ${dbMessages.size}")
-            if (dbMessages.isNotEmpty()) {
-                Log.d(TAG, "📊 DB IDs с бэкенда: ${dbMessages.take(5).map { it.id }}...${dbMessages.takeLast(3).map { it.id }}")
-            }
-
-            // Сохраняем ТОЛЬКО сообщения из БД (не SessionContext!)
-            val entities = dbMessages.map { it.toEntity() }
-            chatMessageDao.clearAll()
-            chatMessageDao.insertMessages(entities)
-
-            Log.d(TAG, "✅ Синхронизация завершена: ${response.messages.size} всего (${sessionContextMessages.size} SessionContext + ${dbMessages.size} DB), has_more=${response.hasMore}, oldest_id=${response.oldestId}")
+            // Возвращаем ответ как есть - бэкенд уже все правильно подготовил
             Result.success(response)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Ошибка синхронизации", e)
@@ -94,17 +82,9 @@ class ChatRepository @Inject constructor(
             Log.d(TAG, "Загрузка истории: beforeId=$beforeId, limit=$limit")
             val response = chatApi.getChatHistory(accountId, limit, beforeId)
 
-            // Логируем для отладки
-            Log.d(TAG, "🔍 Загруженные сообщения:")
-            response.messages.take(3).forEachIndexed { index, msg ->
-                Log.d(TAG, "  [$index] id=${msg.id}, text=${msg.text.take(30)}..., isUser=${msg.isUser}")
-            }
+            Log.d(TAG, "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}")
 
-            // Конвертируем в Entity и добавляем к существующим
-            val entities = response.messages.map { it.toEntity() }
-            chatMessageDao.insertMessages(entities)
-
-            Log.d(TAG, "✅ Загружено ${entities.size} сообщений, has_more=${response.hasMore}")
+            // Возвращаем ответ как есть - бэкенд уже все правильно подготовил
             Result.success(response)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Ошибка загрузки истории", e)
