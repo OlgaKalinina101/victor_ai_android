@@ -15,10 +15,12 @@ import java.util.Locale
 
 /**
  * Форматирование timestamp в HH:mm
+ * timestamp приходит с бэкенда в секундах (Unix timestamp)
  */
 fun formatTimestamp(timestamp: Long): String {
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    return sdf.format(Date(timestamp))
+    // Конвертируем секунды в миллисекунды для Date()
+    return sdf.format(Date(timestamp * 1000))
 }
 
 /**
