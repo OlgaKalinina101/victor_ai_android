@@ -119,12 +119,20 @@ fun ChatBox(
                 Log.d("ChatBox", "📊 Breakdown: typing=$typingIndicatorCount, unsynced=$unsyncedCount, messageIndex=$messageIndex")
                 Log.d("ChatBox", "🔍 Сообщение на позиции $messageIndex: id=${syncedMessages[messageIndex].id}, text=${syncedMessages[messageIndex].text.take(50)}")
 
-                // Скроллим к элементу
-                // Используем небольшой offset чтобы элемент был ближе к центру экрана
-                kotlinx.coroutines.delay(100) // Даем время на рендеринг
-                listState.animateScrollToItem(actualIndex, scrollOffset = -200)
+                // Даем время на рендеринг списка
+                kotlinx.coroutines.delay(100)
 
-                Log.d("ChatBox", "✅ Скролл выполнен к индексу $actualIndex")
+                // Вычисляем offset для центрирования
+                // Получаем высоту viewport и центрируем элемент
+                val viewportHeight = listState.layoutInfo.viewportSize.height
+                val centerOffset = -(viewportHeight / 2)
+
+                Log.d("ChatBox", "📐 Viewport height: $viewportHeight, center offset: $centerOffset")
+
+                // Скроллим к элементу с центрированием
+                listState.animateScrollToItem(actualIndex, scrollOffset = centerOffset)
+
+                Log.d("ChatBox", "✅ Скролл выполнен к индексу $actualIndex с центрированием")
             } else {
                 Log.w("ChatBox", "⚠️ Сообщение с id=$matchedId НЕ НАЙДЕНО в списке!")
                 Log.w("ChatBox", "⚠️ Доступные ID: ${syncedMessages.map { it.id }}")
