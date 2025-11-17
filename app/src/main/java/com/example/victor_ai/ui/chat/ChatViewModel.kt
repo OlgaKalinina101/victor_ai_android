@@ -157,8 +157,9 @@ class ChatViewModel @Inject constructor(
 
     /**
      * Загрузка дополнительной истории чата (пагинация)
+     * Возвращает Result с Triple(hasMore, oldestId, isError)
      */
-    suspend fun loadMoreHistory(beforeId: Int): Pair<Boolean, Int?> {
+    suspend fun loadMoreHistory(beforeId: Int): Result<Triple<Boolean, Int?, Boolean>> {
         return withContext(Dispatchers.Main) {
             try {
                 Log.d("Chat", "📥 Загрузка истории: beforeId=$beforeId")
@@ -200,16 +201,19 @@ class ChatViewModel @Inject constructor(
                         Log.d("Chat", "📊 Все синхронизированные IDs: ${allMessages.filter { it.isSynced }.map { it.id }}")
                     }
 
-                    return@withContext (response.hasMore to response.oldestId)
+                    // Успех: hasMore, oldestId, isError = false
+                    return@withContext Result.success(Triple(response.hasMore, response.oldestId, false))
                 }.onFailure { error ->
                     Log.e("Chat", "❌ Ошибка загрузки истории: ${error.message}")
-                    return@withContext (false to null)
+                    // Ошибка: сохраняем текущие значения, isError = true
+                    return@withContext Result.failure(error)
                 }
 
-                false to null
+                // Не должно дойти сюда
+                Result.failure(Exception("Unexpected state"))
             } catch (e: Exception) {
                 Log.e("Chat", "❌ Ошибка загрузки истории", e)
-                false to null
+                Result.failure(e)
             }
         }
     }

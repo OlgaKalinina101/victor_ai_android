@@ -39,7 +39,7 @@ fun ChatBox(
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit = { _, _ -> },
-    onLoadMoreHistory: suspend (Int) -> Pair<Boolean, Int?> = { false to null },
+    onLoadMoreHistory: suspend (Int) -> Result<Triple<Boolean, Int?, Boolean>> = { Result.failure(Exception("Not implemented")) },
     visible: Boolean,
     isTyping: Boolean = false,
     onClose: () -> Unit = {},
@@ -116,13 +116,22 @@ fun ChatBox(
                     isLoadingMore = true
                     try {
                         Log.d("ChatBox", "📥 Начало загрузки истории: oldestId=$currentOldestId")
-                        val (stillHasMore, newOldestId) = onLoadMoreHistory(currentOldestId)
-                        hasMoreHistory = stillHasMore
-                        oldestId = newOldestId
-                        Log.d("ChatBox", "✅ Загрузка завершена: newOldestId=$newOldestId, hasMore=$stillHasMore")
+                        val result = onLoadMoreHistory(currentOldestId)
+
+                        result.onSuccess { (stillHasMore, newOldestId, _) ->
+                            // Успешная загрузка - обновляем состояние
+                            hasMoreHistory = stillHasMore
+                            oldestId = newOldestId
+                            Log.d("ChatBox", "✅ Загрузка завершена: newOldestId=$newOldestId, hasMore=$stillHasMore")
+                        }.onFailure { error ->
+                            // Ошибка сети - НЕ останавливаем пагинацию!
+                            // Пользователь может попробовать снова при следующем скролле
+                            Log.w("ChatBox", "⚠️ Временная ошибка загрузки: ${error.message}. Пагинация доступна при следующем скролле")
+                            // hasMoreHistory и oldestId остаются без изменений
+                        }
                     } catch (e: Exception) {
-                        Log.e("ChatBox", "❌ Ошибка загрузки истории при пагинации", e)
-                        hasMoreHistory = false
+                        Log.e("ChatBox", "❌ Неожиданная ошибка при пагинации", e)
+                        // При неожиданной ошибке тоже не останавливаем
                     } finally {
                         isLoadingMore = false
                     }
