@@ -49,3 +49,13 @@ data class ChatHistoryResponse(
     @Json(name = "newest_id") val newestId: Int?
 )
 
+@JsonClass(generateAdapter = true)
+data class SearchResult(
+    val messages: List<ChatMessage>,
+    @Json(name = "matched_message_id") val matchedMessageId: Int?,
+    @Json(name = "total_matches") val totalMatches: Int,
+    @Json(name = "current_match_index") val currentMatchIndex: Int,
+    @Json(name = "has_next") val hasNext: Boolean,
+    @Json(name = "has_prev") val hasPrev: Boolean
+)
+

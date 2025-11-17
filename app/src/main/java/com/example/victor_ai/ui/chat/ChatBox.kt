@@ -40,6 +40,9 @@ fun ChatBox(
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit = { _, _ -> },
     onLoadMoreHistory: suspend (Int) -> Result<Triple<Boolean, Int?, Boolean>> = { Result.failure(Exception("Not implemented")) },
+    onSearch: (String) -> Unit = {},
+    onSearchNext: () -> Unit = {},
+    onClearSearch: () -> Unit = {},
     visible: Boolean,
     isTyping: Boolean = false,
     onClose: () -> Unit = {},
@@ -139,6 +142,20 @@ fun ChatBox(
             }
     }
 
+    // Поиск с debounce
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotBlank()) {
+            // Debounce: ждём 500ms перед поиском
+            delay(500)
+            Log.d("ChatBox", "🔍 Запуск поиска: query='$searchQuery'")
+            onSearch(searchQuery)
+        } else if (showSearchOverlay) {
+            // Если поле очищено - сбрасываем поиск
+            Log.d("ChatBox", "🔄 Сброс поиска (пустой запрос)")
+            onClearSearch()
+        }
+    }
+
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(),
@@ -182,12 +199,17 @@ fun ChatBox(
                     showSearchOverlay = !showSearchOverlay
                     if (!showSearchOverlay) {
                         searchQuery = "" // Очищаем при закрытии
+                        onClearSearch() // Сбрасываем поиск и возвращаем обычную историю
                     }
                 },
                 currentMode = currentMode,
                 isSearchMode = showSearchOverlay,
                 searchQuery = searchQuery,
-                onSearchQueryChange = { searchQuery = it }
+                onSearchQueryChange = { searchQuery = it },
+                onNextSearchResult = {
+                    Log.d("ChatBox", "➡️ Клик на стрелку - следующий результат")
+                    onSearchNext()
+                }
             )
 
             HorizontalDivider(thickness = 1.dp, color = Color(0xFF333333))

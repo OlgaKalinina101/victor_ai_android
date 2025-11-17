@@ -116,6 +116,15 @@ class MainActivity : ComponentActivity() {
                     onLoadMoreHistory = { beforeId ->
                         chatViewModel.loadMoreHistory(beforeId)
                     },
+                    onSearch = { query ->
+                        chatViewModel.searchInHistory(query)
+                    },
+                    onSearchNext = {
+                        chatViewModel.searchNext()
+                    },
+                    onClearSearch = {
+                        chatViewModel.clearSearch()
+                    },
                     onStartVoiceRecognition = { startVoiceRecognition() },
                     onRequestMicrophone = {
                         permissionManager.requestMicrophonePermission()

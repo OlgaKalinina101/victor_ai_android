@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -32,7 +33,8 @@ fun ChatHeader(
     currentMode: String,
     isSearchMode: Boolean = false,
     searchQuery: String = "",
-    onSearchQueryChange: (String) -> Unit = {}
+    onSearchQueryChange: (String) -> Unit = {},
+    onNextSearchResult: () -> Unit = {}
 ) {
     val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
 
@@ -109,12 +111,34 @@ fun ChatHeader(
                 )
             }
 
-            // [🔍] Поиск - тогглит режим поиска
-            IconButton(onClick = onSearchClick) {
+            // [🔍] Поиск / [⬆] Следующий результат
+            IconButton(
+                onClick = {
+                    if (isSearchMode && searchQuery.isNotBlank()) {
+                        // Если поиск активен и есть текст - показываем следующий результат
+                        onNextSearchResult()
+                    } else {
+                        // Иначе - тогглим режим поиска
+                        onSearchClick()
+                    }
+                }
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = if (isSearchMode) "Закрыть поиск" else "Поиск",
-                    tint = if (isSearchMode) Color(0xFFBB86FC) else Color(0xFFE0E0E0)
+                    imageVector = if (isSearchMode && searchQuery.isNotBlank()) {
+                        Icons.Default.KeyboardArrowUp  // Стрелка вверх при активном поиске
+                    } else {
+                        Icons.Default.Search  // Лупа в обычном режиме
+                    },
+                    contentDescription = when {
+                        isSearchMode && searchQuery.isNotBlank() -> "Следующий результат"
+                        isSearchMode -> "Закрыть поиск"
+                        else -> "Поиск"
+                    },
+                    tint = when {
+                        isSearchMode && searchQuery.isNotBlank() -> Color.Gray  // Серая стрелка
+                        isSearchMode -> Color(0xFFBB86FC)  // Фиолетовая лупа
+                        else -> Color(0xFFE0E0E0)  // Обычная лупа
+                    }
                 )
             }
         }
