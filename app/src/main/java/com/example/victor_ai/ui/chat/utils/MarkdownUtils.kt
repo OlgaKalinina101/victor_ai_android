@@ -22,6 +22,39 @@ fun formatTimestamp(timestamp: Long): String {
 }
 
 /**
+ * Подсветка найденного текста желтым цветом
+ */
+fun highlightSearchText(annotatedString: AnnotatedString, searchQuery: String): AnnotatedString {
+    if (searchQuery.isBlank()) return annotatedString
+
+    return buildAnnotatedString {
+        append(annotatedString)
+
+        // Ищем все вхождения searchQuery (регистронезависимо)
+        val text = annotatedString.text
+        val query = searchQuery.lowercase()
+        var startIndex = text.lowercase().indexOf(query)
+
+        while (startIndex >= 0) {
+            val endIndex = startIndex + searchQuery.length
+
+            // Применяем желтый фон к найденному тексту
+            addStyle(
+                style = SpanStyle(
+                    background = Color(0xFFFFEB3B), // Желтый фон
+                    color = Color(0xFF000000) // Черный текст для контраста
+                ),
+                start = startIndex,
+                end = endIndex
+            )
+
+            // Ищем следующее вхождение
+            startIndex = text.lowercase().indexOf(query, endIndex)
+        }
+    }
+}
+
+/**
  * Парсинг markdown в AnnotatedString с поддержкой:
  * - **жирный текст**
  * - *курсив*

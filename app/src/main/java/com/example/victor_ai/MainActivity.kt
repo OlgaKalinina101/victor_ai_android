@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
                 val chatMessages by chatViewModel.chatMessages.collectAsState()
                 val snackbarMessage by chatViewModel.snackbarMessage.collectAsState()
                 val isTyping by chatViewModel.isTyping.collectAsState()
+                val searchMatchedMessageId by chatViewModel.searchMatchedMessageId.collectAsState()
                 val reminderPopup by reminderManager.reminderPopup.collectAsState()
                 val location by locationProvider.currentLocation.collectAsState()
 
@@ -125,6 +126,7 @@ class MainActivity : ComponentActivity() {
                     onClearSearch = {
                         chatViewModel.clearSearch()
                     },
+                    searchMatchedMessageId = searchMatchedMessageId,
                     onStartVoiceRecognition = { startVoiceRecognition() },
                     onRequestMicrophone = {
                         permissionManager.requestMicrophonePermission()
