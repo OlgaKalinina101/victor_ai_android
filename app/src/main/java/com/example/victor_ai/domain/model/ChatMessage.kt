@@ -10,5 +10,6 @@ data class ChatMessage(
     @Json(name = "is_user") val isUser: Boolean,
     @Json(name = "timestamp") val timestamp: Long,
     @Json(name = "id") val id: Int? = null,  // ID из БД (null для SessionContext сообщений)
-    val isSynced: Boolean = true  // Флаг синхронизации с бэкендом (НЕ сериализуется в JSON)
+    val isSynced: Boolean = true,  // Флаг синхронизации с бэкендом (НЕ сериализуется в JSON)
+    @Json(name = "image_count") val imageCount: Int = 0  // Количество прикрепленных изображений
 )

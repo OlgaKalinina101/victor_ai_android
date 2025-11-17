@@ -93,17 +93,18 @@ class ChatViewModel @Inject constructor(
     /**
      * Добавление нового сообщения от пользователя
      */
-    fun addUserMessage(text: String) {
+    fun addUserMessage(text: String, imageCount: Int = 0) {
         val timestamp = System.currentTimeMillis() / 1000
         val newMessage = ChatMessage(
             text = text,
             isUser = true,
             timestamp = timestamp,
             id = Int.MAX_VALUE - timestamp.toInt(),
-            isSynced = false
+            isSynced = false,
+            imageCount = imageCount
         )
         _chatMessages.value += newMessage
-        Log.d("Chat", "➕ Добавлено user сообщение: ВРЕМЕННЫЙ id=${newMessage.id}, isSynced=false, text=${newMessage.text.take(50)}")
+        Log.d("Chat", "➕ Добавлено user сообщение: ВРЕМЕННЫЙ id=${newMessage.id}, isSynced=false, imageCount=$imageCount, text=${newMessage.text.take(50)}")
         Log.d("Chat", "📊 Всего сообщений: ${_chatMessages.value.size}")
     }
 
