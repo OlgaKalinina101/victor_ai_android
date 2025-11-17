@@ -86,6 +86,9 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("io.coil-kt:coil-gif:2.5.0") // для поддержки gif
 
+    // ExifInterface для работы с метаданными изображений
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
     // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-moshi:2.9.0")

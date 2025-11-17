@@ -242,16 +242,28 @@ class ChatViewModel @Inject constructor(
     /**
      * Отправка текста ассистенту
      */
-    fun sendTextToAssistant(text: String) {
+    fun sendTextToAssistant(text: String, attachedImages: List<com.example.victor_ai.utils.ImageUtils.ImageAttachment> = emptyList()) {
         viewModelScope.launch {
             try {
                 _isTyping.value = true
 
+                // Конвертируем ImageAttachment в ImageContent для API
+                val imageContents = attachedImages.map { attachment ->
+                    com.example.victor_ai.data.network.dto.ImageContent(
+                        type = "base64",
+                        mediaType = "image/png",
+                        data = attachment.base64
+                    )
+                }
+
                 val request = AssistantRequest(
                     sessionId = sessionId,
                     text = text,
-                    geo = latestGeo
+                    geo = latestGeo,
+                    images = imageContents.takeIf { it.isNotEmpty() }
                 )
+
+                Log.d("Chat", "📤 Отправка сообщения: text='${text.take(50)}', изображений=${imageContents.size}")
 
                 // 🔥 Сохраняем user сообщение в локальную БД
                 val userMessage = _chatMessages.value.last() // последнее сообщение - это user message

@@ -101,9 +101,9 @@ class MainActivity : ComponentActivity() {
                     placesViewModel = placesViewModel,
                     reminderManager = reminderManager,
                     chatMessages = chatMessages,
-                    onSendMessage = { userText ->
+                    onSendMessage = { userText, attachedImages ->
                         chatViewModel.addUserMessage(userText)
-                        chatViewModel.sendTextToAssistant(userText)
+                        chatViewModel.sendTextToAssistant(userText, attachedImages)
                     },
                     onEditMessage = { index, newText ->
                         chatViewModel.editMessage(index, newText)
