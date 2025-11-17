@@ -16,11 +16,12 @@ import androidx.compose.ui.unit.dp
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.permissions.PermissionManager
 import com.example.victor_ai.ui.chat.ChatBox
+import com.example.victor_ai.utils.ImageUtils
 
 @Composable
 fun ChatScreen(
     messages: List<ChatMessage>,
-    onSendMessage: (String) -> Unit,
+    onSendMessage: (String, List<ImageUtils.ImageAttachment>) -> Unit,
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit,

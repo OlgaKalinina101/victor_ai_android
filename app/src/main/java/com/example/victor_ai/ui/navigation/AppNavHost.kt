@@ -22,6 +22,7 @@ import com.example.victor_ai.ui.screens.ChatScreen
 import com.example.victor_ai.ui.screens.EnvironmentScreen
 import com.example.victor_ai.ui.screens.MainScreen
 import com.example.victor_ai.ui.screens.system.SystemMenuScreen
+import com.example.victor_ai.utils.ImageUtils
 
 @Composable
 fun AppNavHost(
@@ -30,7 +31,7 @@ fun AppNavHost(
     placesViewModel: PlacesViewModel,
     reminderManager: ReminderManager,
     chatMessages: List<ChatMessage>,
-    onSendMessage: (String) -> Unit,
+    onSendMessage: (String, List<ImageUtils.ImageAttachment>) -> Unit,
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit,

@@ -21,6 +21,7 @@ import com.example.victor_ai.ui.navigation.AppNavHost
 import com.example.victor_ai.ui.places.PlacesViewModel
 import com.example.victor_ai.ui.playlist.PlaylistViewModel
 import com.example.victor_ai.ui.screens.PresencePlaceholder
+import com.example.victor_ai.utils.ImageUtils
 
 /**
  * Главный экран приложения
@@ -32,7 +33,7 @@ fun MainScreen(
     placesViewModel: PlacesViewModel,
     reminderManager: ReminderManager,
     chatMessages: List<ChatMessage>,
-    onSendMessage: (String) -> Unit,
+    onSendMessage: (String, List<ImageUtils.ImageAttachment>) -> Unit,
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (Int?, Boolean) -> Unit,
