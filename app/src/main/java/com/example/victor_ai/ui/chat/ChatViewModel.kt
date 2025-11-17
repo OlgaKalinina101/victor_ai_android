@@ -48,6 +48,27 @@ class ChatViewModel @Inject constructor(
     // SessionId (будет устанавливаться извне)
     private var sessionId: String = ""
 
+    // 🔍 Поиск по истории
+    private val _searchResults = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val searchResults: StateFlow<List<ChatMessage>> = _searchResults
+
+    private val _searchMatchedMessageId = MutableStateFlow<Int?>(null)
+    val searchMatchedMessageId: StateFlow<Int?> = _searchMatchedMessageId
+
+    private val _searchTotalMatches = MutableStateFlow(0)
+    val searchTotalMatches: StateFlow<Int> = _searchTotalMatches
+
+    private val _searchCurrentIndex = MutableStateFlow(0)
+    val searchCurrentIndex: StateFlow<Int> = _searchCurrentIndex
+
+    private val _searchHasNext = MutableStateFlow(false)
+    val searchHasNext: StateFlow<Boolean> = _searchHasNext
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching
+
+    private var currentSearchQuery: String = ""
+
     /**
      * Установка sessionId для запросов к ассистенту
      */
@@ -317,6 +338,94 @@ class ChatViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("Assistant", "❌ Ошибка отправки: ${e.message}")
                 _isTyping.value = false
+            }
+        }
+    }
+
+    /**
+     * Поиск по истории чата
+     */
+    fun searchInHistory(query: String, offset: Int = 0) {
+        if (query.isBlank()) {
+            // Сброс поиска при пустом запросе
+            clearSearch()
+            return
+        }
+
+        currentSearchQuery = query
+
+        viewModelScope.launch {
+            _isSearching.value = true
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    ChatHistoryHelper.repository.searchHistory(query, offset)
+                }
+
+                result.onSuccess { searchResult ->
+                    Log.d("ChatSearch", "🔍 Найдено: total=${searchResult.totalMatches}, index=$offset, has_next=${searchResult.hasNext}")
+
+                    _searchResults.value = searchResult.messages
+                    _searchMatchedMessageId.value = searchResult.matchedMessageId
+                    _searchTotalMatches.value = searchResult.totalMatches
+                    _searchCurrentIndex.value = searchResult.currentMatchIndex
+                    _searchHasNext.value = searchResult.hasNext
+
+                    // Если есть результаты - заменяем текущие сообщения на контекст поиска
+                    if (searchResult.messages.isNotEmpty()) {
+                        _chatMessages.value = searchResult.messages
+                    }
+                }.onFailure { error ->
+                    Log.e("ChatSearch", "❌ Ошибка поиска: ${error.message}")
+                    _snackbarMessage.value = "Ошибка поиска"
+                }
+            } finally {
+                _isSearching.value = false
+            }
+        }
+    }
+
+    /**
+     * Переход к следующему результату поиска
+     */
+    fun searchNext() {
+        if (currentSearchQuery.isBlank() || !_searchHasNext.value) return
+
+        val nextOffset = _searchCurrentIndex.value + 1
+        Log.d("ChatSearch", "➡️ Переход к следующему результату: offset=$nextOffset")
+
+        // Повторный поиск со следующим offset
+        searchInHistory(currentSearchQuery, nextOffset)
+    }
+
+    /**
+     * Сброс поиска и возврат к обычной истории
+     */
+    fun clearSearch() {
+        Log.d("ChatSearch", "🔄 Сброс поиска")
+        currentSearchQuery = ""
+        _searchResults.value = emptyList()
+        _searchMatchedMessageId.value = null
+        _searchTotalMatches.value = 0
+        _searchCurrentIndex.value = 0
+        _searchHasNext.value = false
+        _isSearching.value = false
+
+        // Перезагружаем обычную историю (последние 25 сообщений)
+        viewModelScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    ChatHistoryHelper.repository.syncWithBackendPaginated()
+                }
+
+                result.onSuccess { response ->
+                    Log.d("ChatSearch", "✅ Перезагружена обычная история: ${response.messages.size} сообщений")
+                    _chatMessages.value = response.messages
+                    oldestMessageId = response.oldestId
+                }.onFailure { error ->
+                    Log.e("ChatSearch", "❌ Ошибка перезагрузки истории: ${error.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatSearch", "❌ Ошибка при сбросе поиска: ${e.message}")
             }
         }
     }

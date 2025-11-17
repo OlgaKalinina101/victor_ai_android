@@ -150,6 +150,15 @@ interface ChatApi {
         @Body request: UpdateHistoryRequest,
         @Query("account_id") accountId: String = UserProvider.getCurrentUserId()
     ): UpdateHistoryResponse
+
+    @GET("assistant/chat/history/search")
+    suspend fun searchChatHistory(
+        @Query("account_id") accountId: String = UserProvider.getCurrentUserId(),
+        @Query("query") query: String,
+        @Query("offset") offset: Int = 0,
+        @Query("context_before") contextBefore: Int = 10,
+        @Query("context_after") contextAfter: Int = 10
+    ): com.example.victor_ai.data.network.dto.SearchResult
 }
 
 

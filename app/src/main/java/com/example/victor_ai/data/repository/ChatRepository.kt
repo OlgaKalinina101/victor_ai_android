@@ -122,6 +122,32 @@ class ChatRepository @Inject constructor(
         }
     }
 
+    // Поиск по истории чата
+    suspend fun searchHistory(
+        query: String,
+        offset: Int = 0,
+        contextBefore: Int = 10,
+        contextAfter: Int = 10,
+        accountId: String = UserProvider.getCurrentUserId()
+    ): Result<com.example.victor_ai.data.network.dto.SearchResult> {
+        return try {
+            Log.d(TAG, "Поиск в истории: query='$query', offset=$offset")
+            val searchResult = chatApi.searchChatHistory(
+                accountId = accountId,
+                query = query,
+                offset = offset,
+                contextBefore = contextBefore,
+                contextAfter = contextAfter
+            )
+
+            Log.d(TAG, "✅ Найдено: total=${searchResult.totalMatches}, matched_id=${searchResult.matchedMessageId}, has_next=${searchResult.hasNext}")
+            Result.success(searchResult)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Ошибка поиска", e)
+            Result.failure(e)
+        }
+    }
+
     // Очистить историю
     suspend fun clearHistory() {
         chatMessageDao.clearAll()
