@@ -28,6 +28,7 @@ import com.example.victor_ai.logic.ChatHistoryHelper
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.ui.chat.components.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.snapshotFlow
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -95,10 +96,17 @@ fun ChatBox(
     // 🔍 Автоскролл к найденному сообщению при поиске
     LaunchedEffect(searchMatchedMessageId) {
         searchMatchedMessageId?.let { matchedId ->
-            Log.d("ChatBox", "🎯 Автоскролл к сообщению: id=$matchedId")
+            Log.d("ChatBox", "🎯 Автоскролл к сообщению: matched_id=$matchedId")
 
-            // Находим индекс сообщения в списке
+            // Логируем все сообщения ДО сортировки
+            Log.d("ChatBox", "📋 Сообщения ДО сортировки: ${messages.filter { it.isSynced }.map { "id=${it.id}" }}")
+
+            // Находим индекс сообщения в списке ПОСЛЕ сортировки (как в рендеринге)
             val syncedMessages = messages.filter { it.isSynced }.sortedByDescending { it.id }
+
+            // Логируем все сообщения ПОСЛЕ сортировки
+            Log.d("ChatBox", "📋 Сообщения ПОСЛЕ сортировки: ${syncedMessages.map { "id=${it.id}" }}")
+
             val messageIndex = syncedMessages.indexOfFirst { it.id == matchedId }
 
             if (messageIndex != -1) {
@@ -107,12 +115,19 @@ fun ChatBox(
                 val typingIndicatorCount = if (isTyping) 1 else 0
                 val actualIndex = typingIndicatorCount + unsyncedCount + messageIndex
 
-                Log.d("ChatBox", "📍 Скроллим к индексу: $actualIndex (synced=$messageIndex, unsynced=$unsyncedCount, typing=$typingIndicatorCount)")
+                Log.d("ChatBox", "📍 Найдено: messageIndex в synced=$messageIndex, actualIndex в LazyColumn=$actualIndex")
+                Log.d("ChatBox", "📊 Breakdown: typing=$typingIndicatorCount, unsynced=$unsyncedCount, messageIndex=$messageIndex")
+                Log.d("ChatBox", "🔍 Сообщение на позиции $messageIndex: id=${syncedMessages[messageIndex].id}, text=${syncedMessages[messageIndex].text.take(50)}")
 
                 // Скроллим к элементу
-                listState.animateScrollToItem(actualIndex)
+                // Используем небольшой offset чтобы элемент был ближе к центру экрана
+                kotlinx.coroutines.delay(100) // Даем время на рендеринг
+                listState.animateScrollToItem(actualIndex, scrollOffset = -200)
+
+                Log.d("ChatBox", "✅ Скролл выполнен к индексу $actualIndex")
             } else {
-                Log.w("ChatBox", "⚠️ Сообщение с id=$matchedId не найдено в списке")
+                Log.w("ChatBox", "⚠️ Сообщение с id=$matchedId НЕ НАЙДЕНО в списке!")
+                Log.w("ChatBox", "⚠️ Доступные ID: ${syncedMessages.map { it.id }}")
             }
         }
     }
