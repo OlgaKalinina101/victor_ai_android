@@ -175,11 +175,19 @@ fun ChatBox(
                     }
                 )
         ) {
-            // Header
+            // Header - с встроенным поиском
             ChatHeader(
                 onMenuClick = { showMenu = true },
-                onSearchClick = { showSearchOverlay = true },
-                currentMode = currentMode
+                onSearchClick = {
+                    showSearchOverlay = !showSearchOverlay
+                    if (!showSearchOverlay) {
+                        searchQuery = "" // Очищаем при закрытии
+                    }
+                },
+                currentMode = currentMode,
+                isSearchMode = showSearchOverlay,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it }
             )
 
             HorizontalDivider(thickness = 1.dp, color = Color(0xFF333333))
@@ -419,18 +427,6 @@ fun ChatBox(
                     )
                 }
             }
-        }
-
-        // Оверлей поиска
-        if (showSearchOverlay) {
-            SearchOverlay(
-                searchQuery = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onClose = {
-                    showSearchOverlay = false
-                    searchQuery = ""
-                }
-            )
         }
     }
 }
