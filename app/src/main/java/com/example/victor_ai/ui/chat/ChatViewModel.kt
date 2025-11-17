@@ -388,7 +388,14 @@ class ChatViewModel @Inject constructor(
      * Переход к следующему результату поиска
      */
     fun searchNext() {
-        if (currentSearchQuery.isBlank() || !_searchHasNext.value) return
+        if (currentSearchQuery.isBlank()) return
+
+        // Проверяем, есть ли еще результаты
+        if (!_searchHasNext.value) {
+            Log.d("ChatSearch", "⚠️ Больше результатов не найдено")
+            _snackbarMessage.value = "Больше результатов не найдено"
+            return
+        }
 
         val nextOffset = _searchCurrentIndex.value + 1
         Log.d("ChatSearch", "➡️ Переход к следующему результату: offset=$nextOffset")
