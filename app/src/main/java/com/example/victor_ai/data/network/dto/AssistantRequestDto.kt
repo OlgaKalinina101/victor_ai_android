@@ -11,11 +11,20 @@ data class GeoLocation(
 )
 
 @JsonClass(generateAdapter = true)
+data class ImageContent(
+    val type: String = "base64",
+    @Json(name = "media_type")
+    val mediaType: String = "image/png",
+    val data: String // base64 encoded PNG
+)
+
+@JsonClass(generateAdapter = true)
 data class AssistantRequest(
     @Json(name = "session_id")
     val sessionId: String,
     val text: String,
-    val geo: GeoLocation? = null
+    val geo: GeoLocation? = null,
+    val images: List<ImageContent>? = null
 )
 
 @JsonClass(generateAdapter = true)

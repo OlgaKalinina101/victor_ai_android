@@ -27,6 +27,7 @@ import com.example.victor_ai.data.network.sendToDiaryEntry
 import com.example.victor_ai.logic.ChatHistoryHelper
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.ui.chat.components.*
+import com.example.victor_ai.utils.ImageUtils
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.snapshotFlow
@@ -36,7 +37,7 @@ import androidx.compose.runtime.snapshotFlow
 fun ChatBox(
     modifier: Modifier = Modifier,
     messages: List<ChatMessage>,
-    onSendMessage: (String) -> Unit,
+    onSendMessage: (String, List<ImageUtils.ImageAttachment>) -> Unit,
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (oldestId: Int?, hasMore: Boolean) -> Unit = { _, _ -> },
@@ -60,6 +61,7 @@ fun ChatBox(
     var userInput by remember { mutableStateOf("") }
     var editingMessageIndex by remember { mutableStateOf<Int?>(null) }
     var editingText by remember { mutableStateOf("") }
+    var attachedImages by remember { mutableStateOf<List<ImageUtils.ImageAttachment>>(emptyList()) }
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
     var showMenu by remember { mutableStateOf(false) }
@@ -431,18 +433,30 @@ fun ChatBox(
                 userInput = userInput,
                 onInputChange = { userInput = it },
                 onSend = {
-                    if (userInput.isNotBlank()) {
+                    if (userInput.isNotBlank() || attachedImages.isNotEmpty()) {
                         if (userInput.startsWith("#Дневник", ignoreCase = true)) {
                             coroutineScope.launch {
                                 sendToDiaryEntry(userInput)
                             }
+                            userInput = ""
+                            attachedImages = emptyList()
                         } else {
-                            onSendMessage(userInput)
+                            onSendMessage(userInput, attachedImages)
+                            userInput = ""
+                            attachedImages = emptyList()
                         }
-                        userInput = ""
                     }
                 },
-                onAttachClick = { /* TODO: заглушка */ }
+                onAttachClick = { /* Обрабатывается внутри ChatInputPanel */ },
+                attachedImages = attachedImages,
+                onImagesAttached = { newImages ->
+                    attachedImages = newImages
+                    Log.d("ChatBox", "📎 Прикреплено ${newImages.size} изображений")
+                },
+                onImageRemoved = { imageToRemove ->
+                    attachedImages = attachedImages.filter { it != imageToRemove }
+                    Log.d("ChatBox", "🗑️ Удалено изображение, осталось ${attachedImages.size}")
+                }
             )
         }
 
