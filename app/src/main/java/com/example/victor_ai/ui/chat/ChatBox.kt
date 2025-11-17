@@ -43,6 +43,7 @@ fun ChatBox(
     onSearch: (String) -> Unit = {},
     onSearchNext: () -> Unit = {},
     onClearSearch: () -> Unit = {},
+    searchMatchedMessageId: Int? = null,
     visible: Boolean,
     isTyping: Boolean = false,
     onClose: () -> Unit = {},
@@ -88,6 +89,31 @@ fun ChatBox(
             }
         } catch (e: Exception) {
             Log.e("ChatBox", "❌ Ошибка загрузки истории", e)
+        }
+    }
+
+    // 🔍 Автоскролл к найденному сообщению при поиске
+    LaunchedEffect(searchMatchedMessageId) {
+        searchMatchedMessageId?.let { matchedId ->
+            Log.d("ChatBox", "🎯 Автоскролл к сообщению: id=$matchedId")
+
+            // Находим индекс сообщения в списке
+            val syncedMessages = messages.filter { it.isSynced }.sortedByDescending { it.id }
+            val messageIndex = syncedMessages.indexOfFirst { it.id == matchedId }
+
+            if (messageIndex != -1) {
+                // Учитываем несинхронизированные сообщения и индикатор печати
+                val unsyncedCount = messages.count { !it.isSynced }
+                val typingIndicatorCount = if (isTyping) 1 else 0
+                val actualIndex = typingIndicatorCount + unsyncedCount + messageIndex
+
+                Log.d("ChatBox", "📍 Скроллим к индексу: $actualIndex (synced=$messageIndex, unsynced=$unsyncedCount, typing=$typingIndicatorCount)")
+
+                // Скроллим к элементу
+                listState.animateScrollToItem(actualIndex)
+            } else {
+                Log.w("ChatBox", "⚠️ Сообщение с id=$matchedId не найдено в списке")
+            }
         }
     }
 
@@ -297,7 +323,9 @@ fun ChatBox(
                                 Log.d("ChatBox", "🎤 LONG TAP -> микрофон")
                                 onStartVoiceRecognition()
                             }
-                        }
+                        },
+                        searchQuery = searchQuery,
+                        isHighlighted = message.id == searchMatchedMessageId
                     )
                 }
 
@@ -348,7 +376,9 @@ fun ChatBox(
                                 Log.d("ChatBox", "🎤 LONG TAP -> микрофон")
                                 onStartVoiceRecognition()
                             }
-                        }
+                        },
+                        searchQuery = searchQuery,
+                        isHighlighted = message.id == searchMatchedMessageId
                     )
                 }
 

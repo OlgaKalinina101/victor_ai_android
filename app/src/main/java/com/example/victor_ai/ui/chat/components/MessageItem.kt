@@ -30,6 +30,7 @@ import com.example.victor_ai.R
 import com.example.victor_ai.domain.model.ChatMessage
 import com.example.victor_ai.ui.chat.utils.formatTimestamp
 import com.example.victor_ai.ui.chat.utils.parseMarkdown
+import com.example.victor_ai.ui.chat.utils.highlightSearchText
 import com.example.victor_ai.ui.common.LongClickableText
 
 /**
@@ -47,7 +48,9 @@ fun MessageItem(
     onSaveEdit: () -> Unit,
     onCopy: () -> Unit,
     onTapOutsideLink: () -> Unit = {},
-    onLongPressOutsideLink: () -> Unit = {}
+    onLongPressOutsideLink: () -> Unit = {},
+    searchQuery: String = "",
+    isHighlighted: Boolean = false
 ) {
     val didactGothicFont = FontFamily(Font(R.font.didact_gothic))
     val context = LocalContext.current
@@ -55,7 +58,15 @@ fun MessageItem(
     // User-сообщения справа и светлее фона
     val alignment = if (message.isUser) Alignment.End else Alignment.Start
     val backgroundColor = if (message.isUser) Color(0xFF3A3838) else Color.Transparent
-    val annotatedText = parseMarkdown(message.text)
+
+    // Применяем markdown и поисковую подсветку
+    val annotatedText = parseMarkdown(message.text).let { parsed ->
+        if (searchQuery.isNotBlank()) {
+            highlightSearchText(parsed, searchQuery)
+        } else {
+            parsed
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -124,7 +135,7 @@ fun MessageItem(
                     if (currentMode == "edit mode") {
                         // В edit mode включаем долгий тап для редактирования
                         LongClickableText(
-                            text = parseMarkdown(message.text),
+                            text = annotatedText,
                             onLongClick = onStartEdit,
                             style = TextStyle(
                                 fontSize = 15.sp,
