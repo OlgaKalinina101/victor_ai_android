@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
                     reminderManager = reminderManager,
                     chatMessages = chatMessages,
                     onSendMessage = { userText, attachedImages ->
-                        chatViewModel.addUserMessage(userText)
+                        chatViewModel.addUserMessage(userText, attachedImages.size)
                         chatViewModel.sendTextToAssistant(userText, attachedImages)
                     },
                     onEditMessage = { index, newText ->

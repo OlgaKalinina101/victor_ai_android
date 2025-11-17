@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -130,6 +131,27 @@ fun MessageItem(
                         .background(backgroundColor, RoundedCornerShape(8.dp))
                         .padding(6.dp)
                 ) {
+                    // Превью изображений (если есть)
+                    if (message.imageCount > 0) {
+                        Row(
+                            modifier = Modifier.padding(bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Image,
+                                contentDescription = "Прикрепленные изображения",
+                                tint = Color(0xFFBB86FC),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "${message.imageCount}",
+                                fontSize = 12.sp,
+                                color = Color(0xFFBB86FC),
+                                fontFamily = didactGothicFont
+                            )
+                        }
+                    }
 
                     // Текст сообщения
                     if (currentMode == "edit mode") {
