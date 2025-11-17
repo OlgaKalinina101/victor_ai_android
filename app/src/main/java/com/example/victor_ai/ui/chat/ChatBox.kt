@@ -67,18 +67,24 @@ fun ChatBox(
     var oldestId by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
+        Log.d("ChatBox", "🚀 LaunchedEffect(Unit) - начало первичной загрузки истории")
         try {
             val result = ChatHistoryHelper.repository.syncWithBackendPaginated()
             result.onSuccess { response ->
+                Log.d("ChatBox", "📥 Получено ${response.messages.size} сообщений с бэкенда")
+                Log.d("ChatBox", "📋 IDs полученных: ${response.messages.map { it.id }}")
+
                 onInitHistory(response.messages)
                 onPaginationInfo(response.oldestId, response.hasMore)
                 hasMoreHistory = response.hasMore
                 oldestId = response.oldestId
+
+                Log.d("ChatBox", "✅ Первичная загрузка завершена: oldestId=$oldestId, hasMore=$hasMoreHistory")
             }.onFailure { e ->
-                Log.e("Chat", "Ошибка загрузки истории", e)
+                Log.e("ChatBox", "❌ Ошибка загрузки истории", e)
             }
         } catch (e: Exception) {
-            Log.e("Chat", "Ошибка загрузки истории", e)
+            Log.e("ChatBox", "❌ Ошибка загрузки истории", e)
         }
     }
 
@@ -86,7 +92,13 @@ fun ChatBox(
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
-                if (lastVisibleIndex == null || isLoadingMore || !hasMoreHistory) return@collect
+                if (lastVisibleIndex == null || isLoadingMore || !hasMoreHistory) {
+                    // Логируем только если НЕ из-за null
+                    if (lastVisibleIndex != null && (isLoadingMore || !hasMoreHistory)) {
+                        Log.d("ChatBox", "⏸️ Пагинация остановлена: isLoadingMore=$isLoadingMore, hasMoreHistory=$hasMoreHistory")
+                    }
+                    return@collect
+                }
 
                 val totalItems = listState.layoutInfo.totalItemsCount
 
@@ -94,20 +106,22 @@ fun ChatBox(
                 if (totalItems > 0 && lastVisibleIndex >= totalItems - 3) {
                     val currentOldestId = oldestId
                     if (currentOldestId == null) {
-                        Log.w("Chat", "⚠️ oldestId == null, загрузка невозможна")
+                        Log.w("ChatBox", "⚠️ oldestId == null, загрузка невозможна")
                         hasMoreHistory = false
                         return@collect
                     }
 
+                    Log.d("ChatBox", "📜 Триггер загрузки: lastVisible=$lastVisibleIndex, total=$totalItems, oldestId=$currentOldestId")
+
                     isLoadingMore = true
                     try {
-                        Log.d("Chat", "📥 Триггер загрузки: oldestId=$currentOldestId")
+                        Log.d("ChatBox", "📥 Начало загрузки истории: oldestId=$currentOldestId")
                         val (stillHasMore, newOldestId) = onLoadMoreHistory(currentOldestId)
                         hasMoreHistory = stillHasMore
                         oldestId = newOldestId
-                        Log.d("Chat", "✅ Обновлен oldestId: $newOldestId, hasMore=$stillHasMore")
+                        Log.d("ChatBox", "✅ Загрузка завершена: newOldestId=$newOldestId, hasMore=$stillHasMore")
                     } catch (e: Exception) {
-                        Log.e("Chat", "Ошибка загрузки истории", e)
+                        Log.e("ChatBox", "❌ Ошибка загрузки истории при пагинации", e)
                         hasMoreHistory = false
                     } finally {
                         isLoadingMore = false

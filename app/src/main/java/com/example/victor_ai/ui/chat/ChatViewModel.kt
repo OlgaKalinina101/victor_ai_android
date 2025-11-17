@@ -110,11 +110,25 @@ class ChatViewModel @Inject constructor(
      */
     fun initHistory(history: List<ChatMessage>) {
         Log.d("Chat", "🔄 onInitHistory вызван: получено ${history.size} сообщений с бэкенда")
+
+        if (history.isNotEmpty()) {
+            Log.d("Chat", "📋 Первые 3 из истории: ${history.take(3).map { "id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}" }}")
+        }
+
         val currentMessages = _chatMessages.value
         Log.d("Chat", "📊 Текущих сообщений: ${currentMessages.size}")
 
-        // Просто объединяем - ChatBox сам фильтрует на синхронизированные и несинхронизированные
-        val allMessages = currentMessages + history
+        // 🔥 Объединяем и удаляем дубликаты по уникальному ключу
+        val allMessages = (currentMessages + history).distinctBy { message ->
+            // Уникальный ключ: для синхронизированных - по ID, для несинхронизированных - по timestamp+isUser
+            if (message.isSynced && message.id != null) {
+                "synced_${message.id}"
+            } else {
+                "unsynced_${message.timestamp}_${message.isUser}"
+            }
+        }
+
+        Log.d("Chat", "🔍 ДО фильтрации: ${currentMessages.size + history.size}, ПОСЛЕ фильтрации: ${allMessages.size}")
 
         _chatMessages.value = allMessages
 
@@ -122,6 +136,12 @@ class ChatViewModel @Inject constructor(
         val unsynced = allMessages.filter { !it.isSynced }
         val synced = allMessages.filter { it.isSynced }
         Log.d("Chat", "📊 Несинхронизированных: ${unsynced.size}, синхронизированных: ${synced.size}")
+
+        // Логируем все ID синхронизированных для отладки
+        if (synced.isNotEmpty()) {
+            Log.d("Chat", "📊 Синхронизированные IDs: ${synced.map { it.id }}")
+        }
+
         if (unsynced.isNotEmpty()) {
             Log.d("Chat", "🔥 Несинхронизированные: ${unsynced.map { "id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}, isSynced=${it.isSynced}" }}")
         }
@@ -151,15 +171,33 @@ class ChatViewModel @Inject constructor(
                     Log.d("Chat", "✅ Загружено ${response.messages.size} сообщений, has_more=${response.hasMore}, newOldestId=${response.oldestId}")
 
                     if (response.messages.isNotEmpty()) {
-                        val currentMessages = _chatMessages.value
+                        Log.d("Chat", "📋 Загруженные IDs: ${response.messages.map { it.id }}")
 
-                        // Просто объединяем - ChatBox сам фильтрует
-                        val allMessages = currentMessages + response.messages
+                        val currentMessages = _chatMessages.value
+                        Log.d("Chat", "📊 Текущих сообщений ДО добавления: ${currentMessages.size}")
+
+                        // 🔥 Объединяем и удаляем дубликаты по уникальному ключу
+                        val allMessages = (currentMessages + response.messages).distinctBy { message ->
+                            // Уникальный ключ: для синхронизированных - по ID, для несинхронизированных - по timestamp+isUser
+                            if (message.isSynced && message.id != null) {
+                                "synced_${message.id}"
+                            } else {
+                                "unsynced_${message.timestamp}_${message.isUser}"
+                            }
+                        }
+
+                        Log.d("Chat", "🔍 ДО фильтрации: ${currentMessages.size + response.messages.size}, ПОСЛЕ фильтрации: ${allMessages.size}")
+
+                        // Проверяем, были ли дубликаты
+                        val duplicatesCount = (currentMessages.size + response.messages.size) - allMessages.size
+                        if (duplicatesCount > 0) {
+                            Log.w("Chat", "⚠️ Удалено дубликатов: $duplicatesCount")
+                        }
 
                         _chatMessages.value = allMessages
 
                         Log.d("Chat", "📦 Обновлено: всего ${allMessages.size} сообщений")
-                        Log.d("Chat", "📊 Загруженные старые IDs: ${response.messages.take(3).map { it.id }}...${response.messages.takeLast(3).map { it.id }}")
+                        Log.d("Chat", "📊 Все синхронизированные IDs: ${allMessages.filter { it.isSynced }.map { it.id }}")
                     }
 
                     return@withContext (response.hasMore to response.oldestId)
