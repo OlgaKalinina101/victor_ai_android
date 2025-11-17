@@ -38,7 +38,9 @@ object ImageUtils {
     fun uriToBase64(context: Context, uri: Uri): String? {
         return try {
             val bitmap = loadAndProcessBitmap(context, uri) ?: return null
-            bitmapToBase64(bitmap)
+            val base64 = bitmapToBase64(bitmap)
+            bitmap.recycle() // Освобождаем память
+            base64
         } catch (e: Exception) {
             Log.e(TAG, "Ошибка конвертации URI в base64", e)
             null
@@ -119,7 +121,12 @@ object ImageUtils {
                 else -> return bitmap
             }
 
-            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            // Освобождаем оригинальный bitmap, если создан новый
+            if (rotatedBitmap != bitmap) {
+                bitmap.recycle()
+            }
+            rotatedBitmap
         } catch (e: Exception) {
             Log.w(TAG, "Не удалось прочитать EXIF, используем оригинал", e)
             bitmap
@@ -154,7 +161,12 @@ object ImageUtils {
         }
 
         Log.d(TAG, "Resize: ${width}x${height} -> ${newWidth}x${newHeight}")
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        // Освобождаем оригинальный bitmap после resize
+        if (resizedBitmap != bitmap) {
+            bitmap.recycle()
+        }
+        return resizedBitmap
     }
 
     /**
@@ -169,15 +181,19 @@ object ImageUtils {
      */
     private fun bitmapToBase64(bitmap: Bitmap): String {
         val outputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, outputStream)
-        val byteArray = outputStream.toByteArray()
+        return try {
+            bitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, outputStream)
+            val byteArray = outputStream.toByteArray()
 
-        val base64 = Base64.encodeToString(byteArray, Base64.NO_WRAP)
+            val base64 = Base64.encodeToString(byteArray, Base64.NO_WRAP)
 
-        // Логируем размер для отладки
-        val sizeKb = byteArray.size / 1024
-        Log.d(TAG, "Размер PNG: ${sizeKb}KB, base64: ${base64.length} символов")
+            // Логируем размер для отладки
+            val sizeKb = byteArray.size / 1024
+            Log.d(TAG, "Размер PNG: ${sizeKb}KB, base64: ${base64.length} символов")
 
-        return base64
+            base64
+        } finally {
+            outputStream.close()
+        }
     }
 }

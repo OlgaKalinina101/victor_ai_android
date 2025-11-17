@@ -163,6 +163,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         voiceRecognizer.destroy()
+        soundPlayer.release() // Освобождаем ресурсы SoundPool
     }
 
     // ==================== Initialization ====================

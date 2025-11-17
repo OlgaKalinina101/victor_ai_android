@@ -1,8 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true">
+    <!-- По умолчанию запрещаем cleartext HTTP для безопасности -->
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+
+    <!-- Разрешаем cleartext только для ngrok (dev/staging) и localhost -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Текущий ngrok домен -->
+        <domain includeSubdomains="true">pentavalent-conrad-unbreathed.ngrok-free.dev</domain>
+        <!-- Общие ngrok паттерны -->
+        <domain includeSubdomains="true">ngrok.io</domain>
+        <domain includeSubdomains="true">ngrok-free.app</domain>
+        <domain includeSubdomains="true">ngrok-free.dev</domain>
+        <!-- Локальная разработка -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
 </network-security-config>
