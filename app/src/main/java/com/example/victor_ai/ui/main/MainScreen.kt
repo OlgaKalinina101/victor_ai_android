@@ -36,7 +36,7 @@ fun MainScreen(
     onEditMessage: (Int, String) -> Unit,
     onInitHistory: (List<ChatMessage>) -> Unit,
     onPaginationInfo: (Int?, Boolean) -> Unit,
-    onLoadMoreHistory: suspend (Int) -> Pair<Boolean, Int?>,
+    onLoadMoreHistory: suspend (Int) -> Result<Triple<Boolean, Int?, Boolean>>,
     onStartVoiceRecognition: () -> Unit,
     onRequestMicrophone: () -> Unit,
     isListeningState: State<Boolean>,
