@@ -143,8 +143,9 @@ dependencies {
     // JSON парсинг (оставляем Gson для работы с данными)
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // Room (стабильная версия)
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    // Room (2.7.0+ для совместимости с Kotlin 2.0+)
+    // Используем alpha, т.к. стабильной версии с поддержкой Kotlin 2.0 пока нет
+    implementation("androidx.room:room-runtime:2.7.0-alpha09")
+    implementation("androidx.room:room-ktx:2.7.0-alpha09")
+    kapt("androidx.room:room-compiler:2.7.0-alpha09")
 }
