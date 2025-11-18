@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -31,6 +32,10 @@ import kotlin.math.sqrt
 class EnvironmentViewModel @Inject constructor(
     application: Application
 ) : AndroidViewModel(application) {
+
+    companion object {
+        private const val TAG = "EnvironmentViewModel"
+    }
 
     private val homeWiFiRepository = HomeWiFiRepository(application)
     private val wifiManager = WiFiNetworkManager(application)
@@ -149,17 +154,17 @@ class EnvironmentViewModel @Inject constructor(
         val currentBSSID = _state.value.currentBSSID
 
         // ДЕБАГ
-        println("=== DEBUG updateHomeStatus ===")
-        println("homeSSID: $homeSSID")
-        println("homeBSSID: $homeBSSID")
-        println("currentWiFi: $currentWiFi")
-        println("currentBSSID: $currentBSSID")
+        Log.d(TAG, "=== updateHomeStatus ===")
+        Log.d(TAG, "homeSSID: $homeSSID")
+        Log.d(TAG, "homeBSSID: $homeBSSID")
+        Log.d(TAG, "currentWiFi: $currentWiFi")
+        Log.d(TAG, "currentBSSID: $currentBSSID")
 
         if (homeSSID != null && homeBSSID != null) {
             // Проверяем подключение к домашнему WiFi
             val isAtHome = currentWiFi == homeSSID && currentBSSID == homeBSSID
 
-            println("isAtHome: $isAtHome") // ДЕБАГ
+            Log.d(TAG, "isAtHome: $isAtHome")
 
             if (isAtHome) {
                 _state.value = _state.value.copy(

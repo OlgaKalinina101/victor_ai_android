@@ -1,5 +1,6 @@
 package com.example.victor_ai.ui.playlist
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,8 @@ import com.example.victor_ai.R
 import com.example.victor_ai.domain.model.Track
 import com.example.victor_ai.ui.playlist.components.CurrentTrackPlayer
 import com.example.victor_ai.ui.playlist.components.TrackItemCompact
+
+private const val TAG = "PlaylistSheet"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,8 +103,8 @@ fun PlaylistSheet(
 
     // 🔥 Логирование для отладки
     LaunchedEffect(currentPlayingTrackId, isPlaying, tracks.size) {
-        println("🎵 PlaylistSheet: currentPlayingTrackId=$currentPlayingTrackId, isPlaying=$isPlaying, tracksCount=${tracks.size}")
-        println("🎵 PlaylistSheet: currentTrack=${currentTrack?.title ?: "null"}")
+        Log.d(TAG, "currentPlayingTrackId=$currentPlayingTrackId, isPlaying=$isPlaying, tracksCount=${tracks.size}")
+        Log.d(TAG, "currentTrack=${currentTrack?.title ?: "null"}")
     }
 
     LaunchedEffect(sortBy) {

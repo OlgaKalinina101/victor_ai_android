@@ -94,6 +94,12 @@ class ChatViewModel @Inject constructor(
      * Добавление нового сообщения от пользователя
      */
     fun addUserMessage(text: String, imageCount: Int = 0) {
+        // Валидация: не добавляем пустые сообщения (кроме случая с изображениями)
+        if (text.isBlank() && imageCount == 0) {
+            Log.d("Chat", "⚠️ Попытка добавить пустое сообщение без изображений - игнорируем")
+            return
+        }
+
         val timestamp = System.currentTimeMillis() / 1000
         val newMessage = ChatMessage(
             text = text,

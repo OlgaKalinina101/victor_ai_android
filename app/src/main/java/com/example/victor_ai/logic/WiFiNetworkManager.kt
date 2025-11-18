@@ -10,6 +10,7 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
@@ -24,6 +25,10 @@ import androidx.core.content.ContextCompat
  */
 class WiFiNetworkManager(private val context: Context) {
 
+    companion object {
+        private const val TAG = "WiFiNetworkManager"
+    }
+
     private val wifiManager: WifiManager =
         context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
@@ -35,21 +40,21 @@ class WiFiNetworkManager(private val context: Context) {
      * @return Pair<SSID, BSSID> или null если не подключен
      */
     fun getCurrentWiFi(): Pair<String, String>? {
-        println("DEBUG: hasLocationPermission = ${hasLocationPermission()}")
+        Log.d(TAG, "hasLocationPermission = ${hasLocationPermission()}")
 
         if (!hasLocationPermission()) {
-            println("DEBUG: No location permission!")
+            Log.d(TAG, "No location permission!")
             return null
         }
 
         return try {
             val network: Network? = connectivityManager.activeNetwork
-            println("DEBUG: network = $network")
+            Log.d(TAG, "network = $network")
             val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
-            println("DEBUG: capabilities = $capabilities")
+            Log.d(TAG, "capabilities = $capabilities")
 
             if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
-                println("DEBUG: Has WIFI transport")
+                Log.d(TAG, "Has WIFI transport")
                 val wifiInfo = capabilities.transportInfo as? WifiInfo
 
                 // Если wifiInfo == null (VPN активен), пробуем получить из underlying network
@@ -59,25 +64,24 @@ class WiFiNetworkManager(private val context: Context) {
                     wifiInfo
                 }
 
-                println("DEBUG: actualWifiInfo = $actualWifiInfo")
+                Log.d(TAG, "actualWifiInfo = $actualWifiInfo")
 
                 val ssid = actualWifiInfo?.ssid?.removeSurrounding("\"")
                 val bssid = actualWifiInfo?.bssid
 
                 if (ssid == null || bssid == null) {
-                    println("DEBUG: ssid or bssid is null")
+                    Log.d(TAG, "ssid or bssid is null")
                     return null
                 }
 
-                println("DEBUG: ssid = $ssid, bssid = $bssid")
+                Log.d(TAG, "ssid = $ssid, bssid = $bssid")
                 Pair(ssid, bssid)
             } else {
-                println("DEBUG: No WIFI transport")
+                Log.d(TAG, "No WIFI transport")
                 null
             }
         } catch (e: Exception) {
-            println("DEBUG: Exception! ${e.message}")
-            e.printStackTrace()
+            Log.e(TAG, "Exception getting WiFi info", e)
             null
         }
     }
@@ -93,14 +97,14 @@ class WiFiNetworkManager(private val context: Context) {
             val method = NetworkCapabilities::class.java.getMethod("getUnderlyingNetworks")
             @Suppress("UNCHECKED_CAST")
             val underlyingNetworks = method.invoke(capabilities) as? Array<Network>
-            println("DEBUG: VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
+            Log.d(TAG, "VPN detected, underlyingNetworks = ${underlyingNetworks?.toList()}")
 
             underlyingNetworks?.firstOrNull()?.let { underlyingNetwork ->
                 val underlyingCaps = connectivityManager.getNetworkCapabilities(underlyingNetwork)
                 underlyingCaps?.transportInfo as? WifiInfo
             }
         } catch (e: Exception) {
-            println("DEBUG: Failed to get underlying networks: ${e.message}")
+            Log.w(TAG, "Failed to get underlying networks: ${e.message}")
             null
         }
     }
