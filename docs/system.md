@@ -55,13 +55,24 @@ Copyright © 2026 Olga Kalinina
 
 ## 📸 UI
 
-<table>
-<tr>
-<td align="center"><img src="example/system_1.gif" width="300" /><br><sub>Системный экран</sub></td>
-<td align="center"><img src="example/system_2.gif" width="300" /><br><sub>Выбор провайдера</sub></td>
-<td align="center"><img src="example/system_3.gif" width="300" /><br><sub>Воспоминания</sub></td>
-</tr>
-</table>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="example/system_1.gif" width="280" alt="Системное 1" /><br/>
+        <sub>Системное 1</sub>
+      </td>
+      <td align="center">
+        <img src="example/system_2.gif" width="280" alt="Системное 2" /><br/>
+        <sub>Системное 2</sub>
+      </td>
+      <td align="center">
+        <img src="example/system_3.gif" width="280" alt="Системное 3" /><br/>
+        <sub>Системное 3</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
 
