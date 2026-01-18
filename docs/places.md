@@ -105,14 +105,24 @@ Copyright © 2026 Olga Kalinina
 
 ## 📸 UI
 
-<table>
-  <tr>
-    <td align="center"><img src="example/places_1.jpg" width="300" /><br><sub>PlacesMenu - статистика</sub></td>
-    <td align="center"><img src="example/places_4.gif" width="300" /><br><sub>Открытие карты</sub></td>
-    <td align="center"><img src="example/places_2.gif" width="300" /><br><sub>Исследование POI</sub></td>
-    <td align="center"><img src="example/places_3.gif" width="300" /><br><sub>Режим поиска</sub></td>
-  </tr>
-</table>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="example/places_4.gif" width="280" alt="Открытие карты" /><br/>
+        <sub>Открытие карты</sub>
+      </td>
+      <td align="center">
+        <img src="example/places_2.gif" width="280" alt="Исследование POI" /><br/>
+        <sub>Исследование POI</sub>
+      </td>
+      <td align="center">
+        <img src="example/places_3.gif" width="280" alt="Режим поиска" /><br/>
+        <sub>Режим поиска</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
 
