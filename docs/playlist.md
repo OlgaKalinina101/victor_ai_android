@@ -63,14 +63,24 @@ Copyright © 2026 Olga Kalinina
 
 ## 📸 UI
 
-<table>
-  <tr>
-    <td align="center"><img src="example/playlist_1.jpg" width="300" /><br><sub>Главный экран плейлиста</sub></td>
-    <td align="center"><img src="example/playlist_2.gif" width="300" /><br><sub>Bottom sheet с треками</sub></td>
-    <td align="center"><img src="example/playlist_3.gif" width="300" /><br><sub>История моментов</sub></td>
-    <td align="center"><img src="example/playlist_4.gif" width="300" /><br><sub>AI подбор "Выбери сам"</sub></td>
-  </tr>
-</table>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="example/playlist_2.gif" width="280" alt="Bottom sheet с треками" /><br/>
+        <sub>Bottom sheet с треками</sub>
+      </td>
+      <td align="center">
+        <img src="example/playlist_3.gif" width="280" alt="История моментов" /><br/>
+        <sub>История моментов</sub>
+      </td>
+      <td align="center">
+        <img src="example/playlist_4.gif" width="280" alt='AI-подбор "Выбери сам"' /><br/>
+        <sub>AI-подбор «Выбери сам»</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
 
