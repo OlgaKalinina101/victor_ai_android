@@ -51,13 +51,24 @@ Copyright © 2026 Olga Kalinina
 
 ## 📸 UI
 
-<table>
-  <tr>
-    <td align="center"><img src="example/calendar_1.jpg" width="300" /><br><sub>Календарь с напоминаниями</sub></td>
-    <td align="center"><img src="example/calendar_2.jpg" width="300" /><br><sub>Постоянные напоминания</sub></td>
-    <td align="center"><img src="example/calendar_3.gif" width="300" /><br><sub>Будильники и выбор трека</sub></td>
-  </tr>
-</table>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="example/calendar_1.jpg" width="280" alt="Calendar — расписание" /><br/>
+        <sub>Calendar — расписание</sub>
+      </td>
+      <td align="center">
+        <img src="example/calendar_2.jpg" width="280" alt="Постоянные напоминалки" /><br/>
+        <sub>Постоянные напоминалки</sub>
+      </td>
+      <td align="center">
+        <img src="example/calendar_3.gif" width="280" alt="Будильники" /><br/>
+        <sub>Будильники</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
 
