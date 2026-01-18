@@ -697,9 +697,11 @@ HttpLoggingInterceptor().apply {
 
 ## TODO
 
-| P2 | Жирный ViewModel | Вынести логику в UseCases |
-| P2 | Domain + Moshi | Отделить DTO от domain models |
-| P3 | Room миграции | Включить exportSchema, написать миграции |
+| Приоритет | Задача            | Описание                         |
+|-----------|-------------------|----------------------------------|
+| P2        | Жирный ViewModel  | Вынести логику в UseCases       |
+| P2        | Domain + Moshi    | Отделить DTO от domain models   |
+| P3        | Room миграции     | Включить exportSchema, миграции |
 
 ---
 
