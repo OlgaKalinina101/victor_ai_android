@@ -54,18 +54,29 @@ Copyright © 2026 Olga Kalinina
 
 ## 📸 UI
 
-<table>
-  <tr>
-    <td align="center"><img src="example/chat_0.jpg" width="300" /><br><sub>Главный экран чата</sub></td>
-    <td align="center"><img src="example/chat_1.gif" width="300" /><br><sub>Стриминг ответа</sub></td>
-    <td align="center"><img src="example/chat_2.gif" width="300" /><br><sub>Поиск по истории</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="example/chat_3.gif" width="300" /><br><sub>Редактирование</sub></td>
-    <td align="center"><img src="example/chat_4.gif" width="300" /><br><sub>Эмодзи-реакции</sub></td>
-    <td align="center"></td>
-  </tr>
-</table>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="example/chat_1.gif" width="280" alt="Чат 1" /><br/>
+        <sub>Чат 1</sub>
+      </td>
+      <td align="center">
+        <img src="example/chat_2.gif" width="280" alt="Чат 2" /><br/>
+        <sub>Чат 2</sub>
+      </td>
+      <td align="center">
+        <img src="example/chat_3.gif" width="280" alt="Чат 3" /><br/>
+        <sub>Чат 3</sub>
+      </td>
+      <td align="center">
+        <img src="example/chat_4.gif" width="280" alt="Чат 4" /><br/>
+        <sub>Чат 4</sub>
+      </td>
+    </tr>
+  </table>
+</div>
+
 
 ---
 
