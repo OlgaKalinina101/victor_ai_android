@@ -1,0 +1,31 @@
+/**
+Victor AI - Personal AI Companion for Android
+Copyright (C) 2025-2026 Olga Kalinina
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+ */
+
+package com.example.victor_ai.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "chat_messages")
+data class ChatMessageEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val text: String,
+    val isUser: Boolean,
+    val timestamp: Long,
+    val backendId: Int? = null,  // ID from backend (null for SessionContext messages)
+    val visionContext: String? = null,  // Контекст изображения (если было отправлено)
+    val emoji: String? = null  // Эмодзи-реакция на сообщение
+)

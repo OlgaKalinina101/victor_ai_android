@@ -1,0 +1,39 @@
+{
+  "_comment": "Victor AI - Firebase google-services.json template",
+  "_instructions": [
+    "This is a TEMPLATE file. To use Firebase:",
+    "1. Create a Firebase project at https://console.firebase.google.com",
+    "2. Add an Android app with package: com.example.victor_ai",
+    "3. Download google-services.json",
+    "4. Replace THIS file at app/google-services.json",
+    "",
+    "NOTE: Firebase is OPTIONAL. App works without it using Pushy SDK for push notifications."
+  ],
+  "project_info": {
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:YOUR_NUMBER:android:YOUR_HASH",
+        "android_client_info": {
+          "package_name": "com.example.victor_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "YOUR_FIREBASE_API_KEY_HERE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,56 @@
+# ══════════════════════════════════════════════════════════════
+# Victor AI - Gradle Configuration Template
+# ══════════════════════════════════════════════════════════════
+#
+# Copy this file to gradle.properties and fill in your values.
+# DO NOT commit gradle.properties with real URLs/keys!
+#
+# ══════════════════════════════════════════════════════════════
+
+# Project-wide Gradle settings
+org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+kotlin.code.style=official
+android.nonTransitiveRClass=true
+
+# ══════════════════════════════════════════════════════════════
+# 🌐 BACKEND API URL
+# ══════════════════════════════════════════════════════════════
+#
+# REQUIRED: Victor AI needs a backend to function!
+#
+# Option 1: Deploy your own backend
+#   See: https://github.com/YOUR_USERNAME/victor-ai-backend
+#   Example: API_BASE_URL=https://your-domain.com/
+#
+# Option 2: Use ngrok for local development
+#   1. Run backend: uvicorn main:app --reload
+#   2. Expose: ngrok http 8000
+#   3. Copy URL: API_BASE_URL=https://xyz.ngrok-free.dev/
+#
+# ⚠️ URL must end with slash (/)
+# ══════════════════════════════════════════════════════════════
+
+API_BASE_URL=https://example.com/
+
+# ══════════════════════════════════════════════════════════════
+# 🔐 DEMO KEY (Optional)
+# ══════════════════════════════════════════════════════════════
+#
+# If your backend requires a demo key for /auth/resolve endpoint:
+#   DEMO_KEY=your_demo_key_here
+#
+# Leave empty if not needed or for contributors
+# ══════════════════════════════════════════════════════════════
+
+DEMO_KEY=
+
+# ══════════════════════════════════════════════════════════════
+# 👤 TEST USER ID (Development only)
+# ══════════════════════════════════════════════════════════════
+#
+# Fallback user ID when no real account is logged in
+# Used for local testing
+# ══════════════════════════════════════════════════════════════
+
+TEST_USER_ID=test_user

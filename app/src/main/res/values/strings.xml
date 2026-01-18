@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Victor_AI</string>
+    <string name="reminders_channel_id">reminders_channel</string>
+    <string name="reminders_channel_name">Напоминания</string>
+</resources>

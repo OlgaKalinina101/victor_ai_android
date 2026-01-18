@@ -1,0 +1,6 @@
+/build
+/app/build
+/app/debug
+/.idea
+/.gradle
+/.kotlin
