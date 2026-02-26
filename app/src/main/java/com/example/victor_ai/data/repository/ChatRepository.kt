@@ -133,6 +133,33 @@ class ChatRepository @Inject constructor(
     }
 
     /**
+     * Лёгкая синхронизация после стрима: загружает только последнюю страницу (25 сообщений)
+     * и делает upsert по backendId. Не вызывает clearAll(), поэтому существующие сообщения
+     * в Room остаются на месте — UI не мигает.
+     */
+    suspend fun syncLatestPage(accountId: String = UserProvider.getCurrentUserId()): Result<ChatHistoryResponse> {
+        return try {
+            Log.d(TAG, "🔄 syncLatestPage для $accountId")
+            val response = chatApi.getChatHistory(
+                accountId = accountId,
+                limit = 25,
+                beforeId = null
+            )
+
+            val entities = response.messages.map { it.toEntity() }
+            if (entities.isNotEmpty()) {
+                chatMessageDao.upsertByBackendId(entities)
+                Log.d(TAG, "✅ syncLatestPage: upsert ${entities.size} сообщений")
+            }
+
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Ошибка syncLatestPage", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Загрузка дополнительной истории с пагинацией (для скролла вверх).
      * Добавляет загруженные сообщения в Room (append, не replace).
      * UI автоматически обновится через Flow.

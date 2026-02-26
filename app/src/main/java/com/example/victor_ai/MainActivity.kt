@@ -298,9 +298,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Log.d("ReminderManager", "[DEBUG] onNewIntent вызван: action=${intent.action}, extras=${intent.extras?.toString()}")
+        Log.d("MainActivity", "[DEBUG] onNewIntent: action=${intent.action}, extras=${intent.extras?.toString()}")
         setIntent(intent)
-        reminderManager.handleReminderIntent(intent)
+
+        if (intent.action == "com.example.victor_ai.REFLECTION_MESSAGE") {
+            handleReflectionMessage(intent)
+        } else {
+            reminderManager.handleReminderIntent(intent)
+        }
+    }
+
+    private fun handleReflectionMessage(intent: Intent) {
+        val text = intent.getStringExtra("text") ?: return
+        Log.d("MainActivity", "💬 Reflection message received: '${text.take(80)}'")
+        chatViewModel.addReflectionMessage(text)
     }
 
     override fun onDestroy() {

@@ -2,4 +2,6 @@
     <string name="app_name">Victor_AI</string>
     <string name="reminders_channel_id">reminders_channel</string>
     <string name="reminders_channel_name">Напоминания</string>
+    <string name="messages_channel_id">messages_channel</string>
+    <string name="messages_channel_name">Сообщения от Victor</string>
 </resources>

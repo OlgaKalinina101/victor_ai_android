@@ -19,35 +19,48 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.example.victor_ai.data.local.entity.ChatMessageEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ChatMessageDao {
+abstract class ChatMessageDao {
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
-    fun getAllMessages(): Flow<List<ChatMessageEntity>>
+    abstract fun getAllMessages(): Flow<List<ChatMessageEntity>>
 
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
-    suspend fun getAllMessagesOnce(): List<ChatMessageEntity>
+    abstract suspend fun getAllMessagesOnce(): List<ChatMessageEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessages(messages: List<ChatMessageEntity>)
+    abstract suspend fun insertMessages(messages: List<ChatMessageEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessage(message: ChatMessageEntity)
+    abstract suspend fun insertMessage(message: ChatMessageEntity)
 
     @Query("DELETE FROM chat_messages")
-    suspend fun clearAll()
+    abstract suspend fun clearAll()
 
     @Query("DELETE FROM chat_messages WHERE backendId = :backendId")
-    suspend fun deleteByBackendId(backendId: Int)
+    abstract suspend fun deleteByBackendId(backendId: Int)
+
+    @Query("DELETE FROM chat_messages WHERE backendId IN (:ids)")
+    abstract suspend fun deleteByBackendIds(ids: List<Int>)
+
+    @Transaction
+    open suspend fun upsertByBackendId(messages: List<ChatMessageEntity>) {
+        val backendIds = messages.mapNotNull { it.backendId }
+        if (backendIds.isNotEmpty()) {
+            deleteByBackendIds(backendIds)
+        }
+        insertMessages(messages)
+    }
 
     @Query("UPDATE chat_messages SET emoji = :emoji WHERE backendId = :backendId")
-    suspend fun updateEmojiByBackendId(backendId: Int, emoji: String?)
+    abstract suspend fun updateEmojiByBackendId(backendId: Int, emoji: String?)
 
     @Query("SELECT * FROM chat_messages WHERE backendId = :backendId LIMIT 1")
-    suspend fun getByBackendId(backendId: Int): ChatMessageEntity?
+    abstract suspend fun getByBackendId(backendId: Int): ChatMessageEntity?
 
     @Query("SELECT COUNT(*) FROM chat_messages")
-    suspend fun getMessagesCount(): Int
+    abstract suspend fun getMessagesCount(): Int
 }

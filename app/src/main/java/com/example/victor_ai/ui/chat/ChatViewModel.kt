@@ -345,6 +345,25 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
+     * Входящее сообщение от рефлексии Victor'а (push reflection_message).
+     * Бэкенд уже сохранил его в dialogue_history — оно появится при следующей синхронизации,
+     * но для мгновенного UX добавляем как временное.
+     */
+    fun addReflectionMessage(text: String) {
+        if (text.isBlank()) return
+        val timestamp = System.currentTimeMillis() / 1000
+        val message = ChatMessage(
+            text = text,
+            isUser = false,
+            timestamp = timestamp,
+            id = null,
+            isSynced = false
+        )
+        _temporaryMessages.value += message
+        Log.d(TAG, "💬 Добавлено reflection-сообщение: text='${text.take(80)}'")
+    }
+
+    /**
      * Редактирование сообщения.
      * Обновляет на бэкенде и синхронизирует Room.
      */
@@ -617,30 +636,27 @@ class ChatViewModel @Inject constructor(
                 charQueue.close()
                 typingJob.join()
 
-                // 🔥 Сначала очищаем временные сообщения, чтобы не было дублей
-                Log.d(TAG, "🧹 Очистка временных сообщений перед синхронизацией")
-                _temporaryMessages.value = emptyList()
-
-                // Синхронизация с бэкендом - данные придут через Room Flow
-                // Индикатор печати остаётся, пока sync не завершится
-                Log.d(TAG, "🔄 Синхронизация с бэкендом после стриминга...")
+                // Temp-сообщения остаются в UI — дедупликация уберёт их,
+                // когда Room получит синхронизированные копии с бэкенда.
+                Log.d(TAG, "🔄 syncLatestPage после стриминга...")
                 try {
                     val result = withContext(Dispatchers.IO) {
-                        chatRepository.syncWithBackend(sessionId)
+                        chatRepository.syncLatestPage(sessionId)
                     }
                     
                     result.onSuccess { response ->
-                        Log.d(TAG, "✅ Синхронизация завершена: ${response.messages.size} сообщений")
+                        Log.d(TAG, "✅ syncLatestPage: ${response.messages.size} сообщений")
                         oldestMessageId = response.oldestId
                         _oldestId.value = response.oldestId
                     }.onFailure { error ->
-                        Log.e(TAG, "❌ Ошибка синхронизации: ${error.message}")
+                        Log.e(TAG, "❌ Ошибка syncLatestPage: ${error.message}")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "❌ Исключение при синхронизации: ${e.message}")
+                    Log.e(TAG, "❌ Исключение при syncLatestPage: ${e.message}")
                 }
-                
-                // Убираем индикатор печати только после синхронизации
+
+                // Финальная очистка temp (дубли уже убраны дедупликацией)
+                _temporaryMessages.value = emptyList()
                 _isTyping.value = false
 
             } catch (e: Exception) {
@@ -822,30 +838,24 @@ class ChatViewModel @Inject constructor(
                 charQueue.close()
                 typingJob.join()
                 
-                // 🔥 Сначала очищаем временные сообщения, чтобы не было дублей
-                Log.d(TAG, "🧹 Очистка временных сообщений перед синхронизацией")
-                _temporaryMessages.value = emptyList()
-                
-                // Синхронизация с бэкендом
-                // Индикатор печати остаётся, пока sync не завершится
-                Log.d(TAG, "🔄 Синхронизация после системного события...")
+                Log.d(TAG, "🔄 syncLatestPage после системного события...")
                 try {
                     val result = withContext(Dispatchers.IO) {
-                        chatRepository.syncWithBackend(sessionId)
+                        chatRepository.syncLatestPage(sessionId)
                     }
                     
                     result.onSuccess { response ->
-                        Log.d(TAG, "✅ Синхронизация завершена: ${response.messages.size} сообщений")
+                        Log.d(TAG, "✅ syncLatestPage: ${response.messages.size} сообщений")
                         oldestMessageId = response.oldestId
                         _oldestId.value = response.oldestId
                     }.onFailure { error ->
-                        Log.e(TAG, "❌ Ошибка синхронизации: ${error.message}")
+                        Log.e(TAG, "❌ Ошибка syncLatestPage: ${error.message}")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "❌ Исключение при синхронизации: ${e.message}")
+                    Log.e(TAG, "❌ Исключение при syncLatestPage: ${e.message}")
                 }
-                
-                // Убираем индикатор печати только после синхронизации
+
+                _temporaryMessages.value = emptyList()
                 _isTyping.value = false
                 
             } catch (e: Exception) {

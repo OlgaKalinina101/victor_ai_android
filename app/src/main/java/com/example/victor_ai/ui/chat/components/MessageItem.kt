@@ -341,8 +341,8 @@ fun MessageItem(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Кнопка выбора реакции (только для assistant сообщений)
-                                if (!message.isUser) {
+                                // Кнопка выбора реакции (только для assistant сообщений с backendId)
+                                if (!message.isUser && message.id != null) {
                                     Icon(
                                         imageVector = Icons.Outlined.AddReaction,
                                         contentDescription = "Добавить реакцию",

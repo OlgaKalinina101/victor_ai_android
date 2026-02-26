@@ -66,48 +66,66 @@ class MyPushReceiver : BroadcastReceiver() {
             }
         }
         
-        // Проверяем тип пуша по наличию специфичных полей
+        val pushType = intent.getStringExtra("type")
         val trackId = intent.getStringExtra("track_id")
         val alarmTime = intent.getStringExtra("alarm_time")
         
-        // Если есть track_id и alarm_time - это будильник
-        if (trackId != null || alarmTime != null) {
-            Log.d("MyPushReceiver", "🔔 Это БУДИЛЬНИК! trackId=$trackId, alarmTime=$alarmTime")
-            
-            // Синхронизируем данные с бэкенда перед запуском будильника
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-            scope.launch {
-                try {
-                    Log.d("MyPushReceiver", "🔄 Синхронизация трека с бэкенда...")
-                    alarmRepository.fetchAlarmsFromBackend()
-                    Log.d("MyPushReceiver", "✅ Трек синхронизирован")
-                } catch (e: Exception) {
-                    Log.e("MyPushReceiver", "⚠️ Ошибка синхронизации трека: ${e.message}")
-                } finally {
-                    // Запускаем будильник в любом случае
-                    handleAlarmRing(context, trackId, alarmTime)
+        when {
+            // 1. Будильник — по наличию track_id / alarm_time
+            trackId != null || alarmTime != null -> {
+                Log.d("MyPushReceiver", "🔔 Это БУДИЛЬНИК! trackId=$trackId, alarmTime=$alarmTime")
+                val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+                scope.launch {
+                    try {
+                        Log.d("MyPushReceiver", "🔄 Синхронизация трека с бэкенда...")
+                        alarmRepository.fetchAlarmsFromBackend()
+                        Log.d("MyPushReceiver", "✅ Трек синхронизирован")
+                    } catch (e: Exception) {
+                        Log.e("MyPushReceiver", "⚠️ Ошибка синхронизации трека: ${e.message}")
+                    } finally {
+                        handleAlarmRing(context, trackId, alarmTime)
+                    }
                 }
             }
-        } else {
-            // Иначе - это напоминание
-            Log.d("MyPushReceiver", "📝 Это НАПОМИНАНИЕ")
-            val reminderId = intent.getStringExtra("reminder_id")
-            val title = intent.getStringExtra("title") ?: "Напоминалка 🕊"
-            val body = intent.getStringExtra("text") ?: ""
-            val repeatWeekly = intent.getBooleanExtra("repeat_weekly", false)
 
-            if (MyApp.isForeground) {
-                val openIntent = Intent(context, MainActivity::class.java).apply {
-                    action = "com.example.victor_ai.SHOW_REMINDER"
-                    putExtra("reminder_id", reminderId)
-                    putExtra("title", title)
-                    putExtra("text", body)
-                    putExtra("repeat_weekly", repeatWeekly)
-                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            // 2. Сообщение от рефлексии Victor'а
+            pushType == "reflection_message" -> {
+                Log.d("MyPushReceiver", "💬 Это REFLECTION MESSAGE")
+                val text = intent.getStringExtra("text") ?: ""
+
+                if (MyApp.isForeground) {
+                    val openIntent = Intent(context, MainActivity::class.java).apply {
+                        action = "com.example.victor_ai.REFLECTION_MESSAGE"
+                        putExtra("text", text)
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(openIntent)
+                } else {
+                    showReflectionNotification(context, text)
                 }
-                context.startActivity(openIntent)
-            } else {
-                showReminderNotification(context, title, body, reminderId, repeatWeekly)
+            }
+
+            // 3. Напоминание (fallback)
+            else -> {
+                Log.d("MyPushReceiver", "📝 Это НАПОМИНАНИЕ")
+                val reminderId = intent.getStringExtra("reminder_id")
+                val title = intent.getStringExtra("title") ?: "Напоминалка 🕊"
+                val body = intent.getStringExtra("text") ?: ""
+                val repeatWeekly = intent.getBooleanExtra("repeat_weekly", false)
+
+                if (MyApp.isForeground) {
+                    val openIntent = Intent(context, MainActivity::class.java).apply {
+                        action = "com.example.victor_ai.SHOW_REMINDER"
+                        putExtra("reminder_id", reminderId)
+                        putExtra("title", title)
+                        putExtra("text", body)
+                        putExtra("repeat_weekly", repeatWeekly)
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(openIntent)
+                } else {
+                    showReminderNotification(context, title, body, reminderId, repeatWeekly)
+                }
             }
         }
     }
@@ -201,6 +219,38 @@ class MyPushReceiver : BroadcastReceiver() {
         NotificationManagerCompat.from(context).notify(notifyId, notification)
     }
 
+    @SuppressLint("SupportAnnotationUsage")
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    private fun showReflectionNotification(context: Context, text: String) {
+        ensureMessagesChannel(context)
+        val channelId = context.getString(R.string.messages_channel_id)
+        val notifyId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            action = "com.example.victor_ai.REFLECTION_MESSAGE"
+            putExtra("text", text)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+
+        val openPending = PendingIntent.getActivity(
+            context, 3001, openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Victor")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setAutoCancel(true)
+            .setContentIntent(openPending)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(notifyId, notification)
+    }
+
     private fun ensureChannel(context: Context) {
         val id = context.getString(R.string.reminders_channel_id)
         val name = context.getString(R.string.reminders_channel_name)
@@ -213,6 +263,24 @@ class MyPushReceiver : BroadcastReceiver() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Системные напоминания Victor AI"
+                setShowBadge(true)
+            }
+            nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun ensureMessagesChannel(context: Context) {
+        val id = context.getString(R.string.messages_channel_id)
+        val name = context.getString(R.string.messages_channel_name)
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (nm.getNotificationChannel(id) == null) {
+            val channel = NotificationChannel(
+                id,
+                name,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Сообщения от Victor AI"
                 setShowBadge(true)
             }
             nm.createNotificationChannel(channel)
