@@ -132,6 +132,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- 📋 Copy Text Receiver (кнопка «Скопировать» в уведомлениях) -->
+        <receiver
+            android:name=".CopyTextReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.victor_ai.ACTION_COPY_TEXT" />
+            </intent-filter>
+        </receiver>
+
         <!-- ❌ Firebase metadata -->
         <!-- <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

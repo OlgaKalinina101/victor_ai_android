@@ -105,7 +105,47 @@ class MyPushReceiver : BroadcastReceiver() {
                 }
             }
 
-            // 3. Напоминание (fallback)
+            // 3. Отложенное сообщение от Victor'а (scheduled push)
+            pushType == "scheduled_message" -> {
+                Log.d("MyPushReceiver", "⏰ Это SCHEDULED MESSAGE")
+                val text = intent.getStringExtra("text") ?: ""
+
+                if (MyApp.isForeground) {
+                    val openIntent = Intent(context, MainActivity::class.java).apply {
+                        action = "com.example.victor_ai.REFLECTION_MESSAGE"
+                        putExtra("text", text)
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(openIntent)
+                } else {
+                    showReflectionNotification(context, text)
+                }
+            }
+
+            // 4. Предложение Victor'а изменить system prompt
+            pushType == "system_prompt_change" -> {
+                Log.d("MyPushReceiver", "🧬 Это SYSTEM PROMPT CHANGE")
+                val blockName = intent.getStringExtra("block_name") ?: ""
+                val newText = intent.getStringExtra("new_text") ?: ""
+                val reason = intent.getStringExtra("reason") ?: ""
+                val taskId = intent.getStringExtra("task_id") ?: ""
+
+                if (MyApp.isForeground) {
+                    val openIntent = Intent(context, MainActivity::class.java).apply {
+                        action = "com.example.victor_ai.SYSTEM_PROMPT_CHANGE"
+                        putExtra("block_name", blockName)
+                        putExtra("new_text", newText)
+                        putExtra("reason", reason)
+                        putExtra("task_id", taskId)
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(openIntent)
+                } else {
+                    showSystemPromptChangeNotification(context, blockName, reason, newText, taskId)
+                }
+            }
+
+            // 5. Напоминание (fallback)
             else -> {
                 Log.d("MyPushReceiver", "📝 Это НАПОМИНАНИЕ")
                 val reminderId = intent.getStringExtra("reminder_id")
@@ -246,6 +286,60 @@ class MyPushReceiver : BroadcastReceiver() {
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setContentIntent(openPending)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(notifyId, notification)
+    }
+
+    @SuppressLint("SupportAnnotationUsage")
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    private fun showSystemPromptChangeNotification(
+        context: Context,
+        blockName: String,
+        reason: String,
+        newText: String,
+        taskId: String
+    ) {
+        ensureMessagesChannel(context)
+        val channelId = context.getString(R.string.messages_channel_id)
+        val notifyId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            action = "com.example.victor_ai.SYSTEM_PROMPT_CHANGE"
+            putExtra("block_name", blockName)
+            putExtra("new_text", newText)
+            putExtra("reason", reason)
+            putExtra("task_id", taskId)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+
+        val openPending = PendingIntent.getActivity(
+            context, 4001, openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val fullText = "$reason\n\n$newText"
+
+        val copyIntent = Intent(context, CopyTextReceiver::class.java).apply {
+            action = "com.example.victor_ai.ACTION_COPY_TEXT"
+            putExtra("copy_text", fullText)
+            putExtra("notification_id", notifyId)
+        }
+        val copyPending = PendingIntent.getBroadcast(
+            context, 5001, copyIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Victor — хочу изменить «$blockName»")
+            .setContentText(reason)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(fullText))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setAutoCancel(true)
+            .setContentIntent(openPending)
+            .addAction(0, "Скопировать", copyPending)
             .build()
 
         NotificationManagerCompat.from(context).notify(notifyId, notification)

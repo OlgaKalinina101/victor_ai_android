@@ -636,27 +636,70 @@ class ChatViewModel @Inject constructor(
                 charQueue.close()
                 typingJob.join()
 
-                // Temp-сообщения остаются в UI — дедупликация уберёт их,
-                // когда Room получит синхронизированные копии с бэкенда.
-                Log.d(TAG, "🔄 syncLatestPage после стриминга...")
-                try {
-                    val result = withContext(Dispatchers.IO) {
-                        chatRepository.syncLatestPage(sessionId)
+                // Ждём, пока бэкенд сохранит сообщения, затем синхронизируем.
+                // Бэкенд вызывает _save_context ПОСЛЕ стрима — нужен retry,
+                // иначе syncLatestPage вернёт старые данные и temps пропадут.
+                val tempSnapshot = _temporaryMessages.value
+                Log.d(TAG, "🔄 syncLatestPage после стриминга (temps=${tempSnapshot.size})...")
+
+                var synced = false
+                for (attempt in 1..4) {
+                    try {
+                        if (attempt > 1) {
+                            val delayMs = 500L * attempt
+                            Log.d(TAG, "⏳ Retry $attempt: ждём ${delayMs}ms...")
+                            delay(delayMs)
+                        }
+                        val result = withContext(Dispatchers.IO) {
+                            chatRepository.syncLatestPage(sessionId)
+                        }
+                        result.onSuccess { response ->
+                            Log.d(TAG, "📦 syncLatestPage attempt $attempt: ${response.messages.size} сообщений")
+                            oldestMessageId = response.oldestId
+                            _oldestId.value = response.oldestId
+
+                            val lastTemp = tempSnapshot.lastOrNull { !it.isUser }
+                            if (lastTemp != null) {
+                                val found = response.messages.any { msg ->
+                                    !msg.isUser && msg.text == lastTemp.text
+                                }
+                                if (found) {
+                                    Log.d(TAG, "✅ Новое assistant-сообщение найдено в ответе бэкенда")
+                                    synced = true
+                                } else {
+                                    Log.w(TAG, "⚠️ Attempt $attempt: assistant-сообщение ещё не в бэкенде")
+                                }
+                            } else {
+                                synced = true
+                            }
+                        }.onFailure { error ->
+                            Log.e(TAG, "❌ Ошибка syncLatestPage attempt $attempt: ${error.message}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Исключение при syncLatestPage attempt $attempt: ${e.message}")
                     }
-                    
-                    result.onSuccess { response ->
-                        Log.d(TAG, "✅ syncLatestPage: ${response.messages.size} сообщений")
-                        oldestMessageId = response.oldestId
-                        _oldestId.value = response.oldestId
-                    }.onFailure { error ->
-                        Log.e(TAG, "❌ Ошибка syncLatestPage: ${error.message}")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ Исключение при syncLatestPage: ${e.message}")
+                    if (synced) break
                 }
 
-                // Финальная очистка temp (дубли уже убраны дедупликацией)
-                _temporaryMessages.value = emptyList()
+                if (!synced) {
+                    Log.w(TAG, "⚠️ Не удалось подтвердить синхронизацию после 4 попыток, temps останутся в UI")
+                }
+
+                // Очищаем только те temps, для которых есть дубль в Room
+                val currentRoom = withContext(Dispatchers.IO) {
+                    chatRepository.getChatHistoryOnce().map { it.toChatMessage() }
+                }
+                val remaining = tempSnapshot.filter { temp ->
+                    !currentRoom.any { synced ->
+                        synced.isUser == temp.isUser &&
+                        synced.text == temp.text &&
+                        kotlin.math.abs(synced.timestamp - temp.timestamp) < 120
+                    }
+                }
+                _temporaryMessages.value = remaining
+                if (remaining.isNotEmpty()) {
+                    Log.d(TAG, "📌 ${remaining.size} temp-сообщений остались (не найдены в Room)")
+                }
                 _isTyping.value = false
 
             } catch (e: Exception) {
@@ -838,24 +881,66 @@ class ChatViewModel @Inject constructor(
                 charQueue.close()
                 typingJob.join()
                 
-                Log.d(TAG, "🔄 syncLatestPage после системного события...")
-                try {
-                    val result = withContext(Dispatchers.IO) {
-                        chatRepository.syncLatestPage(sessionId)
+                val tempSnapshot = _temporaryMessages.value
+                Log.d(TAG, "🔄 syncLatestPage после системного события (temps=${tempSnapshot.size})...")
+
+                var synced = false
+                for (attempt in 1..4) {
+                    try {
+                        if (attempt > 1) {
+                            val delayMs = 500L * attempt
+                            Log.d(TAG, "⏳ Retry $attempt: ждём ${delayMs}ms...")
+                            delay(delayMs)
+                        }
+                        val result = withContext(Dispatchers.IO) {
+                            chatRepository.syncLatestPage(sessionId)
+                        }
+                        result.onSuccess { response ->
+                            Log.d(TAG, "📦 syncLatestPage attempt $attempt: ${response.messages.size} сообщений")
+                            oldestMessageId = response.oldestId
+                            _oldestId.value = response.oldestId
+
+                            val lastTemp = tempSnapshot.lastOrNull { !it.isUser }
+                            if (lastTemp != null) {
+                                val found = response.messages.any { msg ->
+                                    !msg.isUser && msg.text == lastTemp.text
+                                }
+                                if (found) {
+                                    Log.d(TAG, "✅ Новое assistant-сообщение найдено в ответе бэкенда")
+                                    synced = true
+                                } else {
+                                    Log.w(TAG, "⚠️ Attempt $attempt: assistant-сообщение ещё не в бэкенде")
+                                }
+                            } else {
+                                synced = true
+                            }
+                        }.onFailure { error ->
+                            Log.e(TAG, "❌ Ошибка syncLatestPage attempt $attempt: ${error.message}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Исключение при syncLatestPage attempt $attempt: ${e.message}")
                     }
-                    
-                    result.onSuccess { response ->
-                        Log.d(TAG, "✅ syncLatestPage: ${response.messages.size} сообщений")
-                        oldestMessageId = response.oldestId
-                        _oldestId.value = response.oldestId
-                    }.onFailure { error ->
-                        Log.e(TAG, "❌ Ошибка syncLatestPage: ${error.message}")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ Исключение при syncLatestPage: ${e.message}")
+                    if (synced) break
                 }
 
-                _temporaryMessages.value = emptyList()
+                if (!synced) {
+                    Log.w(TAG, "⚠️ Не удалось подтвердить синхронизацию после 4 попыток, temps останутся в UI")
+                }
+
+                val currentRoom = withContext(Dispatchers.IO) {
+                    chatRepository.getChatHistoryOnce().map { it.toChatMessage() }
+                }
+                val remaining = tempSnapshot.filter { temp ->
+                    !currentRoom.any { synced ->
+                        synced.isUser == temp.isUser &&
+                        synced.text == temp.text &&
+                        kotlin.math.abs(synced.timestamp - temp.timestamp) < 120
+                    }
+                }
+                _temporaryMessages.value = remaining
+                if (remaining.isNotEmpty()) {
+                    Log.d(TAG, "📌 ${remaining.size} temp-сообщений остались (не найдены в Room)")
+                }
                 _isTyping.value = false
                 
             } catch (e: Exception) {
