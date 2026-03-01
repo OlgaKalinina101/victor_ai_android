@@ -87,9 +87,9 @@ class ChatViewModel @Inject constructor(
             // Сравниваем по роли + начало текста (первые 80 символов), чтобы не
             // ломаться на минорных расхождениях полного текста при сохранении на бэкенде.
             val filteredTempMessages = tempMessages.filter { temp ->
-                val tempPrefix = temp.text.take(80)
+                val tempPrefix = temp.text.take(80).lowercase()
                 val hasSyncedDuplicate = roomMessages.any { synced ->
-                    synced.isUser == temp.isUser && synced.text.take(80) == tempPrefix
+                    synced.isUser == temp.isUser && synced.text.take(80).lowercase() == tempPrefix
                 }
                 !hasSyncedDuplicate
             }
@@ -688,15 +688,27 @@ class ChatViewModel @Inject constructor(
                 val currentRoom = withContext(Dispatchers.IO) {
                     chatRepository.getChatHistoryOnce().map { it.toChatMessage() }
                 }
+                Log.d(TAG, "🔍 Проверка дубликатов: temps=${tempSnapshot.size}, room=${currentRoom.size}")
                 val remaining = tempSnapshot.filter { temp ->
-                    val tempPrefix = temp.text.take(80)
-                    !currentRoom.any { synced ->
-                        synced.isUser == temp.isUser && synced.text.take(80) == tempPrefix
+                    val tempPrefix = temp.text.take(80).lowercase()
+                    val found = currentRoom.any { synced ->
+                        synced.isUser == temp.isUser && synced.text.take(80).lowercase() == tempPrefix
                     }
+                    if (!found) {
+                        Log.w(TAG, "⚠️ Temp без дубля: isUser=${temp.isUser}, prefix='${tempPrefix.take(40)}'")
+                        val candidates = currentRoom.filter { it.isUser == temp.isUser }
+                            .takeLast(3)
+                        candidates.forEach { c ->
+                            Log.w(TAG, "   Room candidate: id=${c.id}, prefix='${c.text.take(40)}'")
+                        }
+                    }
+                    !found
                 }
                 _temporaryMessages.value = remaining
                 if (remaining.isNotEmpty()) {
                     Log.d(TAG, "📌 ${remaining.size} temp-сообщений остались (не найдены в Room)")
+                } else {
+                    Log.d(TAG, "✅ Все temp-сообщения нашли дубль в Room — очистка полная")
                 }
                 _isTyping.value = false
 
@@ -928,15 +940,22 @@ class ChatViewModel @Inject constructor(
                 val currentRoom = withContext(Dispatchers.IO) {
                     chatRepository.getChatHistoryOnce().map { it.toChatMessage() }
                 }
+                Log.d(TAG, "🔍 Проверка дубликатов: temps=${tempSnapshot.size}, room=${currentRoom.size}")
                 val remaining = tempSnapshot.filter { temp ->
-                    val tempPrefix = temp.text.take(80)
-                    !currentRoom.any { synced ->
-                        synced.isUser == temp.isUser && synced.text.take(80) == tempPrefix
+                    val tempPrefix = temp.text.take(80).lowercase()
+                    val found = currentRoom.any { synced ->
+                        synced.isUser == temp.isUser && synced.text.take(80).lowercase() == tempPrefix
                     }
+                    if (!found) {
+                        Log.w(TAG, "⚠️ Temp без дубля: isUser=${temp.isUser}, prefix='${tempPrefix.take(40)}'")
+                    }
+                    !found
                 }
                 _temporaryMessages.value = remaining
                 if (remaining.isNotEmpty()) {
                     Log.d(TAG, "📌 ${remaining.size} temp-сообщений остались (не найдены в Room)")
+                } else {
+                    Log.d(TAG, "✅ Все temp-сообщения нашли дубль в Room — очистка полная")
                 }
                 _isTyping.value = false
                 
