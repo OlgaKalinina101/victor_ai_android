@@ -83,20 +83,19 @@ class ChatViewModel @Inject constructor(
             // В режиме поиска показываем результаты поиска
             searchMessages
         } else {
-            // Фильтруем временные сообщения: удаляем те, для которых есть синхронизированный дубликат
+            // Фильтруем временные: удаляем те, для которых в Room уже есть дубликат.
+            // Сравниваем по роли + начало текста (первые 80 символов), чтобы не
+            // ломаться на минорных расхождениях полного текста при сохранении на бэкенде.
             val filteredTempMessages = tempMessages.filter { temp ->
-                // Ищем синхронизированное сообщение с тем же текстом, ролью и близким timestamp
+                val tempPrefix = temp.text.take(80)
                 val hasSyncedDuplicate = roomMessages.any { synced ->
-                    synced.isUser == temp.isUser &&
-                    synced.text == temp.text &&
-                    kotlin.math.abs(synced.timestamp - temp.timestamp) < 120 // 2 минуты
+                    synced.isUser == temp.isUser && synced.text.take(80) == tempPrefix
                 }
                 !hasSyncedDuplicate
             }
             
-            // Объединяем: синхронизированные + отфильтрованные временные
             val combined = roomMessages + filteredTempMessages
-            combined.sortedBy { it.timestamp }
+            combined.sortedWith(compareBy<ChatMessage> { it.timestamp }.thenBy { it.id ?: Int.MAX_VALUE })
         }
     }.stateIn(
         scope = viewModelScope,
@@ -690,10 +689,9 @@ class ChatViewModel @Inject constructor(
                     chatRepository.getChatHistoryOnce().map { it.toChatMessage() }
                 }
                 val remaining = tempSnapshot.filter { temp ->
+                    val tempPrefix = temp.text.take(80)
                     !currentRoom.any { synced ->
-                        synced.isUser == temp.isUser &&
-                        synced.text == temp.text &&
-                        kotlin.math.abs(synced.timestamp - temp.timestamp) < 120
+                        synced.isUser == temp.isUser && synced.text.take(80) == tempPrefix
                     }
                 }
                 _temporaryMessages.value = remaining
@@ -931,10 +929,9 @@ class ChatViewModel @Inject constructor(
                     chatRepository.getChatHistoryOnce().map { it.toChatMessage() }
                 }
                 val remaining = tempSnapshot.filter { temp ->
+                    val tempPrefix = temp.text.take(80)
                     !currentRoom.any { synced ->
-                        synced.isUser == temp.isUser &&
-                        synced.text == temp.text &&
-                        kotlin.math.abs(synced.timestamp - temp.timestamp) < 120
+                        synced.isUser == temp.isUser && synced.text.take(80) == tempPrefix
                     }
                 }
                 _temporaryMessages.value = remaining

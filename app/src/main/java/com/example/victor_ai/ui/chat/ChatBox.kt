@@ -148,49 +148,41 @@ fun ChatBox(
         }
     }
 
+    // Единый отсортированный список: synced по id (desc), потом unsynced по timestamp (desc).
+    // Unsynced всегда внизу (самые новые), synced — выше, в порядке backendId.
+    val sortedMessages = remember(messages) {
+        val synced = messages.filter { it.isSynced }.sortedByDescending { it.id }
+        val unsynced = messages.filter { !it.isSynced }
+            .sortedWith(
+                compareByDescending<ChatMessage> { it.timestamp }
+                    .thenBy { if (it.isUser) 1 else 0 }
+            )
+        unsynced + synced
+    }
+
     // 🔍 Автоскролл к найденному сообщению при поиске
     LaunchedEffect(searchMatchedMessageId) {
         searchMatchedMessageId?.let { matchedId ->
             Log.d("ChatBox", "🎯 Автоскролл к сообщению: matched_id=$matchedId")
 
-            // Логируем все сообщения ДО сортировки
-            Log.d("ChatBox", "📋 Сообщения ДО сортировки: ${messages.filter { it.isSynced }.map { "id=${it.id}" }}")
-
-            // Находим индекс сообщения в списке ПОСЛЕ сортировки (как в рендеринге)
-            val syncedMessages = messages.filter { it.isSynced }.sortedByDescending { it.id }
-
-            // Логируем все сообщения ПОСЛЕ сортировки
-            Log.d("ChatBox", "📋 Сообщения ПОСЛЕ сортировки: ${syncedMessages.map { "id=${it.id}" }}")
-
-            val messageIndex = syncedMessages.indexOfFirst { it.id == matchedId }
+            val messageIndex = sortedMessages.indexOfFirst { it.id == matchedId }
 
             if (messageIndex != -1) {
-                // Учитываем несинхронизированные сообщения и индикатор печати
-                val unsyncedCount = messages.count { !it.isSynced }
                 val typingIndicatorCount = if (isTyping) 1 else 0
-                val actualIndex = typingIndicatorCount + unsyncedCount + messageIndex
+                val actualIndex = typingIndicatorCount + messageIndex
 
-                Log.d("ChatBox", "📍 Найдено: messageIndex в synced=$messageIndex, actualIndex в LazyColumn=$actualIndex")
-                Log.d("ChatBox", "📊 Breakdown: typing=$typingIndicatorCount, unsynced=$unsyncedCount, messageIndex=$messageIndex")
-                Log.d("ChatBox", "🔍 Сообщение на позиции $messageIndex: id=${syncedMessages[messageIndex].id}, text=${syncedMessages[messageIndex].text.take(50)}")
+                Log.d("ChatBox", "📍 Найдено: messageIndex=$messageIndex, actualIndex=$actualIndex")
 
-                // Даем время на рендеринг списка
                 kotlinx.coroutines.delay(100)
 
-                // Вычисляем offset для центрирования
-                // Получаем высоту viewport и центрируем элемент
                 val viewportHeight = listState.layoutInfo.viewportSize.height
                 val centerOffset = -(viewportHeight / 2)
 
-                Log.d("ChatBox", "📐 Viewport height: $viewportHeight, center offset: $centerOffset")
-
-                // Скроллим к элементу с центрированием
                 listState.animateScrollToItem(actualIndex, scrollOffset = centerOffset)
 
                 Log.d("ChatBox", "✅ Скролл выполнен к индексу $actualIndex с центрированием")
             } else {
-                Log.w("ChatBox", "⚠️ Сообщение с id=$matchedId НЕ НАЙДЕНО в списке!")
-                Log.w("ChatBox", "⚠️ Доступные ID: ${syncedMessages.map { it.id }}")
+                Log.w("ChatBox", "⚠️ Сообщение с id=$matchedId НЕ НАЙДЕНО в sortedMessages!")
             }
         }
     }
@@ -379,22 +371,6 @@ fun ChatBox(
             }
         }
     }
-    
-    // 🔥 ОПТИМИЗАЦИЯ: Кэшируем фильтрацию и сортировку, чтобы не выполнять при каждой рекомпозиции
-    val unsyncedMessages = remember(messages) {
-        messages
-            .filter { !it.isSynced }
-            .sortedWith(
-                compareByDescending<ChatMessage> { it.timestamp }
-                    .thenBy { if (it.isUser) 1 else 0 }
-            )
-    }
-
-    val syncedMessages = remember(messages) {
-        messages
-            .filter { it.isSynced }
-            .sortedByDescending { it.id }
-    }
 
             // Чтобы корутины (клик по превью) видели актуальные значения
             val latestMessages by rememberUpdatedState(messages)
@@ -492,19 +468,13 @@ fun ChatBox(
                     }
                 }
 
-                // 🔥 НЕСИНХРОНИЗИРОВАННЫЕ сообщения - показываются ВТОРЫМИ (внизу с reverseLayout)
-                Log.d("ChatBox", "🔍 Несинхронизированных найдено: ${unsyncedMessages.size}")
-                unsyncedMessages.forEach { Log.d("ChatBox", "  id=${it.id}, ts=${it.timestamp}, isUser=${it.isUser}, isSynced=${it.isSynced}, text=${it.text.take(20)}") }
-
+                // Все сообщения единым списком (unsynced внизу, synced выше)
                 items(
-                    items = unsyncedMessages,
+                    items = sortedMessages,
                     key = { message -> getMessageKey(message) }
                 ) { message ->
-                    // 🔥 ОПТИМИЗАЦИЯ: Используем ключ вместо indexOf (O(1) вместо O(n))
                     val messageKey = getMessageKey(message)
                     val isEditing = editingMessageKey == messageKey
-
-                    Log.d("ChatBox", "🎨 Рендерим НЕСИНХРОНИЗИРОВАННОЕ сообщение: id=${message.id}, isUser=${message.isUser}, text=${message.text.take(30)}")
 
                     Box(
                         modifier = Modifier.pointerInput(message.id) {
@@ -542,78 +512,6 @@ fun ChatBox(
                             },
                             onSaveEdit = {
                                 if (editingText.isNotBlank()) {
-                                    // Находим индекс в исходном списке только при сохранении
-                                    val actualIndex = messages.indexOf(message)
-                                    onEditMessage(actualIndex, editingText)
-                                    editingMessageKey = null
-                                    editingText = ""
-                                }
-                            },
-                            onCopy = {
-                                clipboardManager.setText(AnnotatedString(message.text))
-                            },
-                            onEmojiSelected = { emoji ->
-                                message.id?.let { messageId ->
-                                    onUpdateEmoji(messageId, emoji)
-                                }
-                            },
-                            onSwipedMessageClick = { targetId ->
-                                onSwipedPreviewClick(targetId)
-                            },
-                            searchQuery = searchQuery,
-                            isHighlighted = message.id == searchMatchedMessageId || message.id == jumpHighlightId
-                        )
-                    }
-                }
-
-                // 🔥 СИНХРОНИЗИРОВАННЫЕ сообщения с бэкенда - показываются ПОСЛЕ (вверху с reverseLayout)
-                items(
-                    items = syncedMessages,
-                    key = { message -> getMessageKey(message) }
-                ) { message ->
-                    // 🔥 ОПТИМИЗАЦИЯ: Используем ключ вместо indexOf (O(1) вместо O(n))
-                    val messageKey = getMessageKey(message)
-                    val isEditing = editingMessageKey == messageKey
-
-                    Log.d("ChatBox", "🎨 Рендерим сообщение: id=${message.id}, isUser=${message.isUser}, text=${message.text.take(30)}")
-
-                    Box(
-                        modifier = Modifier.pointerInput(message.id) {
-                            var dragSum = 0f
-                            detectHorizontalDragGestures(
-                                onHorizontalDrag = { _, dragAmount ->
-                                    dragSum += dragAmount
-                                },
-                                onDragEnd = {
-                                    val canSwipe = message.isSynced && message.id != null
-                                    if (canSwipe && kotlin.math.abs(dragSum) > swipeThresholdPx) {
-                                        swipeMessageId = message.id
-                                        swipeMessagePreview = message.text.take(120)
-                                        Log.d("ChatBox", "👆 Swipe selected messageId=${message.id}")
-                                    }
-                                    dragSum = 0f
-                                },
-                                onDragCancel = { dragSum = 0f }
-                            )
-                        }
-                    ) {
-                        MessageItem(
-                            message = message,
-                            isEditing = isEditing,
-                            editingText = editingText,
-                            currentMode = currentMode,
-                            onEditingTextChange = { editingText = it },
-                            onStartEdit = {
-                                editingMessageKey = messageKey
-                                editingText = message.text
-                            },
-                            onCancelEdit = {
-                                editingMessageKey = null
-                                editingText = ""
-                            },
-                            onSaveEdit = {
-                                if (editingText.isNotBlank()) {
-                                    // Находим индекс в исходном списке только при сохранении
                                     val actualIndex = messages.indexOf(message)
                                     onEditMessage(actualIndex, editingText)
                                     editingMessageKey = null
