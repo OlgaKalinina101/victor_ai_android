@@ -2,7 +2,8 @@
 
 # ONE OF THE FIRST OPEN-SOURCE EMOTIONAL AI COMPANIONS FOR PERSONAL RELATIONSHIPS
 
-> ❗An English version, created with love for communities that know the pain of losing their AI companions, will be available by the end of Q1 2026 (#keep4o, Character AI, Replica, etc.).
+> Проект на переосмыслении и вероятнее всего мигрирует на https://github.com/OlgaKalinina101/your_own 
+> Лично для меня он остается крутым местом для личных экспериментов, и первым, где проверяются какие либо гипотезы, но стал слишком тесным для всего что хочется здесь реализовать. 
 
 ## 📱 О приложении
 ---
